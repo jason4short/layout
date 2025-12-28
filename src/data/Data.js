@@ -130,8 +130,20 @@ class Data
 			if(shapes[i].selected){
 				selectedShapes.push(shapes[i]);
 			}
-		}	
+		}
 		return selectedShapes;
+	}
+
+	// Find all intersections between a shape and an array of boundary shapes
+	findIntersectionsWithBoundaries(shape, boundaries) {
+		const intersections = [];
+		for (const boundary of boundaries) {
+			const points = this.intersections.intersect_shapes(shape, boundary);
+			if (points && points.length) {
+				intersections.push(...points);
+			}
+		}
+		return intersections;
 	}
 	
 	selectShape(mouse, shiftKey){

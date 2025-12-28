@@ -35,7 +35,7 @@ export class ToolManager
 		this.parallelLineTool	= new ParallelLineTool();
 		this.trimTool			= new TrimTool();
 
-		this.initTool(this.lineTool);
+		this.initTool(this.pointerTool);
 	}
 	
 	/** Redraw everything. */

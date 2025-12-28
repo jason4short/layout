@@ -119,23 +119,36 @@ class Stage extends View
 		this.dispatchEvent('keyUp', e);
 	}
 		
+	// Normalize mouse event to canvas-relative coordinates
+	normalizeMouseEvent(e) {
+		// Create a simple object with canvas-relative x/y
+		// offsetX/offsetY are relative to the canvas element
+		return {
+			x: e.offsetX,
+			y: e.offsetY,
+			offsetX: e.offsetX,
+			offsetY: e.offsetY,
+			originalEvent: e
+		};
+	}
+
 	onMouseMove(e)
 	{
-		this.mouse = e;
+		this.mouse = this.normalizeMouseEvent(e);
 		if(this.toolSnaps)
-			draftingAssistant.snap(e);
-		this.dispatchEvent('mouseMove', e);
-		this.render();		
+			draftingAssistant.snap(this.mouse);
+		this.dispatchEvent('mouseMove', this.mouse);
+		this.render();
 	}
 
 	onMouseDown(e)
 	{
-		this.dispatchEvent('mouseDown', e);
+		this.dispatchEvent('mouseDown', this.normalizeMouseEvent(e));
 	}
 
 	onMouseUp(e)
 	{
-		this.dispatchEvent('mouseUp', e);		
+		this.dispatchEvent('mouseUp', this.normalizeMouseEvent(e));
 	}
 	
 	// UI for input handling

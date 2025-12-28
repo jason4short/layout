@@ -105,9 +105,9 @@ export class Line extends Geometry
 
 	getGeoSnap(mouse, mouseRect, pixelTolerance)
 	{
-		// Quick reject		
+		// Quick reject
 		if (!this.bounds.intersects(mouseRect)){return null};
-		
+
 		// Precise closest point on the segment
 		const point 	= this.closestPointOnSegment(mouse, this.start, this.end);
 		point.distance 	= this.distanceBetweenPoints(mouse, point);
@@ -117,6 +117,43 @@ export class Line extends Geometry
 		}else{
 			return null;
 		}
+	}
+
+	// Returns parametric t value (0-1) for a point on the line
+	// t=0 is start, t=1 is end
+	getParametricT(point) {
+		const lineVec = {
+			x: this.end.x - this.start.x,
+			y: this.end.y - this.start.y
+		};
+		const pointVec = {
+			x: point.x - this.start.x,
+			y: point.y - this.start.y
+		};
+		const lineLengthSq = lineVec.x * lineVec.x + lineVec.y * lineVec.y;
+		if (lineLengthSq === 0) return 0;
+		return (pointVec.x * lineVec.x + pointVec.y * lineVec.y) / lineLengthSq;
+	}
+
+	// Returns point at parametric position t
+	getPointAtT(t) {
+		return {
+			x: this.start.x + t * (this.end.x - this.start.x),
+			y: this.start.y + t * (this.end.y - this.start.y)
+		};
+	}
+
+	// Update endpoints for trimming
+	trimToPoints(newStart, newEnd) {
+		if (newStart) {
+			this.start.x = newStart.x;
+			this.start.y = newStart.y;
+		}
+		if (newEnd) {
+			this.end.x = newEnd.x;
+			this.end.y = newEnd.y;
+		}
+		this.update();
 	}
 }
 
