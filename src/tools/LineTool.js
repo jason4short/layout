@@ -25,9 +25,6 @@ export class LineTool extends Tool
 	
 	begin(){
 		console.log("begin Line Tool");
-		stage.addEventListener('keyUp', 		this.onKeyUp);
-		stage.addEventListener('mouseUp', 		this.onMouseUp);
-		stage.addEventListener('mouseMove',		this.onMouseMove);
 		stage.addEventListener('mouseDown',		this.onMouseDown);
 	}
 
@@ -48,6 +45,10 @@ export class LineTool extends Tool
 
 	onMouseDown(e)
 	{
+		stage.addEventListener('keyUp', 		this.onKeyUp);
+		stage.addEventListener('mouseUp', 		this.onMouseUp);
+		stage.addEventListener('mouseMove',		this.onMouseMove);
+
 		if(this.line){
 		
 		}else{
@@ -67,11 +68,16 @@ export class LineTool extends Tool
 	}
 
 	onMouseUp(e){
+		stage.removeEventListener('keyUp', 		this.onKeyUp);
+		stage.removeEventListener('mouseUp', 	this.onMouseUp);
+		stage.removeEventListener('mouseMove', 	this.onMouseMove);
+
 		if(this.line.length() < 5){
 			// do nothing, we're still defining the line		
 		}else{
 			this.line.update();
-			data.addShape(this.line)
+			data.addShape(this.line);
+			data.removeTempShape();
 			stage.render();
 			stage.setInputCallback(this.updateDimension)
 			stage.setDimensionInputValue(this.line.length());

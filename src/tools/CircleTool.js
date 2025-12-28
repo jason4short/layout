@@ -85,6 +85,7 @@ export class CircleTool extends Tool
 		}else{
 			this.circle.update();
 			data.addShape(this.circle)
+			data.removeTempShape();
 			this.circle = false;
 			stage.render();
 		}

@@ -82,7 +82,6 @@ class DraftingAssistant
 		return false;
 	}
 
-
 	activateGuides(mouse, geoSet){
 		const mouseRect = new Rectangle(mouse.x-10, mouse.y-10, 20, 20);
 

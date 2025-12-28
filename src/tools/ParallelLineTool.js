@@ -35,10 +35,10 @@ export class ParallelLineTool extends Tool
 
 	exit(){
 		console.log("exit ParallelTool");
+		stage.removeEventListener('mouseDown', 	this.onMouseDown);
 		stage.removeEventListener('keyUp', 		this.onKeyUp);
 		stage.removeEventListener('mouseUp', 	this.onMouseUp);
 		stage.removeEventListener('mouseMove', 	this.onMouseMove);
-		stage.removeEventListener('mouseDown', 	this.onMouseDown);
 	}
 
 	onKeyUp(e){
@@ -51,8 +51,8 @@ export class ParallelLineTool extends Tool
 	onMouseDown(e)
 	{
 		console.log('[ParallelLineTool] mouseDown');
+		data.selectNone();
 		const startMousePoint = data.getCurrentSnapPoint();
-
 		const selectedShape = data.getTargetShape(startMousePoint);
 	
 		if(!selectedShape || selectedShape.geometry !== Shape.LINE){
@@ -146,12 +146,18 @@ export class ParallelLineTool extends Tool
 	 */
 	onMouseUp(e)
 	{
+		stage.removeEventListener('keyUp', 		this.onKeyUp);
+		stage.removeEventListener('mouseUp', 	this.onMouseUp);
+		stage.removeEventListener('mouseMove', 	this.onMouseMove);
+
 		if(!this.previewLine){
+			console.log("this.previewLine "+this.previewLine)
 			return;
 		}
 
 		this.previewLine.update();
 		data.addShape(this.previewLine);
+		data.removeTempShape();
 
 		//this.resetDragState();
 		stage.render();

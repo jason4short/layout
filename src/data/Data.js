@@ -29,7 +29,7 @@ class Data
 		this.shapes 				= [];
 		this.constructions			= [];
 		this.guides					= []; // temp constructions, ephemeral, gen on snap points
-		this.shapePreview 			= []; // 
+		this.shapePreview 			= null; // 
 
 		// store unique snap points in a ring buffer	
 		this.snapPoints				= []; // DA snap storage - only geometry points of interest are stored
@@ -112,11 +112,6 @@ class Data
 	}
 	
 	getTargetShape(mouse){
-		// clear selection
-		this.selectNone();
-		this.selectedShape = null;
-
-		// clear selection
 		let snap = draftingAssistant.findNearestSnapPoint_OnShape(mouse, this.shapes);
 		if(snap){
 			return snap.shape;
@@ -135,7 +130,8 @@ class Data
 	}
 
 	// Find all intersections between a shape and an array of boundary shapes
-	findIntersectionsWithBoundaries(shape, boundaries) {
+	findIntersectionsWithBoundaries(shape, boundaries)
+	{
 		const intersections = [];
 		for (const boundary of boundaries) {
 			const points = this.intersections.intersect_shapes(shape, boundary);
@@ -143,13 +139,13 @@ class Data
 				intersections.push(...points);
 			}
 		}
+		// returns a array of points
 		return intersections;
 	}
 	
 	selectShape(mouse, shiftKey){
 		// clear selection
 		if(shiftKey == false){this.selectNone();}
-		this.selectedShape = null;
 
 		// clear selection
 		let snap = draftingAssistant.findNearestSnapPoint_OnShape(mouse, this.shapes);
@@ -184,6 +180,25 @@ class Data
 		return newShape;
 	}
 
+	deleteShape(shape){
+		console.log("deleteShape "+shape)
+		// Try to delete from shapes first
+		let index = this.shapes.indexOf(shape);
+		if(index > -1){
+			this.shapes.splice(index, 1);
+			this.resetSnapCandidates();
+			return;
+		}
+
+		// Try constructions
+		index = this.constructions.indexOf(shape);
+		if(index > -1){
+			this.constructions.splice(index, 1);
+			this.resetSnapCandidates();
+			return;
+		}
+	}
+
 
 	// 	stores a shape from a shape geometry object
 	//	useful for interactively generating shapes via tools
@@ -203,16 +218,6 @@ class Data
 
 	// from stroke commands
 	addConstruction(construction){ 
-
-		// does this line overlap? 
-// 		for(const shape of this.constructions){	
-// 			if(construction.angle == 90 && construction.angle == 90 && shape.start.x == construction.start.x){
-// 				return;
-// 			}else if(construction.angle == 0 && construction.angle == 0 && shape.start.y == construction.start.y){
-// 				return;
-// 			}
-// 		}
-
 		this.findIntersections(construction, this.conIntersections);
 		this.constructions.push(construction);
 	}
@@ -220,30 +225,11 @@ class Data
 
 	/* 	for drawing Previews */
 	addTempShape(newShape){
-		//create a new guide object
-		//let g = new Guide([newShape.start.x, newShape.start.y]);
-		// manually create a new snap point 
-
-//		const key = `${newShape.start.x},${newShape.start.y}`;
-//		this.snaps.set(key, {x:newShape.start.x, y:newShape.start.y});
-
-	//this.addGuides(data.snaps, `${point.x},${point.y}`, snap);		
-// 		
-// 		if(newShape.geometry === Shape.LINE){
-// 			snap.addGuides(this.snaps, `${newShape.start.x},${newShape.start.y}`, newShape.start);
-// 			
-// 		}else if(newShape.geometry === Shape.CIRCLE){
-// 			snap.addGuides(this.snaps, `${newShape.x},${newShape.y}`, newShape)
-// 		}
-
-		// set initial snapPoint
-		
-
-		this.shapePreview.push(newShape);
+		this.shapePreview = newShape;
 	}
-		
+
 	removeTempShape(){
-		this.shapePreview = [];
+		this.shapePreview = null;
 	}
 
 	getShapes(){
@@ -256,7 +242,7 @@ class Data
 
 	// Array of all geometry to render
 	getShapesToRender(){
-		return [...this.shapes, ...this.shapePreview, ...this.constructions, ...this.guides];
+		return [...this.shapes, ...this.constructions, ...this.guides, this.shapePreview].filter(Boolean);
 	}
 
 	// Array of all points we could snap to
@@ -272,7 +258,6 @@ class Data
 	getGuides(){
 		return [...this.guides];
 	}
-	
 
 	getNewShape(type){
 		this.setCurrentSnapPoint(this.snapPoint, true);
@@ -287,7 +272,8 @@ class Data
 	// --------------------------------------------------------------------------------
 	// DA Guides
 	// --------------------------------------------------------------------------------
-	
+	// xxx move logic to DA?
+
 	// tracks the current snapped point
 	setCurrentSnapPoint(p, store){ 
 		//console.log(p, store)
@@ -305,12 +291,13 @@ class Data
 	
 	// when creating geometry include the start point as a snap guide
 	addSnapPoint(p){
-		// only unique, only 4-8
 
+		// no dupes
 		for(const snapPoint of this.snapPoints){
 			if(snapPoint.x == p.x && snapPoint.y == p.y)
 				return;
 		}
+		
 		this.snapPoints[this.snapIndex] = p;
 		this.snapIndex++;
 		if (this.snapIndex >= MAX_SNAP) this.snapIndex = 0;
