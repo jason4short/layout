@@ -19,7 +19,7 @@ export class ParallelLineTool extends Tool
 		this.originalStartPointAtDragStart 	= null;
 		this.originalEndPointAtDragStart 	= null;
 		this.originalUnitNormalAtDragStart 	= null;
-		this.signedPerpendicularOffset		= 0;
+		this.signedOffset					= 0;
 		
 		this.onMouseMove 					= this.onMouseMove.bind(this);
 		this.onMouseDown 					= this.onMouseDown.bind(this);
@@ -118,11 +118,11 @@ export class ParallelLineTool extends Tool
 		const mouseDeltaY 			= currentMousePoint.y - this.dragStartMousePoint.y;
 
 		// Project mouse delta onto the line normal to get the signed perpendicular offset
-		this.signedPerpendicularOffset =
+		this.signedOffset =
 			(mouseDeltaX * this.originalUnitNormalAtDragStart.x) +
 			(mouseDeltaY * this.originalUnitNormalAtDragStart.y);
 
-		this.offsetLine(this.signedPerpendicularOffset);
+		this.offsetLine(this.signedOffset);
 	}
 	
 	offsetLine(newDim){
@@ -162,13 +162,13 @@ export class ParallelLineTool extends Tool
 		//this.resetDragState();
 		stage.render();
 		stage.setInputCallback(this.updateDimension)
-		stage.setDimensionInputValue(Math.abs(this.signedPerpendicularOffset));
+		stage.setDimensionInputValue(Math.abs(this.signedOffset));
 		
 	}
 
 	updateDimension(newDim){
 		//this.prevLine.scaleToDim(newDim);
-		if(this.signedPerpendicularOffset < 0)
+		if(this.signedOffset < 0)
 			newDim = -newDim;
 
 		this.offsetLine(newDim);

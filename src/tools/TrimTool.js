@@ -162,14 +162,9 @@ export class TrimTool extends Tool
 	}
 
 
-	// Extend line to nearest boundary intersection
+	// Extend/trim line to the two boundaries that bracket the click point
 	extendLine(line, boundaries, clickPoint){
-		// Determine which endpoint is closer to click
-		const distToStart = this.distanceBetweenPoints(clickPoint, line.start);
-		const distToEnd = this.distanceBetweenPoints(clickPoint, line.end);
-		const extendStart = distToStart < distToEnd;
-
-		// Create an extended line for intersection testing
+		// Create an extended line for intersection testing (both directions)
 		const direction = {
 			x: line.end.x - line.start.x,
 			y: line.end.y - line.start.y
@@ -181,64 +176,52 @@ export class TrimTool extends Tool
 		direction.x /= len;
 		direction.y /= len;
 
-		// Create a temporary extended line (10000 units in the extend direction)
-		let extendedLine;
-		if(extendStart){
-			// Extend backward from start
-			extendedLine = new Line([
-				line.start.x - direction.x * 10000,
-				line.start.y - direction.y * 10000,
-				line.end.x,
-				line.end.y
-			]);
-		}else{
-			// Extend forward from end
-			extendedLine = new Line([
-				line.start.x,
-				line.start.y,
-				line.end.x + direction.x * 10000,
-				line.end.y + direction.y * 10000
-			]);
-		}
+		// Create a temporary line extended in both directions
+		const extendedLine = new Line([
+			line.start.x - direction.x * 10000,
+			line.start.y - direction.y * 10000,
+			line.end.x + direction.x * 10000,
+			line.end.y + direction.y * 10000
+		]);
 
 		// Find intersections with boundaries using extended line
 		const intersections = data.findIntersectionsWithBoundaries(extendedLine, boundaries);
 
-		if(intersections.length === 0){
+		if(intersections.length < 2){
 			return;
 		}
 
-		// Find nearest intersection beyond the current endpoint
-		let nearestDist = Infinity;
-		let nearestPoint = null;
+		// Get click point's t value on the line
+		const clickT = line.getParametricT(clickPoint);
 
-		for(const p of intersections){
-			const t = line.getParametricT(p);
+		// Convert intersections to t values and sort
+		const tPoints = intersections
+			.map(p => ({
+				t: line.getParametricT(p),
+				point: p
+			}))
+			.sort((a, b) => a.t - b.t);
 
-			// For extending start, we want t < 0
-			// For extending end, we want t > 1
-			if(extendStart && t < 0){
-				const dist = this.distanceBetweenPoints(line.start, p);
-				if(dist < nearestDist){
-					nearestDist = dist;
-					nearestPoint = p;
-				}
-			}else if(!extendStart && t > 1){
-				const dist = this.distanceBetweenPoints(line.end, p);
-				if(dist < nearestDist){
-					nearestDist = dist;
-					nearestPoint = p;
-				}
+		// Find the two intersections that bracket the click point
+		let bracketBefore = null;
+		let bracketAfter = null;
+
+		for (const tp of tPoints) {
+			if (tp.t <= clickT) {
+				bracketBefore = tp;
+			}
+			if (tp.t >= clickT && bracketAfter === null) {
+				bracketAfter = tp;
 			}
 		}
 
-		if(nearestPoint){
-			if(extendStart){
-				line.trimToPoints(nearestPoint, null);
-			}else{
-				line.trimToPoints(null, nearestPoint);
-			}
+		// Need both brackets to proceed
+		if (!bracketBefore || !bracketAfter) {
+			return;
 		}
+
+		// Trim/extend line to fit exactly between the two bracketing boundaries
+		line.trimToPoints(bracketBefore.point, bracketAfter.point);
 	}
 }
 

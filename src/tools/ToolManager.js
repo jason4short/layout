@@ -1,4 +1,6 @@
 import stage 				from '../core/Stage.js';
+import data 				from '../data/Data.js';
+
 import { LineTool } 		from "./LineTool.js";
 import { HandTool } 		from "./HandTool.js";
 import { PointerTool } 		from "./PointerTool.js";
