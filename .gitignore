@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Editor files
+*.bbprojectd/
+.editorconfig.txt
+
+# Node modules (if you add npm later)
+node_modules/
+
+# Build output
+dist/
+build/
