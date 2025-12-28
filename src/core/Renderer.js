@@ -56,6 +56,10 @@ export class Renderer
 			} else if(shape.geometry === Shape.CIRCLE){
 				ctx.arc(shape.x, shape.y, shape.radius, 0, Math.PI * 2);
 				ctx.stroke();
+
+			} else if(shape.geometry === Shape.ARC){
+				ctx.arc(shape.x, shape.y, shape.radius, shape.startAngle, shape.endAngle);
+				ctx.stroke();
 			}
 		}
 		

@@ -11,17 +11,29 @@ export class Intersections {
 
 
 	intersect_shapes(shape0, shape1){
-	
+
 		const shapes = this.normalizeShapePair(shape0, shape1);
-		
+
 		if(shapes[0].geometry == Shape.LINE && shapes[1].geometry == Shape.LINE){
 			// call line line
 			return this.intersect_lines(shapes[0], shapes[1]);
-		
+
+		}else if(shapes[0].geometry == Shape.LINE && shapes[1].geometry == Shape.ARC){
+			// line-arc: use line-circle, filter by arc angle
+			return this.intersect_line_arc(shapes[0], shapes[1]);
+
 		}else if(shapes[0].geometry == Shape.LINE && shapes[1].geometry == Shape.CIRCLE){
 			// call line circle
 			return this.intersect_line_cirlce(shapes[0], shapes[1]);
-			
+
+		}else if(shapes[0].geometry == Shape.ARC && shapes[1].geometry == Shape.ARC){
+			// arc-arc: use circle-circle, filter both arcs
+			return this.intersect_arc_arc(shapes[0], shapes[1]);
+
+		}else if(shapes[0].geometry == Shape.ARC && shapes[1].geometry == Shape.CIRCLE){
+			// arc-circle: use circle-circle, filter by arc angle
+			return this.intersect_arc_circle(shapes[0], shapes[1]);
+
 		}else if(shapes[0].geometry == Shape.CIRCLE && shapes[1].geometry == Shape.CIRCLE){
 			// call circle circle
 			return this.intersect_circle_circle(shapes[0], shapes[1]);
@@ -43,6 +55,7 @@ export class Intersections {
 			case Shape.POINT: 		return 10;
 			case Shape.GUIDE:		return 20;
 			case Shape.LINE: 		return 20;
+			case Shape.ARC:			return 25;
 			case Shape.CIRCLE: 		return 30;
 			case Shape.RECTANGLE: 	return 40;
 			default: return 1000;
@@ -234,5 +247,44 @@ export class Intersections {
 		intersections.push({x: midpointX - offsetX, y: midpointY - offsetY});
 
 		return intersections;
+	}
+
+	// Check if a point lies on an arc's angle range
+	isPointOnArc(point, arc) {
+		const angle = Math.atan2(point.y - arc.y, point.x - arc.x);
+		return arc.containsAngle(angle);
+	}
+
+	// Line-Arc intersection: use line-circle math, filter by arc angle
+	intersect_line_arc(line, arc) {
+		// Reuse line-circle intersection (arc extends Circle)
+		const circleIntersections = this.intersect_line_cirlce(line, arc);
+		if (!circleIntersections || circleIntersections.length === 0) {
+			return [];
+		}
+		// Filter to only points within the arc's angle range
+		return circleIntersections.filter(p => this.isPointOnArc(p, arc));
+	}
+
+	// Arc-Circle intersection: use circle-circle math, filter by arc angle
+	intersect_arc_circle(arc, circle) {
+		const circleIntersections = this.intersect_circle_circle(arc, circle);
+		if (!circleIntersections || circleIntersections.length === 0) {
+			return [];
+		}
+		// Filter to only points within the arc's angle range
+		return circleIntersections.filter(p => this.isPointOnArc(p, arc));
+	}
+
+	// Arc-Arc intersection: use circle-circle math, filter by both arcs
+	intersect_arc_arc(arc0, arc1) {
+		const circleIntersections = this.intersect_circle_circle(arc0, arc1);
+		if (!circleIntersections || circleIntersections.length === 0) {
+			return [];
+		}
+		// Filter to only points within both arcs' angle ranges
+		return circleIntersections.filter(p =>
+			this.isPointOnArc(p, arc0) && this.isPointOnArc(p, arc1)
+		);
 	}
 }

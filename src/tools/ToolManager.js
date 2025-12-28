@@ -1,13 +1,14 @@
-import stage 				from '../core/Stage.js';
-import data 				from '../data/Data.js';
-
-import { LineTool } 		from "./LineTool.js";
-import { HandTool } 		from "./HandTool.js";
-import { PointerTool } 		from "./PointerTool.js";
-import { StrokeTool } 		from "./StrokeTool.js";
-import { CircleTool } 		from "./CircleTool.js";
-import { ParallelLineTool } from "./ParallelLineTool.js";
-import { TrimTool } 		from "./TrimTool.js";
+import stage 					from '../core/Stage.js';
+import data 					from '../data/Data.js';
+	
+import { LineTool } 			from "./LineTool.js";
+import { HandTool } 			from "./HandTool.js";
+import { PointerTool } 			from "./PointerTool.js";
+import { StrokeTool } 			from "./StrokeTool.js";
+import { CircleTool } 			from "./CircleTool.js";
+import { ParallelLineTool }		from "./ParallelLineTool.js";
+import { TrimTool } 			from "./TrimTool.js";
+import { ThreePointArcTool } 	from "./ThreePointArcTool.js";
 
 
 
@@ -36,6 +37,7 @@ export class ToolManager
 		this.pointerTool		= new PointerTool();
 		this.parallelLineTool	= new ParallelLineTool();
 		this.trimTool			= new TrimTool();
+		this.threePointArcTool	= new ThreePointArcTool();
 
 		this.initTool(this.pointerTool);
 	}
@@ -133,7 +135,11 @@ export class ToolManager
 				case 't':
 				this.setTool(this.trimTool);
 				break;
-			
+
+				case 'a':
+				this.setTool(this.threePointArcTool);
+				break;
+
 				default:
 			}
 		}
