@@ -11,6 +11,8 @@ import { TrimTool } 			from "./TrimTool.js";
 import { ThreePointArcTool } 	from "./ThreePointArcTool.js";
 import { CenterPointArcTool } 	from "./CenterPointArcTool.js";
 import { TangentPointArcTool } 	from "./TangentPointArcTool.js";
+import { FilletTool } 			from "./FilletTool.js";
+import { ChamferTool } 			from "./ChamferTool.js";
 
 
 
@@ -42,6 +44,8 @@ export class ToolManager
 		this.threePointArcTool		= new ThreePointArcTool();
 		this.centerPointArcTool		= new CenterPointArcTool();
 		this.tangentPointArcTool	= new TangentPointArcTool();
+		this.filletTool				= new FilletTool();
+		this.chamferTool			= new ChamferTool();
 
 		this.initTool(this.pointerTool);
 	}
@@ -58,9 +62,9 @@ export class ToolManager
 	setTool(tool)
 	{
 		data.clearGuides();
-		
+
 		this.currentTool.exit();
-		
+
 		if(tool == this.strokeTool){
 			this.strokeTool.begin();
 		}else{
@@ -68,6 +72,7 @@ export class ToolManager
 			this.currentTool.begin();
 		}
 		stage.toolSnaps = this.currentTool.willSnap;
+		stage.render();
 	}
 	
 
@@ -101,21 +106,26 @@ export class ToolManager
 		}
 	}
 
+	deleteSelected()
+	{
+		if(data.deleteSelected() > 0){
+			stage.render();
+		}
+	}
+
 	onKeyDown(e)
 	{
 		if(stage.commandKey){
 			this.stroke = true;
 			this.setTool(this.strokeTool);
 		}
-		
-//		console.log(e.key);
-
 	}
 	
 	onKeyUp(e)
 	{
 		if(this.stroke){
 			this.stroke = false;
+			this.strokeTool.exit();
 			this.setTool(this.currentTool);
 		}else{
 		
@@ -154,6 +164,19 @@ export class ToolManager
 
 				case '3':
 				this.setTool(this.tangentPointArcTool);
+				break;
+
+				case 'f':
+				this.setTool(this.filletTool);
+				break;
+
+				case 'k':
+				this.setTool(this.chamferTool);
+				break;
+
+				case 'Delete':
+				case 'Backspace':
+				this.deleteSelected();
 				break;
 
 				default:

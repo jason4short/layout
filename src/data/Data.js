@@ -159,7 +159,15 @@ class Data
 	selectNone(){
 		for(let i = 0; i < this.shapes.length; i++){
 			this.shapes[i].selected = false;
-		}	
+		}
+	}
+
+	deleteSelected(){
+		const selected = this.getSelected();
+		for(const shape of selected){
+			this.deleteShape(shape);
+		}
+		return selected.length;
 	}
 
 	/* 	generates a shape from params 
@@ -191,12 +199,12 @@ class Data
 		}
 
 		// Try constructions
-		index = this.constructions.indexOf(shape);
-		if(index > -1){
-			this.constructions.splice(index, 1);
-			this.resetSnapCandidates();
-			return;
-		}
+// 		index = this.constructions.indexOf(shape);
+// 		if(index > -1){
+// 			this.constructions.splice(index, 1);
+// 			this.resetSnapCandidates();
+// 			return;
+// 		}
 	}
 
 
@@ -218,6 +226,7 @@ class Data
 
 	// from stroke commands
 	addConstruction(construction){ 
+		console.log("Add constructions!!!! ")
 		this.findIntersections(construction, this.conIntersections);
 		this.constructions.push(construction);
 	}
@@ -312,7 +321,7 @@ class Data
 	// reset DA guides
 	clearGuides(){
 		this.guideIntersections = [];
-		this.guides	= []; // temp constructions, ephemeral, gen on snap points
+		this.guides = [];
 	}
 	
 	// DA guides
