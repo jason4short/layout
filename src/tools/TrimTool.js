@@ -52,18 +52,14 @@ export class TrimTool extends Tool
 			data.selectShape(e, stage.shiftKey);
 		}else{
 			// Get boundaries and attempt trim/extend
-			const boundaries = data.getSelected();
-
-			// delete shape clicked
-			//if(boundaries.length === 0){
-			//	return;
-			//}
-
-			const clickedShape = data.getTargetShape(e)
+			const clickedShape = data.getTargetShape(e);
 
 			if(!clickedShape){
 				return;
 			}
+
+			// Filter out the clicked shape from boundaries (can't trim a shape against itself)
+			const boundaries = data.getSelected().filter(s => s !== clickedShape);
 
 //			const clickPoint = {x: e.x, y: e.y};
 
@@ -73,11 +69,11 @@ export class TrimTool extends Tool
 				// Handle different shape types
 				if(clickedShape.geometry === Shape.LINE){
 					this.trimLine(clickedShape, boundaries, e);
-				}else if(clickedShape.geometry === Shape.CIRCLE ||
-				         clickedShape.geometry === Shape.ARC){
+					
+				}else if(clickedShape.geometry === Shape.CIRCLE || clickedShape.geometry === Shape.ARC){
 					this.trimCircle(clickedShape, boundaries, e);
-				}else if(clickedShape.geometry === Shape.ELLIPSE ||
-				         clickedShape.geometry === Shape.ELLIPTICAL_ARC){
+
+				}else if(clickedShape.geometry === Shape.ELLIPSE || clickedShape.geometry === Shape.ELLIPTICAL_ARC){
 					this.trimEllipse(clickedShape, boundaries, e);
 				}
 			}
@@ -101,12 +97,13 @@ export class TrimTool extends Tool
 
 	// Trim line by removing the clicked segment
 	trimLine(line, boundaries, clickPoint){
+
 		// Find all intersections with boundaries
 		const intersections = data.findIntersectionsWithBoundaries(line, boundaries);
 
-		// No intersections - delete the entire shape
+		// XXX make is so we need to shift click or something - not sure yet
 		if(intersections.length === 0){
-			data.deleteShape(line);
+			//data.deleteShape(line);
 			return;
 		}
 
@@ -235,31 +232,20 @@ export class TrimTool extends Tool
 		line.trimToPoints(bracketBefore.point, bracketAfter.point);
 	}
 
-	// Trim ellipse by removing the clicked segment
+	// Trim ellipse or elliptical arc by removing the clicked segment
 	trimEllipse(ellipse, boundaries, clickPoint){
 		// Find all intersections with boundaries
 		const intersections = data.findIntersectionsWithBoundaries(ellipse, boundaries);
 
-		// No intersections - delete the entire shape
-		if(intersections.length === 0){
-			data.deleteShape(ellipse);
+		const isArc = ellipse.geometry === Shape.ELLIPTICAL_ARC;
+
+		// Full ellipse needs 2+ intersections, arc needs 1+ (can trim to endpoint)
+		if(intersections.length < 1){
 			return;
 		}
-
-		// Convert click point to angle
-		const clickAngle = Math.atan2(
-			(clickPoint.y - ellipse.y) / ellipse.radiusY,
-			(clickPoint.x - ellipse.x) / ellipse.radiusX
-		);
-
-		// Convert intersections to angles and sort
-		const anglePoints = intersections.map(p => ({
-			angle: Math.atan2(
-				(p.y - ellipse.y) / ellipse.radiusY,
-				(p.x - ellipse.x) / ellipse.radiusX
-			),
-			point: p
-		}));
+		if(!isArc && intersections.length < 2){
+			return;
+		}
 
 		// Normalize angles to [0, 2PI)
 		const normalize = (a) => {
@@ -268,20 +254,34 @@ export class TrimTool extends Tool
 			return a;
 		};
 
-		const normClickAngle = normalize(clickAngle);
-		anglePoints.forEach(ap => ap.normAngle = normalize(ap.angle));
+		// Convert click point to angle
+		const clickAngle = normalize(Math.atan2(
+			(clickPoint.y - ellipse.y) / ellipse.radiusY,
+			(clickPoint.x - ellipse.x) / ellipse.radiusX
+		));
 
+		// Convert intersections to angles
+		const anglePoints = intersections.map(p => ({
+			normAngle: normalize(Math.atan2(
+				(p.y - ellipse.y) / ellipse.radiusY,
+				(p.x - ellipse.x) / ellipse.radiusX
+			)),
+			point: p
+		}));
+
+		if(isArc){
+			// For elliptical arcs, we need different logic
+			this.trimEllipticalArc(ellipse, anglePoints, clickAngle, normalize);
+		}else{
+			// For full ellipse
+			this.trimFullEllipse(ellipse, anglePoints, clickAngle, normalize);
+		}
+	}
+
+	// Trim a full ellipse (creates one arc)
+	trimFullEllipse(ellipse, anglePoints, clickAngle, normalize){
 		// Sort by normalized angle
 		anglePoints.sort((a, b) => a.normAngle - b.normAngle);
-
-		// For full ellipse with intersections, find which segment was clicked
-		// and create elliptical arc(s) for the remaining portion(s)
-
-		if(intersections.length < 2){
-			// Only one intersection - can't trim properly
-			data.deleteShape(ellipse);
-			return;
-		}
 
 		// Find the two intersection angles that bracket the click
 		let bracketBefore = null;
@@ -294,10 +294,10 @@ export class TrimTool extends Tool
 			// Check if click angle is between current and next
 			let inRange;
 			if(current.normAngle <= next.normAngle){
-				inRange = normClickAngle >= current.normAngle && normClickAngle <= next.normAngle;
+				inRange = clickAngle >= current.normAngle && clickAngle <= next.normAngle;
 			}else{
 				// Wraps around
-				inRange = normClickAngle >= current.normAngle || normClickAngle <= next.normAngle;
+				inRange = clickAngle >= current.normAngle || clickAngle <= next.normAngle;
 			}
 
 			if(inRange){
@@ -308,25 +308,97 @@ export class TrimTool extends Tool
 		}
 
 		if(!bracketBefore || !bracketAfter){
-			// Couldn't find brackets, delete shape
-			data.deleteShape(ellipse);
 			return;
 		}
 
 		// Delete the original ellipse
 		data.deleteShape(ellipse);
 
-		// Create elliptical arc for the portion NOT clicked (from bracketAfter to bracketBefore)
+		// Create elliptical arc for the portion NOT clicked
 		const arc = new EllipticalArc([
 			ellipse.x,
 			ellipse.y,
 			ellipse.radiusX,
 			ellipse.radiusY,
 			ellipse.rotation || 0,
-			bracketAfter.angle,  // Start where the clicked segment ended
-			bracketBefore.angle  // End where the clicked segment started
+			bracketAfter.normAngle,
+			bracketBefore.normAngle
 		]);
 		data.addShape(arc);
+	}
+
+	// Trim an elliptical arc (may create one or two arcs)
+	trimEllipticalArc(arc, anglePoints, clickAngle, normalize){
+		const arcStart = normalize(arc.startAngle);
+		const arcEnd = normalize(arc.endAngle);
+
+		// Helper to check if angle is within arc range
+		const isInArc = (angle) => {
+			if(arcStart <= arcEnd){
+				return angle >= arcStart && angle <= arcEnd;
+			}else{
+				return angle >= arcStart || angle <= arcEnd;
+			}
+		};
+
+		// Filter intersection points to only those on the arc
+		const validPoints = anglePoints.filter(ap => isInArc(ap.normAngle));
+
+		if(validPoints.length === 0){
+			return;
+		}
+
+		// Sort points by position along the arc
+		// For arcs, we need to sort relative to the arc's start
+		const angleFromStart = (angle) => {
+			if(arcStart <= arcEnd){
+				return angle - arcStart;
+			}else{
+				if(angle >= arcStart) return angle - arcStart;
+				return (Math.PI * 2 - arcStart) + angle;
+			}
+		};
+
+		validPoints.sort((a, b) => angleFromStart(a.normAngle) - angleFromStart(b.normAngle));
+
+		// Build list of segment boundaries: arcStart, intersection1, intersection2, ..., arcEnd
+		const boundaries = [arcStart, ...validPoints.map(p => p.normAngle), arcEnd];
+
+		// Find which segment contains the click
+		const clickFromStart = angleFromStart(clickAngle);
+		let clickSegmentIndex = -1;
+
+		for(let i = 0; i < boundaries.length - 1; i++){
+			const segStart = angleFromStart(boundaries[i]);
+			const segEnd = angleFromStart(boundaries[i + 1]);
+			if(clickFromStart >= segStart && clickFromStart <= segEnd){
+				clickSegmentIndex = i;
+				break;
+			}
+		}
+
+		if(clickSegmentIndex === -1){
+			return;
+		}
+
+		// Delete original arc
+		data.deleteShape(arc);
+
+		// Create arcs for segments we're NOT removing
+		for(let i = 0; i < boundaries.length - 1; i++){
+			if(i === clickSegmentIndex) continue;
+
+			const newArc = new EllipticalArc([
+				arc.x,
+				arc.y,
+				arc.radiusX,
+				arc.radiusY,
+				arc.rotation || 0,
+				boundaries[i],
+				boundaries[i + 1]
+			]);
+			data.addShape(newArc);
+		}
 	}
 
 	// Trim circle by removing the clicked segment
@@ -334,9 +406,8 @@ export class TrimTool extends Tool
 		// Find all intersections with boundaries
 		const intersections = data.findIntersectionsWithBoundaries(circle, boundaries);
 
-		// No intersections - delete the entire shape
-		if(intersections.length === 0){
-			data.deleteShape(circle);
+		// Need at least 2 intersections to trim a closed curve
+		if(intersections.length < 2){
 			return;
 		}
 
@@ -365,12 +436,6 @@ export class TrimTool extends Tool
 		// Sort by normalized angle
 		anglePoints.sort((a, b) => a.normAngle - b.normAngle);
 
-		if(intersections.length < 2){
-			// Only one intersection - can't trim properly
-			data.deleteShape(circle);
-			return;
-		}
-
 		// Find the two intersection angles that bracket the click
 		let bracketBefore = null;
 		let bracketAfter = null;
@@ -396,21 +461,21 @@ export class TrimTool extends Tool
 		}
 
 		if(!bracketBefore || !bracketAfter){
-			// Couldn't find brackets, delete shape
-			data.deleteShape(circle);
 			return;
 		}
 
 		// Delete the original circle
 		data.deleteShape(circle);
 
-		// Create arc for the portion NOT clicked (from bracketAfter to bracketBefore)
+		// Create arc for the portion NOT clicked
+		// Start at bracketAfter, end at bracketBefore - this goes the "long way" around,
+		// skipping the clicked segment (clockwise = increasing angles in canvas)
 		const arc = new Arc([
 			circle.x,
 			circle.y,
 			circle.radius,
-			bracketAfter.angle,  // Start where the clicked segment ended
-			bracketBefore.angle  // End where the clicked segment started
+			bracketAfter.normAngle,   // Start after the click
+			bracketBefore.normAngle   // End before the click (goes long way around)
 		]);
 		data.addShape(arc);
 	}

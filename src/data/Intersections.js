@@ -88,15 +88,15 @@ export class Intersections {
 	getShapePriority(shapeType)
 	{
 		switch(shapeType){
-			case Shape.POINT: 		return 10;
-			case Shape.GUIDE:		return 20;
-			case Shape.LINE: 		return 20;
-			case Shape.ARC:			return 25;
-			case Shape.CIRCLE: 		return 30;
+			case Shape.POINT: 			return 10;
+			case Shape.GUIDE:			return 20;
+			case Shape.LINE: 			return 20;
+			case Shape.ARC:				return 25;
+			case Shape.CIRCLE: 			return 30;
 			case Shape.ELLIPSE:			return 35;
 			case Shape.ELLIPTICAL_ARC:	return 36;
-			case Shape.RECTANGLE: 	return 40;
-			default: return 1000;
+			case Shape.RECTANGLE: 		return 40;
+			default: 					return 1000;
 		}
 	}
 
@@ -139,7 +139,6 @@ export class Intersections {
 
 	intersect_line_cirlce(line, circle)
 	{
-		console.log("intersect_line_cirlce")
 		let x1 = line.start.x;
 		let y1 = line.start.y;
 		let x2 = line.end.x;
@@ -147,55 +146,56 @@ export class Intersections {
 		let cx = circle.x
 		let cy = circle.y
 		let r  = circle.radius;
-		
+
 		const dx = x2 - x1;
 		const dy = y2 - y1;
-	
+
 		// Shift the line so the circle's center is at the origin for simpler calculations
 		const x1_shifted = x1 - cx;
 		const y1_shifted = y1 - cy;
-	
+
 		const a = dx * dx + dy * dy;
 		const b = 2 * (x1_shifted * dx + y1_shifted * dy);
 		const c = x1_shifted * x1_shifted + y1_shifted * y1_shifted - r * r;
-	
+
 		const discriminant = b * b - 4 * a * c;
-	
+
 		const intersections = [];
-	
+
 		if (discriminant < 0) {
 			// No real solutions, no intersection
 			return intersections;
-			
+
 		} else if (discriminant === 0) {
 			// One solution (tangent)
 			const t = -b / (2 * a);
-			intersections.push({
-				x: x1 + t * dx,
-				y: y1 + t * dy
-			});
-			
+			// Only include if on the actual line segment
+			if (t >= 0 && t <= 1) {
+				intersections.push({
+					x: x1 + t * dx,
+					y: y1 + t * dy
+				});
+			}
+
 		} else {
 			// Two solutions
 			const t1 = (-b + Math.sqrt(discriminant)) / (2 * a);
 			const t2 = (-b - Math.sqrt(discriminant)) / (2 * a);
-	
-			intersections.push({
-				x: x1 + t1 * dx,
-				y: y1 + t1 * dy
-			});
-			intersections.push({
-				x: x1 + t2 * dx,
-				y: y1 + t2 * dy
-			});
+
+			// Only include intersections on the actual line segment
+			if (t1 >= 0 && t1 <= 1) {
+				intersections.push({
+					x: x1 + t1 * dx,
+					y: y1 + t1 * dy
+				});
+			}
+			if (t2 >= 0 && t2 <= 1) {
+				intersections.push({
+					x: x1 + t2 * dx,
+					y: y1 + t2 * dy
+				});
+			}
 		}
-// 		console.log("intersections "+intersections[0].x, intersections[0].y)
-// 		try{
-// 			console.log("intersections "+intersections[1].x, intersections[1].y)
-// 		}catch(e){
-// 				console.log("intersections "+intersections[1].x, intersections[1].y)
-// 		
-// 		}
 		return intersections;
 	}
 	
@@ -362,69 +362,153 @@ export class Intersections {
 
 		if (discriminant === 0) {
 			const t = -b / (2 * a);
-			// Transform back to world space
-			intersections.push({
-				x: line.start.x + t * (line.end.x - line.start.x),
-				y: line.start.y + t * (line.end.y - line.start.y)
-			});
+			// Only include if on the actual line segment
+			if (t >= 0 && t <= 1) {
+				intersections.push({
+					x: line.start.x + t * (line.end.x - line.start.x),
+					y: line.start.y + t * (line.end.y - line.start.y)
+				});
+			}
 		} else {
 			const sqrtDisc = Math.sqrt(discriminant);
 			const t1 = (-b + sqrtDisc) / (2 * a);
 			const t2 = (-b - sqrtDisc) / (2 * a);
 
-			// Transform back to world space
-			intersections.push({
-				x: line.start.x + t1 * (line.end.x - line.start.x),
-				y: line.start.y + t1 * (line.end.y - line.start.y)
-			});
-			intersections.push({
-				x: line.start.x + t2 * (line.end.x - line.start.x),
-				y: line.start.y + t2 * (line.end.y - line.start.y)
-			});
+			// Only include intersections on the actual line segment
+			if (t1 >= 0 && t1 <= 1) {
+				intersections.push({
+					x: line.start.x + t1 * (line.end.x - line.start.x),
+					y: line.start.y + t1 * (line.end.y - line.start.y)
+				});
+			}
+			if (t2 >= 0 && t2 <= 1) {
+				intersections.push({
+					x: line.start.x + t2 * (line.end.x - line.start.x),
+					y: line.start.y + t2 * (line.end.y - line.start.y)
+				});
+			}
 		}
 
 		return intersections;
 	}
 
-	// Circle-Ellipse intersection (numerical approximation using sampling)
-	// This is complex analytically, so we use a practical approach
+	// Circle-Ellipse intersection (numerical approach with sign-change detection)
 	intersect_circle_ellipse(circle, ellipse) {
-		// Sample points on the circle and check proximity to ellipse
-		// For a more robust solution, would need to solve quartic equation
 		const intersections = [];
-		const cx = circle.x;
-		const cy = circle.y;
-		const r = circle.radius;
+		const samples = 1440;
 
-		const samples = 360;
-		const threshold = 0.5;
+		// Walk around circle, detect crossings with ellipse boundary
+		const findCircleCrossings = () => {
+			const getPoint = (angle) => ({
+				x: circle.x + circle.radius * Math.cos(angle),
+				y: circle.y + circle.radius * Math.sin(angle)
+			});
 
-		for (let i = 0; i < samples; i++) {
-			const angle = (i / samples) * Math.PI * 2;
-			const px = cx + r * Math.cos(angle);
-			const py = cy + r * Math.sin(angle);
+			const signedDist = (p) => {
+				const dx = p.x - ellipse.x;
+				const dy = p.y - ellipse.y;
+				return (dx * dx) / (ellipse.radiusX * ellipse.radiusX) +
+				       (dy * dy) / (ellipse.radiusY * ellipse.radiusY) - 1;
+			};
 
-			// Check if point is on ellipse
-			const dx = px - ellipse.x;
-			const dy = py - ellipse.y;
-			const dist = (dx * dx) / (ellipse.radiusX * ellipse.radiusX) +
-			             (dy * dy) / (ellipse.radiusY * ellipse.radiusY);
+			let prevAngle = 0;
+			let prevDist = signedDist(getPoint(0));
 
-			if (Math.abs(dist - 1) < threshold / Math.max(ellipse.radiusX, ellipse.radiusY)) {
-				// Check if we already have a nearby intersection
-				let isDuplicate = false;
-				for (const existing of intersections) {
-					const d = Math.sqrt((px - existing.x) ** 2 + (py - existing.y) ** 2);
-					if (d < 2) {
-						isDuplicate = true;
-						break;
+			for (let i = 1; i <= samples; i++) {
+				const angle = (i / samples) * Math.PI * 2;
+				const dist = signedDist(getPoint(angle));
+
+				if (prevDist * dist < 0) {
+					let lo = prevAngle, hi = angle;
+					let loDist = prevDist;
+					for (let j = 0; j < 15; j++) {
+						const mid = (lo + hi) / 2;
+						const midDist = signedDist(getPoint(mid));
+						if (loDist * midDist < 0) {
+							hi = mid;
+						} else {
+							lo = mid;
+							loDist = midDist;
+						}
+					}
+					const intersection = getPoint((lo + hi) / 2);
+
+					let isDuplicate = false;
+					for (const existing of intersections) {
+						const d = Math.sqrt((intersection.x - existing.x) ** 2 +
+						                    (intersection.y - existing.y) ** 2);
+						if (d < 2) {
+							isDuplicate = true;
+							break;
+						}
+					}
+					if (!isDuplicate) {
+						intersections.push(intersection);
 					}
 				}
-				if (!isDuplicate) {
-					intersections.push({x: px, y: py});
-				}
+
+				prevAngle = angle;
+				prevDist = dist;
 			}
-		}
+		};
+
+		// Walk around ellipse, detect crossings with circle boundary
+		const findEllipseCrossings = () => {
+			const getPoint = (angle) => ({
+				x: ellipse.x + ellipse.radiusX * Math.cos(angle),
+				y: ellipse.y + ellipse.radiusY * Math.sin(angle)
+			});
+
+			const signedDist = (p) => {
+				const dx = p.x - circle.x;
+				const dy = p.y - circle.y;
+				return Math.sqrt(dx * dx + dy * dy) - circle.radius;
+			};
+
+			let prevAngle = 0;
+			let prevDist = signedDist(getPoint(0));
+
+			for (let i = 1; i <= samples; i++) {
+				const angle = (i / samples) * Math.PI * 2;
+				const dist = signedDist(getPoint(angle));
+
+				if (prevDist * dist < 0) {
+					let lo = prevAngle, hi = angle;
+					let loDist = prevDist;
+					for (let j = 0; j < 15; j++) {
+						const mid = (lo + hi) / 2;
+						const midDist = signedDist(getPoint(mid));
+						if (loDist * midDist < 0) {
+							hi = mid;
+						} else {
+							lo = mid;
+							loDist = midDist;
+						}
+					}
+					const intersection = getPoint((lo + hi) / 2);
+
+					let isDuplicate = false;
+					for (const existing of intersections) {
+						const d = Math.sqrt((intersection.x - existing.x) ** 2 +
+						                    (intersection.y - existing.y) ** 2);
+						if (d < 2) {
+							isDuplicate = true;
+							break;
+						}
+					}
+					if (!isDuplicate) {
+						intersections.push(intersection);
+					}
+				}
+
+				prevAngle = angle;
+				prevDist = dist;
+			}
+		};
+
+		// Sample from both shapes
+		findCircleCrossings();
+		findEllipseCrossings();
 
 		return intersections;
 	}
@@ -478,39 +562,72 @@ export class Intersections {
 		);
 	}
 
-	// Ellipse-Ellipse intersection (numerical sampling approach)
+	// Ellipse-Ellipse intersection (numerical approach with sign-change detection)
 	intersect_ellipse_ellipse(ellipse0, ellipse1) {
-		// Sample points on ellipse0 and check proximity to ellipse1
 		const intersections = [];
-		const samples = 360;
+		const samples = 1440;  // Higher resolution
 
-		for (let i = 0; i < samples; i++) {
-			const angle = (i / samples) * Math.PI * 2;
-			const px = ellipse0.x + ellipse0.radiusX * Math.cos(angle);
-			const py = ellipse0.y + ellipse0.radiusY * Math.sin(angle);
+		// Find intersections by walking around an ellipse and detecting boundary crossings
+		const findCrossings = (sourceEllipse, targetEllipse) => {
+			const getPoint = (angle) => ({
+				x: sourceEllipse.x + sourceEllipse.radiusX * Math.cos(angle),
+				y: sourceEllipse.y + sourceEllipse.radiusY * Math.sin(angle)
+			});
 
-			// Check if point is on ellipse1
-			const dx = px - ellipse1.x;
-			const dy = py - ellipse1.y;
-			const dist = (dx * dx) / (ellipse1.radiusX * ellipse1.radiusX) +
-			             (dy * dy) / (ellipse1.radiusY * ellipse1.radiusY);
+			const signedDist = (p) => {
+				const dx = p.x - targetEllipse.x;
+				const dy = p.y - targetEllipse.y;
+				return (dx * dx) / (targetEllipse.radiusX * targetEllipse.radiusX) +
+				       (dy * dy) / (targetEllipse.radiusY * targetEllipse.radiusY) - 1;
+			};
 
-			const threshold = 0.5 / Math.max(ellipse1.radiusX, ellipse1.radiusY);
-			if (Math.abs(dist - 1) < threshold) {
-				// Check for duplicates
-				let isDuplicate = false;
-				for (const existing of intersections) {
-					const d = Math.sqrt((px - existing.x) ** 2 + (py - existing.y) ** 2);
-					if (d < 2) {
-						isDuplicate = true;
-						break;
+			let prevAngle = 0;
+			let prevDist = signedDist(getPoint(0));
+
+			for (let i = 1; i <= samples; i++) {
+				const angle = (i / samples) * Math.PI * 2;
+				const dist = signedDist(getPoint(angle));
+
+				// Check for sign change (crossing the ellipse boundary)
+				if (prevDist * dist < 0) {
+					// Binary search to refine intersection point
+					let lo = prevAngle, hi = angle;
+					let loDist = prevDist;
+					for (let j = 0; j < 15; j++) {
+						const mid = (lo + hi) / 2;
+						const midDist = signedDist(getPoint(mid));
+						if (loDist * midDist < 0) {
+							hi = mid;
+						} else {
+							lo = mid;
+							loDist = midDist;
+						}
+					}
+					const intersection = getPoint((lo + hi) / 2);
+
+					// Check for duplicates
+					let isDuplicate = false;
+					for (const existing of intersections) {
+						const d = Math.sqrt((intersection.x - existing.x) ** 2 +
+						                    (intersection.y - existing.y) ** 2);
+						if (d < 2) {
+							isDuplicate = true;
+							break;
+						}
+					}
+					if (!isDuplicate) {
+						intersections.push(intersection);
 					}
 				}
-				if (!isDuplicate) {
-					intersections.push({x: px, y: py});
-				}
+
+				prevAngle = angle;
+				prevDist = dist;
 			}
-		}
+		};
+
+		// Sample from both ellipses to ensure we find all intersections
+		findCrossings(ellipse0, ellipse1);
+		findCrossings(ellipse1, ellipse0);
 
 		return intersections;
 	}
