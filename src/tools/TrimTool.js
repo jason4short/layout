@@ -2,6 +2,7 @@ import {Tool} 	from './Tool.js';
 
 import {Shape} from '../geometry/Geometry.js';
 import {Line} 	from '../geometry/Line.js';
+import {Arc} from '../geometry/Arc.js';
 import {EllipticalArc} from '../geometry/EllipticalArc.js';
 import stage 	from '../core/Stage.js';
 import data 	from '../data/Data.js';
@@ -72,6 +73,9 @@ export class TrimTool extends Tool
 				// Handle different shape types
 				if(clickedShape.geometry === Shape.LINE){
 					this.trimLine(clickedShape, boundaries, e);
+				}else if(clickedShape.geometry === Shape.CIRCLE ||
+				         clickedShape.geometry === Shape.ARC){
+					this.trimCircle(clickedShape, boundaries, e);
 				}else if(clickedShape.geometry === Shape.ELLIPSE ||
 				         clickedShape.geometry === Shape.ELLIPTICAL_ARC){
 					this.trimEllipse(clickedShape, boundaries, e);
@@ -319,6 +323,92 @@ export class TrimTool extends Tool
 			ellipse.radiusX,
 			ellipse.radiusY,
 			ellipse.rotation || 0,
+			bracketAfter.angle,  // Start where the clicked segment ended
+			bracketBefore.angle  // End where the clicked segment started
+		]);
+		data.addShape(arc);
+	}
+
+	// Trim circle by removing the clicked segment
+	trimCircle(circle, boundaries, clickPoint){
+		// Find all intersections with boundaries
+		const intersections = data.findIntersectionsWithBoundaries(circle, boundaries);
+
+		// No intersections - delete the entire shape
+		if(intersections.length === 0){
+			data.deleteShape(circle);
+			return;
+		}
+
+		// Convert click point to angle
+		const clickAngle = Math.atan2(
+			clickPoint.y - circle.y,
+			clickPoint.x - circle.x
+		);
+
+		// Convert intersections to angles and sort
+		const anglePoints = intersections.map(p => ({
+			angle: Math.atan2(p.y - circle.y, p.x - circle.x),
+			point: p
+		}));
+
+		// Normalize angles to [0, 2PI)
+		const normalize = (a) => {
+			while(a < 0) a += Math.PI * 2;
+			while(a >= Math.PI * 2) a -= Math.PI * 2;
+			return a;
+		};
+
+		const normClickAngle = normalize(clickAngle);
+		anglePoints.forEach(ap => ap.normAngle = normalize(ap.angle));
+
+		// Sort by normalized angle
+		anglePoints.sort((a, b) => a.normAngle - b.normAngle);
+
+		if(intersections.length < 2){
+			// Only one intersection - can't trim properly
+			data.deleteShape(circle);
+			return;
+		}
+
+		// Find the two intersection angles that bracket the click
+		let bracketBefore = null;
+		let bracketAfter = null;
+
+		for(let i = 0; i < anglePoints.length; i++){
+			const current = anglePoints[i];
+			const next = anglePoints[(i + 1) % anglePoints.length];
+
+			// Check if click angle is between current and next
+			let inRange;
+			if(current.normAngle <= next.normAngle){
+				inRange = normClickAngle >= current.normAngle && normClickAngle <= next.normAngle;
+			}else{
+				// Wraps around
+				inRange = normClickAngle >= current.normAngle || normClickAngle <= next.normAngle;
+			}
+
+			if(inRange){
+				bracketBefore = current;
+				bracketAfter = next;
+				break;
+			}
+		}
+
+		if(!bracketBefore || !bracketAfter){
+			// Couldn't find brackets, delete shape
+			data.deleteShape(circle);
+			return;
+		}
+
+		// Delete the original circle
+		data.deleteShape(circle);
+
+		// Create arc for the portion NOT clicked (from bracketAfter to bracketBefore)
+		const arc = new Arc([
+			circle.x,
+			circle.y,
+			circle.radius,
 			bracketAfter.angle,  // Start where the clicked segment ended
 			bracketBefore.angle  // End where the clicked segment started
 		]);

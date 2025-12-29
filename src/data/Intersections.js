@@ -53,6 +53,26 @@ export class Intersections {
 		}else if(shapes[0].geometry == Shape.LINE && shapes[1].geometry == Shape.ELLIPTICAL_ARC){
 			// line-elliptical arc
 			return this.intersect_line_elliptical_arc(shapes[0], shapes[1]);
+
+		}else if(shapes[0].geometry == Shape.CIRCLE && shapes[1].geometry == Shape.ELLIPTICAL_ARC){
+			// circle-elliptical arc
+			return this.intersect_circle_elliptical_arc(shapes[0], shapes[1]);
+
+		}else if(shapes[0].geometry == Shape.ARC && shapes[1].geometry == Shape.ELLIPTICAL_ARC){
+			// arc-elliptical arc
+			return this.intersect_arc_elliptical_arc(shapes[0], shapes[1]);
+
+		}else if(shapes[0].geometry == Shape.ELLIPSE && shapes[1].geometry == Shape.ELLIPSE){
+			// ellipse-ellipse
+			return this.intersect_ellipse_ellipse(shapes[0], shapes[1]);
+
+		}else if(shapes[0].geometry == Shape.ELLIPSE && shapes[1].geometry == Shape.ELLIPTICAL_ARC){
+			// ellipse-elliptical arc
+			return this.intersect_ellipse_elliptical_arc(shapes[0], shapes[1]);
+
+		}else if(shapes[0].geometry == Shape.ELLIPTICAL_ARC && shapes[1].geometry == Shape.ELLIPTICAL_ARC){
+			// elliptical arc-elliptical arc
+			return this.intersect_elliptical_arc_elliptical_arc(shapes[0], shapes[1]);
 		}
 	}
 
@@ -436,5 +456,82 @@ export class Intersections {
 		}
 		// Filter to only points within the arc's angle range
 		return ellipseIntersections.filter(p => this.isPointOnEllipticalArc(p, arc));
+	}
+
+	// Circle-EllipticalArc intersection: use circle-ellipse, filter by elliptical arc angle
+	intersect_circle_elliptical_arc(circle, arc) {
+		const ellipseIntersections = this.intersect_circle_ellipse(circle, arc);
+		if (!ellipseIntersections || ellipseIntersections.length === 0) {
+			return [];
+		}
+		return ellipseIntersections.filter(p => this.isPointOnEllipticalArc(p, arc));
+	}
+
+	// Arc-EllipticalArc intersection: use circle-ellipse, filter by both arc angles
+	intersect_arc_elliptical_arc(arc, ellipticalArc) {
+		const ellipseIntersections = this.intersect_circle_ellipse(arc, ellipticalArc);
+		if (!ellipseIntersections || ellipseIntersections.length === 0) {
+			return [];
+		}
+		return ellipseIntersections.filter(p =>
+			this.isPointOnArc(p, arc) && this.isPointOnEllipticalArc(p, ellipticalArc)
+		);
+	}
+
+	// Ellipse-Ellipse intersection (numerical sampling approach)
+	intersect_ellipse_ellipse(ellipse0, ellipse1) {
+		// Sample points on ellipse0 and check proximity to ellipse1
+		const intersections = [];
+		const samples = 360;
+
+		for (let i = 0; i < samples; i++) {
+			const angle = (i / samples) * Math.PI * 2;
+			const px = ellipse0.x + ellipse0.radiusX * Math.cos(angle);
+			const py = ellipse0.y + ellipse0.radiusY * Math.sin(angle);
+
+			// Check if point is on ellipse1
+			const dx = px - ellipse1.x;
+			const dy = py - ellipse1.y;
+			const dist = (dx * dx) / (ellipse1.radiusX * ellipse1.radiusX) +
+			             (dy * dy) / (ellipse1.radiusY * ellipse1.radiusY);
+
+			const threshold = 0.5 / Math.max(ellipse1.radiusX, ellipse1.radiusY);
+			if (Math.abs(dist - 1) < threshold) {
+				// Check for duplicates
+				let isDuplicate = false;
+				for (const existing of intersections) {
+					const d = Math.sqrt((px - existing.x) ** 2 + (py - existing.y) ** 2);
+					if (d < 2) {
+						isDuplicate = true;
+						break;
+					}
+				}
+				if (!isDuplicate) {
+					intersections.push({x: px, y: py});
+				}
+			}
+		}
+
+		return intersections;
+	}
+
+	// Ellipse-EllipticalArc intersection: use ellipse-ellipse, filter by arc angle
+	intersect_ellipse_elliptical_arc(ellipse, arc) {
+		const ellipseIntersections = this.intersect_ellipse_ellipse(ellipse, arc);
+		if (!ellipseIntersections || ellipseIntersections.length === 0) {
+			return [];
+		}
+		return ellipseIntersections.filter(p => this.isPointOnEllipticalArc(p, arc));
+	}
+
+	// EllipticalArc-EllipticalArc intersection: use ellipse-ellipse, filter by both arcs
+	intersect_elliptical_arc_elliptical_arc(arc0, arc1) {
+		const ellipseIntersections = this.intersect_ellipse_ellipse(arc0, arc1);
+		if (!ellipseIntersections || ellipseIntersections.length === 0) {
+			return [];
+		}
+		return ellipseIntersections.filter(p =>
+			this.isPointOnEllipticalArc(p, arc0) && this.isPointOnEllipticalArc(p, arc1)
+		);
 	}
 }
