@@ -161,8 +161,8 @@ export class FilletTool extends Tool
 
 		// Trim lines unless noTrim is set
 		if(!noTrim){
-			this.trimLineToPoint(line1, tangent1, clickPt1);
-			this.trimLineToPoint(line2, tangent2, clickPt2);
+			this.trimLineToPoint(line1, tangent1, intersection, dir1);
+			this.trimLineToPoint(line2, tangent2, intersection, dir2);
 		}
 	}
 
@@ -241,8 +241,8 @@ export class FilletTool extends Tool
 		};
 	}
 
-	// Trim a line at the tangent point, keeping the segment that contains the click point
-	trimLineToPoint(line, tangentPoint, clickPt)
+	// Trim a line at the tangent point, keeping the segment away from intersection
+	trimLineToPoint(line, tangentPoint, intersection, direction)
 	{
 		// Get line direction
 		const dx = line.end.x - line.start.x;
@@ -251,19 +251,21 @@ export class FilletTool extends Tool
 
 		if(lenSq < 1e-10) return;
 
-		// Project tangent point onto line to get t value (0 = start, 1 = end)
-		const tTangent = ((tangentPoint.x - line.start.x) * dx + (tangentPoint.y - line.start.y) * dy) / lenSq;
+		// Normalize line direction
+		const len = Math.sqrt(lenSq);
+		const lineDirX = dx / len;
+		const lineDirY = dy / len;
 
-		// Project click point onto line to get t value
-		const tClick = ((clickPt.x - line.start.x) * dx + (clickPt.y - line.start.y) * dy) / lenSq;
+		// Check if the "keep" direction (away from intersection) aligns with line's start->end
+		// direction.x/y points from intersection toward the side we want to keep
+		const dot = direction.x * lineDirX + direction.y * lineDirY;
 
-		// Keep the segment from tangent point toward click point
-		if(tClick > tTangent){
-			// Click is toward end, keep tangent->end, trim start
+		if(dot > 0){
+			// Keep direction aligns with start->end, so keep tangent->end
 			line.start.x = tangentPoint.x;
 			line.start.y = tangentPoint.y;
 		} else {
-			// Click is toward start, keep start->tangent, trim end
+			// Keep direction is opposite, so keep start->tangent
 			line.end.x = tangentPoint.x;
 			line.end.y = tangentPoint.y;
 		}
