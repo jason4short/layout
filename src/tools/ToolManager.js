@@ -9,6 +9,8 @@ import { CircleTool } 			from "./CircleTool.js";
 import { ParallelLineTool }		from "./ParallelLineTool.js";
 import { TrimTool } 			from "./TrimTool.js";
 import { ThreePointArcTool } 	from "./ThreePointArcTool.js";
+import { CenterPointArcTool } 	from "./CenterPointArcTool.js";
+import { TangentPointArcTool } 	from "./TangentPointArcTool.js";
 
 
 
@@ -37,7 +39,9 @@ export class ToolManager
 		this.pointerTool		= new PointerTool();
 		this.parallelLineTool	= new ParallelLineTool();
 		this.trimTool			= new TrimTool();
-		this.threePointArcTool	= new ThreePointArcTool();
+		this.threePointArcTool		= new ThreePointArcTool();
+		this.centerPointArcTool		= new CenterPointArcTool();
+		this.tangentPointArcTool	= new TangentPointArcTool();
 
 		this.initTool(this.pointerTool);
 	}
@@ -138,6 +142,18 @@ export class ToolManager
 
 				case 'a':
 				this.setTool(this.threePointArcTool);
+				break;
+
+				case '1':
+				this.setTool(this.centerPointArcTool);
+				break;
+
+				case '2':
+				this.setTool(this.threePointArcTool);
+				break;
+
+				case '3':
+				this.setTool(this.tangentPointArcTool);
 				break;
 
 				default:
