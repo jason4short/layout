@@ -48,8 +48,15 @@ export class FilletTool extends Tool
 
 	onMouseDown(e)
 	{
-		const clickedShape = data.getTargetShape(e);
 		const clickPt = {x: e.x, y: e.y};
+
+		// Option-click: single-click fillet near intersection
+		if(stage.optionKey){
+			this.singleClickFillet(clickPt);
+			return;
+		}
+
+		const clickedShape = data.getTargetShape(e);
 
 		if(!clickedShape || clickedShape.geometry !== Shape.LINE){
 			return;
@@ -71,13 +78,56 @@ export class FilletTool extends Tool
 				return; // Can't fillet a line with itself
 			}
 
-			const noTrim = stage.optionKey;
-			this.createFillet(this.firstLine, this.firstClickPt, secondLine, secondClickPt, this.radius, noTrim);
+			this.createFillet(this.firstLine, this.firstClickPt, secondLine, secondClickPt, this.radius, false);
 
 			this.firstLine.selected = false;
 			this.reset();
 			stage.render();
 		}
+	}
+
+	// Single-click fillet: find two lines at nearest intersection
+	singleClickFillet(clickPt)
+	{
+		// Get all lines
+		const lines = data.getShapes().filter(s => s.geometry === Shape.LINE);
+
+		if(lines.length < 2) return;
+
+		// Find best intersection near click
+		let bestIntersection = null;
+		let bestDist = Infinity;
+		let bestPair = null;
+
+		for(let i = 0; i < lines.length; i++){
+			for(let j = i + 1; j < lines.length; j++){
+				const intersection = this.findLineIntersection(lines[i], lines[j]);
+				if(intersection){
+					const dist = Math.sqrt(
+						(intersection.x - clickPt.x) ** 2 +
+						(intersection.y - clickPt.y) ** 2
+					);
+					if(dist < bestDist){
+						bestDist = dist;
+						bestIntersection = intersection;
+						bestPair = [lines[i], lines[j]];
+					}
+				}
+			}
+		}
+
+		// Only proceed if intersection is reasonably close (within 40 pixels)
+		if(!bestIntersection || bestDist > 80){
+			console.log("No intersection found near click");
+			return;
+		}
+
+		const line1 = bestPair[0];
+		const line2 = bestPair[1];
+
+		// Use click point as the "corner" point - fillet will trim toward click
+		this.createFillet(line1, clickPt, line2, clickPt, this.radius, false);
+		stage.render();
 	}
 
 	createFillet(line1, clickPt1, line2, clickPt2, radius, noTrim)
