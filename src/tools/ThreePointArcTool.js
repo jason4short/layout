@@ -1,10 +1,10 @@
 import {Tool} from './Tool.js';
 
-import {Shape} from '../geometry/Geometry.js';
-import {Arc} from '../geometry/Arc.js';
-import {Line} from '../geometry/Line.js';
-import stage from '../core/Stage.js';
-import data from '../data/Data.js';
+import {Shape, Geometry} 	from '../geometry/Geometry.js';
+import {Arc} 				from '../geometry/Arc.js';
+import {Line} 				from '../geometry/Line.js';
+import stage 				from '../core/Stage.js';
+import data 				from '../data/Data.js';
 
 export class ThreePointArcTool extends Tool
 {
@@ -39,11 +39,11 @@ export class ThreePointArcTool extends Tool
 	}
 
 	reset(){
-		this.arc = null;
-		this.linePreview = null;
-		this.startPoint = null;
-		this.endPoint = null;
-		this.step = 0;
+		this.arc 			= null;
+		this.linePreview 	= null;
+		this.startPoint 	= null;
+		this.endPoint 		= null;
+		this.step 			= 0;
 		data.removeTempShape();
 	}
 
@@ -109,7 +109,7 @@ export class ThreePointArcTool extends Tool
 		}
 
 		// Calculate arc from 3 points: startPoint, endPoint, currentPoint
-		const arcParams = this.calculateArcFrom3Points(
+		const arcParams = Arc.calculateArcFrom3Points(
 			this.startPoint,
 			this.endPoint,
 			currentPoint
@@ -131,11 +131,11 @@ export class ThreePointArcTool extends Tool
 				]);
 				data.addTempShape(this.arc);
 			} else {
-				this.arc.x = arcParams.cx;
-				this.arc.y = arcParams.cy;
-				this.arc.radius = arcParams.radius;
-				this.arc.startAngle = arcParams.startAngle;
-				this.arc.endAngle = arcParams.endAngle;
+				this.arc.x 				= arcParams.cx;
+				this.arc.y 				= arcParams.cy;
+				this.arc.radius 		= arcParams.radius;
+				this.arc.startAngle	 	= arcParams.startAngle;
+				this.arc.endAngle 		= arcParams.endAngle;
 				this.arc.update();
 			}
 		}
@@ -143,90 +143,4 @@ export class ThreePointArcTool extends Tool
 		stage.render();
 	}
 
-	// Calculate arc parameters from 3 points
-	// Returns {cx, cy, radius, startAngle, endAngle} or null if collinear
-	calculateArcFrom3Points(p1, p2, p3)
-	{
-		// Find circumcenter of triangle formed by 3 points
-		const ax = p1.x, ay = p1.y;
-		const bx = p2.x, by = p2.y;
-		const cx = p3.x, cy = p3.y;
-
-		const d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
-
-		// Points are collinear
-		if(Math.abs(d) < 1e-10){
-			return null;
-		}
-
-		const aSq = ax * ax + ay * ay;
-		const bSq = bx * bx + by * by;
-		const cSq = cx * cx + cy * cy;
-
-		const centerX = (aSq * (by - cy) + bSq * (cy - ay) + cSq * (ay - by)) / d;
-		const centerY = (aSq * (cx - bx) + bSq * (ax - cx) + cSq * (bx - ax)) / d;
-
-		const radius = Math.sqrt((ax - centerX) ** 2 + (ay - centerY) ** 2);
-
-		// Calculate angles for each point
-		const angle1 = Math.atan2(ay - centerY, ax - centerX);
-		const angle2 = Math.atan2(by - centerY, bx - centerX);
-		const angle3 = Math.atan2(cy - centerY, cx - centerX);
-
-		// Determine arc direction: does going from angle1 to angle2 pass through angle3?
-		// We need to check both directions and pick the one that includes angle3
-
-		const normalizeAngle = (a) => {
-			while(a < 0) a += Math.PI * 2;
-			while(a >= Math.PI * 2) a -= Math.PI * 2;
-			return a;
-		};
-
-		const norm1 = normalizeAngle(angle1);
-		const norm2 = normalizeAngle(angle2);
-		const norm3 = normalizeAngle(angle3);
-
-		// Check if angle3 is between angle1 and angle2 going counterclockwise
-		const ccwContains = this.angleInRange(norm3, norm1, norm2);
-
-		let startAngle, endAngle;
-
-		if(ccwContains){
-			// CCW from p1 to p2 contains p3
-			startAngle = angle1;
-			endAngle = angle2;
-		} else {
-			// CW from p1 to p2 contains p3, so swap to go the other way
-			startAngle = angle2;
-			endAngle = angle1;
-		}
-
-		return {
-			cx: centerX,
-			cy: centerY,
-			radius: radius,
-			startAngle: startAngle,
-			endAngle: endAngle
-		};
-	}
-
-	// Check if angle is in range from start to end (counterclockwise)
-	angleInRange(angle, start, end)
-	{
-		const TWO_PI = Math.PI * 2;
-
-		// Normalize all to [0, 2PI)
-		const normalize = (a) => ((a % TWO_PI) + TWO_PI) % TWO_PI;
-
-		const a = normalize(angle);
-		const s = normalize(start);
-		const e = normalize(end);
-
-		if(s <= e){
-			return a >= s && a <= e;
-		} else {
-			// Wraps around 0
-			return a >= s || a <= e;
-		}
-	}
 }

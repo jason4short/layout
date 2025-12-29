@@ -1,6 +1,6 @@
-import {Shape} from './Geometry.js';
-import {Circle} from './Circle.js';
-import {Point} from './Point.js';
+import {Shape, Geometry} 	from './Geometry.js';
+import {Circle} 			from './Circle.js';
+import {Point} 				from './Point.js';
 
 export class Arc extends Circle
 {
@@ -10,13 +10,13 @@ export class Arc extends Circle
 		super([params[0], params[1], params[2]]);
 		this.geometry 	= Shape.ARC;
 		this.startAngle = params[3];  // radians
-		this.endAngle 	= params[4];    // radians
+		this.endAngle 	= params[4];  // radians
 	}
 
-	// Normalize angle to [0, 2*PI)
+	// Normalize angle in radians to [0, 2*PI);
 	normalizeAngle(angle) {
-		const TWO_PI = Math.PI * 2;
-		angle = angle % TWO_PI;
+		const TWO_PI 	= Math.PI * 2;
+		angle 			= angle % TWO_PI;
 		if (angle < 0) angle += TWO_PI;
 		return angle;
 	}
@@ -24,9 +24,9 @@ export class Arc extends Circle
 	// Check if an angle is within the arc's range
 	// Handles wrap-around case where startAngle > endAngle
 	containsAngle(angle) {
-		const normAngle = this.normalizeAngle(angle);
-		const normStart = this.normalizeAngle(this.startAngle);
-		const normEnd = this.normalizeAngle(this.endAngle);
+		const normAngle 	= this.normalizeAngle(angle);
+		const normStart 	= this.normalizeAngle(this.startAngle);
+		const normEnd 		= this.normalizeAngle(this.endAngle);
 
 		if (normStart <= normEnd) {
 			// Normal case: arc doesn't cross 0
@@ -39,10 +39,10 @@ export class Arc extends Circle
 
 	// Get point on arc at given angle
 	getPointAtAngle(angle) {
-		return {
-			x: this.x + Math.cos(angle) * this.radius,
-			y: this.y + Math.sin(angle) * this.radius
-		};
+		return new Point(
+			this.x + Math.cos(angle) * this.radius,
+			this.y + Math.sin(angle) * this.radius
+		);
 	}
 
 	// Get the midpoint angle of the arc
@@ -122,5 +122,90 @@ export class Arc extends Circle
 
 	clone() {
 		return new Arc([this.x, this.y, this.radius, this.startAngle, this.endAngle]);
+	}
+
+	// Static factory: Calculate arc parameters from 3 points
+	// Returns {cx, cy, radius, startAngle, endAngle} or null if collinear
+	static calculateArcFrom3Points(p1, p2, p3)
+	{
+		// Find circumcenter of triangle formed by 3 points
+		const ax = p1.x, ay = p1.y;
+		const bx = p2.x, by = p2.y;
+		const cx = p3.x, cy = p3.y;
+
+		const d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
+
+		// Points are collinear
+		if(Math.abs(d) < 1e-10){
+			return null;
+		}
+
+		const aSq = ax * ax + ay * ay;
+		const bSq = bx * bx + by * by;
+		const cSq = cx * cx + cy * cy;
+
+		const centerX = (aSq * (by - cy) + bSq * (cy - ay) + cSq * (ay - by)) / d;
+		const centerY = (aSq * (cx - bx) + bSq * (ax - cx) + cSq * (bx - ax)) / d;
+
+		const radius = Math.sqrt((ax - centerX) ** 2 + (ay - centerY) ** 2);
+
+		// Calculate angles for each point
+		const angle1 = Math.atan2(ay - centerY, ax - centerX);
+		const angle2 = Math.atan2(by - centerY, bx - centerX);
+		const angle3 = Math.atan2(cy - centerY, cx - centerX);
+
+		// Determine arc direction: does going from angle1 to angle2 pass through angle3?
+		const normalizeAngle = (a) => {
+			while(a < 0) a += Math.PI * 2;
+			while(a >= Math.PI * 2) a -= Math.PI * 2;
+			return a;
+		};
+
+		const norm1 = normalizeAngle(angle1);
+		const norm2 = normalizeAngle(angle2);
+		const norm3 = normalizeAngle(angle3);
+
+		// Check if angle3 is between angle1 and angle2 going counterclockwise
+		const ccwContains = Arc.angleInRange(norm3, norm1, norm2);
+
+		let startAngle, endAngle;
+
+		if(ccwContains){
+			// CCW from p1 to p2 contains p3
+			startAngle = angle1;
+			endAngle = angle2;
+		} else {
+			// CW from p1 to p2 contains p3, so swap to go the other way
+			startAngle = angle2;
+			endAngle = angle1;
+		}
+
+		return {
+			cx: centerX,
+			cy: centerY,
+			radius: radius,
+			startAngle: startAngle,
+			endAngle: endAngle
+		};
+	}
+
+	// Static helper: Check if angle is in range from start to end (counterclockwise)
+	static angleInRange(angle, start, end)
+	{
+		const TWO_PI = Math.PI * 2;
+
+		// Normalize all to [0, 2PI)
+		const normalize = (a) => ((a % TWO_PI) + TWO_PI) % TWO_PI;
+
+		const a = normalize(angle);
+		const s = normalize(start);
+		const e = normalize(end);
+
+		if(s <= e){
+			return a >= s && a <= e;
+		} else {
+			// Wraps around 0
+			return a >= s || a <= e;
+		}
 	}
 }

@@ -11,13 +11,17 @@ export class FilletTool extends Tool
 	constructor()
 	{
 		super();
-		this.willSnap = false;
+		this.willSnap = true;
 
 		this.firstLine 		= null;
 		this.firstClickPt	= null;
 		this.radius 		= 25;  // Default radius
+		this.linePreview	= null;
+		this.isDragging		= false;
 
 		this.onMouseDown 	= this.onMouseDown.bind(this);
+		this.onMouseMove 	= this.onMouseMove.bind(this);
+		this.onMouseUp 		= this.onMouseUp.bind(this);
 		this.onKeyUp 		= this.onKeyUp.bind(this);
 	}
 
@@ -31,12 +35,26 @@ export class FilletTool extends Tool
 		console.log("FilletTool exit");
 		stage.removeEventListener('keyUp', this.onKeyUp);
 		stage.removeEventListener('mouseDown', this.onMouseDown);
+		stage.removeEventListener('mouseMove', this.onMouseMove);
+		stage.removeEventListener('mouseUp', this.onMouseUp);
 		this.reset();
 	}
 
 	reset(){
+		// Clean up listeners
+		stage.removeEventListener('mouseMove', this.onMouseMove);
+		stage.removeEventListener('mouseUp', this.onMouseUp);
+
+		if(this.firstLine){
+			this.firstLine.selected = false;
+		}
 		this.firstLine = null;
 		this.firstClickPt = null;
+		this.isDragging = false;
+		if(this.linePreview){
+			data.removeTempShape();
+			this.linePreview = null;
+		}
 	}
 
 	onKeyUp(e){
@@ -49,6 +67,7 @@ export class FilletTool extends Tool
 	onMouseDown(e)
 	{
 		const clickPt = {x: e.x, y: e.y};
+		const snapPt = data.getCurrentSnapPoint();
 
 		// Option-click: single-click fillet near intersection
 		if(stage.optionKey){
@@ -58,7 +77,12 @@ export class FilletTool extends Tool
 
 		const clickedShape = data.getTargetShape(e);
 
+		// If no shape clicked, reset as if Escape was pressed
 		if(!clickedShape || clickedShape.geometry !== Shape.LINE){
+			if(this.firstLine){
+				this.reset();
+				stage.render();
+			}
 			return;
 		}
 
@@ -67,6 +91,16 @@ export class FilletTool extends Tool
 			this.firstLine = clickedShape;
 			this.firstClickPt = clickPt;
 			this.firstLine.selected = true;
+			this.isDragging = true;
+
+			// Create line preview starting at snap point
+			this.linePreview = new Line([snapPt.x, snapPt.y, snapPt.x, snapPt.y]);
+			data.addTempShape(this.linePreview);
+
+			// Add drag listeners
+			stage.addEventListener('mouseMove', this.onMouseMove);
+			stage.addEventListener('mouseUp', this.onMouseUp);
+
 			stage.render();
 
 		} else {
@@ -78,9 +112,56 @@ export class FilletTool extends Tool
 				return; // Can't fillet a line with itself
 			}
 
-			this.createFillet(this.firstLine, this.firstClickPt, secondLine, secondClickPt, this.radius, false);
+			// Remove preview listener before completing
+			stage.removeEventListener('mouseMove', this.onMouseMove);
 
-			this.firstLine.selected = false;
+			this.createFillet(this.firstLine, this.firstClickPt, secondLine, secondClickPt, this.radius, false);
+			this.reset();
+			stage.render();
+		}
+	}
+
+	onMouseMove(e)
+	{
+		const snapPt = data.getCurrentSnapPoint();
+
+		// Update line preview to snap point
+		if(this.linePreview){
+			this.linePreview.end.x = snapPt.x;
+			this.linePreview.end.y = snapPt.y;
+			this.linePreview.update();
+			stage.render();
+		}
+	}
+
+	onMouseUp(e)
+	{
+		stage.removeEventListener('mouseMove', this.onMouseMove);
+		stage.removeEventListener('mouseUp', this.onMouseUp);
+
+		const releasePt = {x: e.x, y: e.y};
+
+		// Check if we dragged to a second line
+		const secondLine = data.getTargetShape(e);
+
+		// Calculate drag distance
+		const dragDist = Math.sqrt(
+			(releasePt.x - this.firstClickPt.x) ** 2 +
+			(releasePt.y - this.firstClickPt.y) ** 2
+		);
+
+		// If released over a valid second line, complete the fillet
+		if(secondLine && secondLine.geometry === Shape.LINE &&
+		   secondLine !== this.firstLine){
+			this.createFillet(this.firstLine, this.firstClickPt, secondLine, releasePt, this.radius, false);
+			this.reset();
+			stage.render();
+		} else if(dragDist < 5){
+			// Small drag = click, stay in waiting-for-second-click mode
+			this.isDragging = false;
+			stage.addEventListener('mouseMove', this.onMouseMove);
+		} else {
+			// Dragged but released on empty space - reset
 			this.reset();
 			stage.render();
 		}
