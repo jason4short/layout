@@ -37,6 +37,22 @@ export class Intersections {
 		}else if(shapes[0].geometry == Shape.CIRCLE && shapes[1].geometry == Shape.CIRCLE){
 			// call circle circle
 			return this.intersect_circle_circle(shapes[0], shapes[1]);
+
+		}else if(shapes[0].geometry == Shape.LINE && shapes[1].geometry == Shape.ELLIPSE){
+			// line-ellipse
+			return this.intersect_line_ellipse(shapes[0], shapes[1]);
+
+		}else if(shapes[0].geometry == Shape.CIRCLE && shapes[1].geometry == Shape.ELLIPSE){
+			// circle-ellipse
+			return this.intersect_circle_ellipse(shapes[0], shapes[1]);
+
+		}else if(shapes[0].geometry == Shape.ARC && shapes[1].geometry == Shape.ELLIPSE){
+			// arc-ellipse
+			return this.intersect_arc_ellipse(shapes[0], shapes[1]);
+
+		}else if(shapes[0].geometry == Shape.LINE && shapes[1].geometry == Shape.ELLIPTICAL_ARC){
+			// line-elliptical arc
+			return this.intersect_line_elliptical_arc(shapes[0], shapes[1]);
 		}
 	}
 
@@ -57,6 +73,8 @@ export class Intersections {
 			case Shape.LINE: 		return 20;
 			case Shape.ARC:			return 25;
 			case Shape.CIRCLE: 		return 30;
+			case Shape.ELLIPSE:			return 35;
+			case Shape.ELLIPTICAL_ARC:	return 36;
 			case Shape.RECTANGLE: 	return 40;
 			default: return 1000;
 		}
@@ -286,5 +304,137 @@ export class Intersections {
 		return circleIntersections.filter(p =>
 			this.isPointOnArc(p, arc0) && this.isPointOnArc(p, arc1)
 		);
+	}
+
+	// Line-Ellipse intersection
+	// Transform to unit circle space, intersect, transform back
+	intersect_line_ellipse(line, ellipse) {
+		const cx = ellipse.x;
+		const cy = ellipse.y;
+		const rx = ellipse.radiusX;
+		const ry = ellipse.radiusY;
+
+		if (rx <= 0 || ry <= 0) return [];
+
+		// Transform line endpoints to unit circle space
+		const x1 = (line.start.x - cx) / rx;
+		const y1 = (line.start.y - cy) / ry;
+		const x2 = (line.end.x - cx) / rx;
+		const y2 = (line.end.y - cy) / ry;
+
+		const dx = x2 - x1;
+		const dy = y2 - y1;
+
+		// Quadratic coefficients for line-unit-circle intersection
+		// Line: P = P1 + t * D, where t in [0,1] for segment
+		// Circle: x^2 + y^2 = 1
+		// Substitute: (x1 + t*dx)^2 + (y1 + t*dy)^2 = 1
+		const a = dx * dx + dy * dy;
+		const b = 2 * (x1 * dx + y1 * dy);
+		const c = x1 * x1 + y1 * y1 - 1;
+
+		const discriminant = b * b - 4 * a * c;
+		const intersections = [];
+
+		if (discriminant < 0) {
+			return intersections;
+		}
+
+		if (discriminant === 0) {
+			const t = -b / (2 * a);
+			// Transform back to world space
+			intersections.push({
+				x: line.start.x + t * (line.end.x - line.start.x),
+				y: line.start.y + t * (line.end.y - line.start.y)
+			});
+		} else {
+			const sqrtDisc = Math.sqrt(discriminant);
+			const t1 = (-b + sqrtDisc) / (2 * a);
+			const t2 = (-b - sqrtDisc) / (2 * a);
+
+			// Transform back to world space
+			intersections.push({
+				x: line.start.x + t1 * (line.end.x - line.start.x),
+				y: line.start.y + t1 * (line.end.y - line.start.y)
+			});
+			intersections.push({
+				x: line.start.x + t2 * (line.end.x - line.start.x),
+				y: line.start.y + t2 * (line.end.y - line.start.y)
+			});
+		}
+
+		return intersections;
+	}
+
+	// Circle-Ellipse intersection (numerical approximation using sampling)
+	// This is complex analytically, so we use a practical approach
+	intersect_circle_ellipse(circle, ellipse) {
+		// Sample points on the circle and check proximity to ellipse
+		// For a more robust solution, would need to solve quartic equation
+		const intersections = [];
+		const cx = circle.x;
+		const cy = circle.y;
+		const r = circle.radius;
+
+		const samples = 360;
+		const threshold = 0.5;
+
+		for (let i = 0; i < samples; i++) {
+			const angle = (i / samples) * Math.PI * 2;
+			const px = cx + r * Math.cos(angle);
+			const py = cy + r * Math.sin(angle);
+
+			// Check if point is on ellipse
+			const dx = px - ellipse.x;
+			const dy = py - ellipse.y;
+			const dist = (dx * dx) / (ellipse.radiusX * ellipse.radiusX) +
+			             (dy * dy) / (ellipse.radiusY * ellipse.radiusY);
+
+			if (Math.abs(dist - 1) < threshold / Math.max(ellipse.radiusX, ellipse.radiusY)) {
+				// Check if we already have a nearby intersection
+				let isDuplicate = false;
+				for (const existing of intersections) {
+					const d = Math.sqrt((px - existing.x) ** 2 + (py - existing.y) ** 2);
+					if (d < 2) {
+						isDuplicate = true;
+						break;
+					}
+				}
+				if (!isDuplicate) {
+					intersections.push({x: px, y: py});
+				}
+			}
+		}
+
+		return intersections;
+	}
+
+	// Arc-Ellipse intersection: use circle-ellipse, filter by arc angle
+	intersect_arc_ellipse(arc, ellipse) {
+		const circleIntersections = this.intersect_circle_ellipse(arc, ellipse);
+		if (!circleIntersections || circleIntersections.length === 0) {
+			return [];
+		}
+		return circleIntersections.filter(p => this.isPointOnArc(p, arc));
+	}
+
+	// Check if a point lies on an elliptical arc's angle range
+	isPointOnEllipticalArc(point, arc) {
+		// Transform to unit circle space to get angle
+		const nx = (point.x - arc.x) / arc.radiusX;
+		const ny = (point.y - arc.y) / arc.radiusY;
+		const angle = Math.atan2(ny, nx);
+		return arc.containsAngle(angle);
+	}
+
+	// Line-EllipticalArc intersection: use line-ellipse, filter by arc angle
+	intersect_line_elliptical_arc(line, arc) {
+		// Reuse line-ellipse intersection
+		const ellipseIntersections = this.intersect_line_ellipse(line, arc);
+		if (!ellipseIntersections || ellipseIntersections.length === 0) {
+			return [];
+		}
+		// Filter to only points within the arc's angle range
+		return ellipseIntersections.filter(p => this.isPointOnEllipticalArc(p, arc));
 	}
 }

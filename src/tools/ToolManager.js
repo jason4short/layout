@@ -13,6 +13,9 @@ import { CenterPointArcTool } 	from "./CenterPointArcTool.js";
 import { TangentPointArcTool } 	from "./TangentPointArcTool.js";
 import { FilletTool } 			from "./FilletTool.js";
 import { ChamferTool } 			from "./ChamferTool.js";
+import { BoxTool } 				from "./BoxTool.js";
+import { OppositeCornerEllipseTool } from "./OppositeCornerEllipseTool.js";
+import { CenterPointEllipseTool } 	from "./CenterPointEllipseTool.js";
 
 
 
@@ -34,18 +37,21 @@ export class ToolManager
 		this.stroke	 			= false;
 
 		// keep tools handy
-		this.lineTool	 		= new LineTool();
-		this.circleTool 		= new CircleTool();
-		this.strokeTool 		= new StrokeTool();
-		this.handTool			= new HandTool();
-		this.pointerTool		= new PointerTool();
-		this.parallelLineTool	= new ParallelLineTool();
-		this.trimTool			= new TrimTool();
+		this.lineTool	 			= new LineTool();
+		this.circleTool 			= new CircleTool();
+		this.strokeTool 			= new StrokeTool();
+		this.handTool				= new HandTool();
+		this.pointerTool			= new PointerTool();
+		this.parallelLineTool		= new ParallelLineTool();
+		this.trimTool				= new TrimTool();
 		this.threePointArcTool		= new ThreePointArcTool();
 		this.centerPointArcTool		= new CenterPointArcTool();
 		this.tangentPointArcTool	= new TangentPointArcTool();
 		this.filletTool				= new FilletTool();
 		this.chamferTool			= new ChamferTool();
+		this.boxTool				= new BoxTool();
+		this.oppositeCornerEllipseTool	= new OppositeCornerEllipseTool();
+		this.centerPointEllipseTool		= new CenterPointEllipseTool();
 
 		this.initTool(this.pointerTool);
 	}
@@ -172,6 +178,18 @@ export class ToolManager
 
 				case 'k':
 				this.setTool(this.chamferTool);
+				break;
+
+				case 'b':
+				this.setTool(this.boxTool);
+				break;
+
+				case 'e':
+				this.setTool(this.oppositeCornerEllipseTool);
+				break;
+
+				case '4':
+				this.setTool(this.centerPointEllipseTool);
 				break;
 
 				case 'Delete':

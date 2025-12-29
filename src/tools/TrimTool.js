@@ -1,7 +1,8 @@
 import {Tool} 	from './Tool.js';
 
 import {Shape} from '../geometry/Geometry.js';
-import {Line} 	from '../geometry/Line.js'
+import {Line} 	from '../geometry/Line.js';
+import {EllipticalArc} from '../geometry/EllipticalArc.js';
 import stage 	from '../core/Stage.js';
 import data 	from '../data/Data.js';
 import draftingAssistant from '../geometry/DraftingAssistant.js';
@@ -68,7 +69,13 @@ export class TrimTool extends Tool
 			if(stage.optionKey){
 				this.extendLine(clickedShape, boundaries, e);
 			}else{
-				this.trimLine(clickedShape, boundaries, e);
+				// Handle different shape types
+				if(clickedShape.geometry === Shape.LINE){
+					this.trimLine(clickedShape, boundaries, e);
+				}else if(clickedShape.geometry === Shape.ELLIPSE ||
+				         clickedShape.geometry === Shape.ELLIPTICAL_ARC){
+					this.trimEllipse(clickedShape, boundaries, e);
+				}
 			}
 		}
 		stage.render();
@@ -222,6 +229,100 @@ export class TrimTool extends Tool
 
 		// Trim/extend line to fit exactly between the two bracketing boundaries
 		line.trimToPoints(bracketBefore.point, bracketAfter.point);
+	}
+
+	// Trim ellipse by removing the clicked segment
+	trimEllipse(ellipse, boundaries, clickPoint){
+		// Find all intersections with boundaries
+		const intersections = data.findIntersectionsWithBoundaries(ellipse, boundaries);
+
+		// No intersections - delete the entire shape
+		if(intersections.length === 0){
+			data.deleteShape(ellipse);
+			return;
+		}
+
+		// Convert click point to angle
+		const clickAngle = Math.atan2(
+			(clickPoint.y - ellipse.y) / ellipse.radiusY,
+			(clickPoint.x - ellipse.x) / ellipse.radiusX
+		);
+
+		// Convert intersections to angles and sort
+		const anglePoints = intersections.map(p => ({
+			angle: Math.atan2(
+				(p.y - ellipse.y) / ellipse.radiusY,
+				(p.x - ellipse.x) / ellipse.radiusX
+			),
+			point: p
+		}));
+
+		// Normalize angles to [0, 2PI)
+		const normalize = (a) => {
+			while(a < 0) a += Math.PI * 2;
+			while(a >= Math.PI * 2) a -= Math.PI * 2;
+			return a;
+		};
+
+		const normClickAngle = normalize(clickAngle);
+		anglePoints.forEach(ap => ap.normAngle = normalize(ap.angle));
+
+		// Sort by normalized angle
+		anglePoints.sort((a, b) => a.normAngle - b.normAngle);
+
+		// For full ellipse with intersections, find which segment was clicked
+		// and create elliptical arc(s) for the remaining portion(s)
+
+		if(intersections.length < 2){
+			// Only one intersection - can't trim properly
+			data.deleteShape(ellipse);
+			return;
+		}
+
+		// Find the two intersection angles that bracket the click
+		let bracketBefore = null;
+		let bracketAfter = null;
+
+		for(let i = 0; i < anglePoints.length; i++){
+			const current = anglePoints[i];
+			const next = anglePoints[(i + 1) % anglePoints.length];
+
+			// Check if click angle is between current and next
+			let inRange;
+			if(current.normAngle <= next.normAngle){
+				inRange = normClickAngle >= current.normAngle && normClickAngle <= next.normAngle;
+			}else{
+				// Wraps around
+				inRange = normClickAngle >= current.normAngle || normClickAngle <= next.normAngle;
+			}
+
+			if(inRange){
+				bracketBefore = current;
+				bracketAfter = next;
+				break;
+			}
+		}
+
+		if(!bracketBefore || !bracketAfter){
+			// Couldn't find brackets, delete shape
+			data.deleteShape(ellipse);
+			return;
+		}
+
+		// Delete the original ellipse
+		data.deleteShape(ellipse);
+
+		// Create elliptical arc for the portion NOT clicked (from bracketAfter to bracketBefore)
+		const arc = new EllipticalArc([
+			ellipse.x,
+			ellipse.y,
+			ellipse.radiusX,
+			ellipse.radiusY,
+			ellipse.rotation || 0,
+			bracketAfter.angle,  // Start where the clicked segment ended
+			bracketBefore.angle  // End where the clicked segment started
+		]);
+		data.addShape(arc);
 	}
 }
 

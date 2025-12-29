@@ -60,6 +60,14 @@ export class Renderer
 			} else if(shape.geometry === Shape.ARC){
 				ctx.arc(shape.x, shape.y, shape.radius, shape.startAngle, shape.endAngle);
 				ctx.stroke();
+
+			} else if(shape.geometry === Shape.ELLIPSE){
+				ctx.ellipse(shape.x, shape.y, shape.radiusX, shape.radiusY, shape.rotation, 0, Math.PI * 2);
+				ctx.stroke();
+
+			} else if(shape.geometry === Shape.ELLIPTICAL_ARC){
+				ctx.ellipse(shape.x, shape.y, shape.radiusX, shape.radiusY, shape.rotation, shape.startAngle, shape.endAngle);
+				ctx.stroke();
 			}
 		}
 		

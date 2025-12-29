@@ -7,6 +7,8 @@ export const Shape = Object.freeze({
 	LINE: "line",
 	CIRCLE: "circle",
 	ARC: "arc",
+	ELLIPSE: "ellipse",
+	ELLIPTICAL_ARC: "elliptical_arc",
 
 	/*types*/
 	CONSTRUCTION: "construction",
