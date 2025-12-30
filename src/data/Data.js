@@ -47,6 +47,9 @@ class Data
 		// A hash of current snap points;
 		this.snaps 					= new Map();
 
+		// Selected control points: Map<shape, Set<number>> - shape → POI indices
+		this.selectedPoints			= new Map();
+
 		// geometry solver class
 		this.intersections			= new Intersections();
 
@@ -163,11 +166,102 @@ class Data
 		for(let i = 0; i < this.shapes.length; i++){
 			this.shapes[i].selected = false;
 		}
+		this.selectedPoints.clear();
 	}
 
 	selectAll(){
 		for(let i = 0; i < this.shapes.length; i++){
 			this.shapes[i].selected = true;
+		}
+		this.selectedPoints.clear(); // Clear partial selections when selecting all
+	}
+
+	// Get the selectedPoints Map
+	getSelectedPoints(){
+		return this.selectedPoints;
+	}
+
+	// Check if a specific point on a shape is selected
+	isPointSelected(shape, index){
+		if(shape.selected) return true;
+		const indices = this.selectedPoints.get(shape);
+		return indices ? indices.has(index) : false;
+	}
+
+	// Check if there's any selection (shapes or points)
+	hasSelection(){
+		return this.getSelected().length > 0 || this.selectedPoints.size > 0;
+	}
+
+	// Get selectable POI indices for a shape (endpoints only, no midpoints/quadrants)
+	getSelectableIndices(shape){
+		switch(shape.geometry){
+			case Shape.LINE:
+				return [0, 1]; // start, end (not midpoint at index 2)
+			case Shape.CIRCLE:
+				return [0]; // center only (not quadrants at 1-4)
+			case Shape.ARC:
+				return [0, 1, 2]; // center, start, end (not midpoint at index 3)
+			case Shape.ELLIPSE:
+				return [0]; // center only (not quadrants at 1-4)
+			case Shape.ELLIPTICAL_ARC:
+				return [0, 1, 2]; // center, start, end (not midpoint at index 3)
+			default:
+				return [];
+		}
+	}
+
+	// Select shapes/points by marquee rectangle
+	selectByMarquee(rect, shiftKey){
+		if(!shiftKey){
+			this.selectNone();
+		}
+
+		for(const shape of this.shapes){
+			const pois = shape.getSnapPOIs();
+			const selectableIndices = this.getSelectableIndices(shape);
+
+			// Test each selectable POI against the marquee rectangle
+			const insideIndices = [];
+			for(const i of selectableIndices){
+				if(pois[i] && rect.containsPoint(pois[i])){
+					insideIndices.push(i);
+				}
+			}
+
+			// Check if ALL selectable points are inside
+			if(insideIndices.length === selectableIndices.length){
+				// ALL selectable points inside → select whole shape
+				shape.selected = true;
+				this.selectedPoints.delete(shape);
+			} else if(insideIndices.length > 0){
+				// SOME points inside → partial point selection
+				shape.selected = false;
+
+				if(!this.selectedPoints.has(shape)){
+					this.selectedPoints.set(shape, new Set());
+				}
+
+				for(const idx of insideIndices){
+					this.selectedPoints.get(shape).add(idx);
+				}
+			}
+		}
+
+		// Check if any partial selections should be promoted to whole shape
+		this.checkAutoPromotion();
+	}
+
+	// If all selectable POIs of a shape are selected, promote to whole shape selection
+	checkAutoPromotion(){
+		for(const [shape, indices] of this.selectedPoints.entries()){
+			const selectableCount = this.getSelectableIndices(shape).length;
+
+			if(indices.size >= selectableCount){
+				// All selectable points selected → promote to whole shape
+				shape.selected = true;
+				this.selectedPoints.delete(shape);
+			}
 		}
 	}
 

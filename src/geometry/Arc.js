@@ -208,4 +208,28 @@ export class Arc extends Circle
 			return a >= s || a <= e;
 		}
 	}
+
+	// Update a specific control point by index
+	// POI indices: 0=center, 1=start endpoint, 2=end endpoint, 3=midpoint
+	updateControlPoint(index, newX, newY){
+		switch(index){
+			case 0: // center - move the arc
+				this.x = newX;
+				this.y = newY;
+				break;
+			case 1: // start endpoint - change startAngle
+				this.startAngle = Math.atan2(newY - this.y, newX - this.x);
+				break;
+			case 2: // end endpoint - change endAngle
+				this.endAngle = Math.atan2(newY - this.y, newX - this.x);
+				break;
+			case 3: // midpoint - change radius
+				this.radius = Math.sqrt(
+					Math.pow(newX - this.x, 2) +
+					Math.pow(newY - this.y, 2)
+				);
+				break;
+		}
+		this.update();
+	}
 }

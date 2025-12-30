@@ -80,6 +80,27 @@ export class Circle extends Geometry
 	length() {
 		return 2 * Math.PI * this.radius;
 	}
-	
+
+	// Update a specific control point by index
+	// POI indices: 0=center, 1=right, 2=left, 3=bottom, 4=top
+	updateControlPoint(index, newX, newY){
+		switch(index){
+			case 0: // center - move the circle
+				this.x = newX;
+				this.y = newY;
+				break;
+			case 1: // right quadrant
+			case 2: // left quadrant
+			case 3: // bottom quadrant
+			case 4: // top quadrant
+				// Calculate new radius from center to new point
+				this.radius = Math.sqrt(
+					Math.pow(newX - this.x, 2) +
+					Math.pow(newY - this.y, 2)
+				);
+				break;
+		}
+		this.update();
+	}
 }
 

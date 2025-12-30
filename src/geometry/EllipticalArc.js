@@ -172,4 +172,38 @@ export class EllipticalArc extends Ellipse
 			this.rotation, this.startAngle, this.endAngle
 		]);
 	}
+
+	// Update a specific control point by index
+	// POI indices: 0=center, 1=start endpoint, 2=end endpoint, 3=midpoint
+	updateControlPoint(index, newX, newY){
+		switch(index){
+			case 0: // center - move the arc
+				this.x = newX;
+				this.y = newY;
+				break;
+			case 1: // start endpoint - change startAngle
+				this.startAngle = this.getAngleForPoint(newX, newY);
+				break;
+			case 2: // end endpoint - change endAngle
+				this.endAngle = this.getAngleForPoint(newX, newY);
+				break;
+			case 3: // midpoint - scale radii proportionally
+				const dist = Math.sqrt(
+					Math.pow(newX - this.x, 2) +
+					Math.pow(newY - this.y, 2)
+				);
+				const midPt = this.getPointAtAngle(this.getMidAngle());
+				const origDist = Math.sqrt(
+					Math.pow(midPt.x - this.x, 2) +
+					Math.pow(midPt.y - this.y, 2)
+				);
+				if(origDist > 0){
+					const scale = dist / origDist;
+					this.radiusX *= scale;
+					this.radiusY *= scale;
+				}
+				break;
+		}
+		this.update();
+	}
 }

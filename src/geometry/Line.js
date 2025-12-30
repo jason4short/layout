@@ -155,5 +155,29 @@ export class Line extends Geometry
 		}
 		this.update();
 	}
+
+	// Update a specific control point by index
+	// POI indices: 0=start, 1=end, 2=midpoint
+	updateControlPoint(index, newX, newY){
+		switch(index){
+			case 0: // start
+				this.start.x = newX;
+				this.start.y = newY;
+				break;
+			case 1: // end
+				this.end.x = newX;
+				this.end.y = newY;
+				break;
+			case 2: // midpoint - moves both endpoints equally
+				const dx = newX - this.mid.x;
+				const dy = newY - this.mid.y;
+				this.start.x += dx;
+				this.start.y += dy;
+				this.end.x += dx;
+				this.end.y += dy;
+				break;
+		}
+		this.update();
+	}
 }
 

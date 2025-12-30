@@ -8,7 +8,7 @@ export class Renderer
 
 	constructor()
 	{
-		
+		this.marqueeRect = null; // Set by PointerTool during drag
 	}
 
 
@@ -97,6 +97,50 @@ export class Renderer
 		ctx.beginPath();ctx.moveTo(s.x+3, s.y+3); ctx.lineTo(s.x-3, s.y-3); ctx.stroke();
 		ctx.beginPath();ctx.moveTo(s.x-3, s.y+3); ctx.lineTo(s.x+3, s.y-3); ctx.stroke();
 
+		// Draw selected control points
+		this.drawSelectedControlPoints(ctx);
+
+		// Draw marquee selection box
+		this.drawMarquee(ctx);
+	}
+
+	drawSelectedControlPoints(ctx){
+		const selectedPoints = data.getSelectedPoints();
+
+		for(const [shape, indices] of selectedPoints.entries()){
+			const pois = shape.getSnapPOIs();
+
+			for(const index of indices){
+				const poi = pois[index];
+				if(!poi) continue;
+
+				// Draw filled square for selected control point
+				ctx.fillStyle = '#FF0000';
+				ctx.strokeStyle = '#000000';
+				ctx.lineWidth = 0.5;
+
+				const size = 4; // Half-size of square
+				ctx.fillRect(poi.x - size, poi.y - size, size * 2, size * 2);
+				ctx.strokeRect(poi.x - size, poi.y - size, size * 2, size * 2);
+			}
+		}
+	}
+
+	drawMarquee(ctx){
+		if(!this.marqueeRect) return;
+
+		const r = this.marqueeRect;
+
+		// Dashed blue outline
+		ctx.strokeStyle = '#0066CC';
+		ctx.lineWidth = 1;
+		ctx.setLineDash([4, 4]);
+		ctx.strokeRect(r.x, r.y, r.width, r.height);
+		ctx.setLineDash([]);
+
+		// Semi-transparent fill
+		ctx.fillStyle = 'rgba(0, 102, 204, 0.1)';
+		ctx.fillRect(r.x, r.y, r.width, r.height);
 	}
 
 	

@@ -107,4 +107,26 @@ export class Ellipse extends Geometry
 	clone() {
 		return new Ellipse([this.x, this.y, this.radiusX, this.radiusY, this.rotation]);
 	}
+
+	// Update a specific control point by index
+	// POI indices: 0=center, 1=right, 2=left, 3=bottom, 4=top
+	updateControlPoint(index, newX, newY){
+		switch(index){
+			case 0: // center - move the ellipse
+				this.x = newX;
+				this.y = newY;
+				break;
+			case 1: // right
+			case 2: // left
+				// Change radiusX based on horizontal distance from center
+				this.radiusX = Math.abs(newX - this.x);
+				break;
+			case 3: // bottom
+			case 4: // top
+				// Change radiusY based on vertical distance from center
+				this.radiusY = Math.abs(newY - this.y);
+				break;
+		}
+		this.update();
+	}
 }
