@@ -24,14 +24,14 @@ export class TangentPointArcTool extends Tool
 	}
 
 	begin(){
-		console.log("TangentPointArcTool begin");
+		//console.log("TangentPointArcTool begin");
 		stage.addEventListener('keyUp', this.onKeyUp);
 		stage.addEventListener('mouseMove', this.onMouseMove);
 		stage.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
-		console.log("TangentPointArcTool exit");
+		//console.log("TangentPointArcTool exit");
 		stage.removeEventListener('keyUp', this.onKeyUp);
 		stage.removeEventListener('mouseMove', this.onMouseMove);
 		stage.removeEventListener('mouseDown', this.onMouseDown);

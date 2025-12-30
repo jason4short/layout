@@ -25,14 +25,14 @@ export class CenterPointArcTool extends Tool
 	}
 
 	begin(){
-		console.log("CenterPointArcTool begin");
+		//console.log("CenterPointArcTool begin");
 		stage.addEventListener('keyUp', this.onKeyUp);
 		stage.addEventListener('mouseMove', this.onMouseMove);
 		stage.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
-		console.log("CenterPointArcTool exit");
+		//console.log("CenterPointArcTool exit");
 		stage.removeEventListener('keyUp', this.onKeyUp);
 		stage.removeEventListener('mouseMove', this.onMouseMove);
 		stage.removeEventListener('mouseDown', this.onMouseDown);

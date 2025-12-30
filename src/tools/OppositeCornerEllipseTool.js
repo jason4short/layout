@@ -22,13 +22,13 @@ export class OppositeCornerEllipseTool extends Tool
 	}
 
 	begin(){
-		console.log("OppositeCornerEllipseTool begin");
+		//console.log("OppositeCornerEllipseTool begin");
 		stage.addEventListener('keyUp', this.onKeyUp);
 		stage.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
-		console.log("OppositeCornerEllipseTool exit");
+		//console.log("OppositeCornerEllipseTool exit");
 		stage.removeEventListener('keyUp', this.onKeyUp);
 		stage.removeEventListener('mouseDown', this.onMouseDown);
 		stage.removeEventListener('mouseMove', this.onMouseMove);

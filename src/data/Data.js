@@ -50,6 +50,9 @@ class Data
 		// Selected control points: Map<shape, Set<number>> - shape → POI indices
 		this.selectedPoints			= new Map();
 
+		// Shapes to exclude from snapping (during move operations)
+		this.excludeFromSnap		= new Set();
+
 		// geometry solver class
 		this.intersections			= new Intersections();
 
@@ -61,23 +64,31 @@ class Data
 	generateID(){ Math.random().toString(36).slice(2);}
 	
 		
-	// generate array of all points we could snap to	
+	// generate array of all points we could snap to
 	resetSnapCandidates(){
 		this.shapePOIs = [];
-		
+
 		for(const shape of this.shapes){
 			// ask shape for it's key snap points
 			const points = shape.getSnapPOIs();
 
+			// Add shape reference to each POI for exclusion checking
+			for(const p of points){
+				p.shape = shape;
+			}
+
 			//fill up snap candidates array
-			// the ... operator splits out the array into individual elements
 			this.shapePOIs.push(...points);
 		}
 	}
 
-	// 	
+	//
 	storeShapePOIs(shape){
 		const points = shape.getSnapPOIs();
+		// Add shape reference to each POI for exclusion checking
+		for(const p of points){
+			p.shape = shape;
+		}
 		this.shapePOIs.push(...points);
 	}
 	
@@ -234,6 +245,7 @@ class Data
 				// ALL selectable points inside → select whole shape
 				shape.selected = true;
 				this.selectedPoints.delete(shape);
+				
 			} else if(insideIndices.length > 0){
 				// SOME points inside → partial point selection
 				shape.selected = false;
@@ -347,6 +359,21 @@ class Data
 	getShapes(){
 		return [...this.shapes, ...this.constructions];
 	}
+
+	// Set shapes to exclude from snapping
+	setExcludeFromSnap(shapes){
+		this.excludeFromSnap = new Set(shapes);
+	}
+
+	// Clear snap exclusions
+	clearExcludeFromSnap(){
+		this.excludeFromSnap.clear();
+	}
+
+	// Check if a shape should be excluded from snapping
+	isExcludedFromSnap(shape){
+		return this.excludeFromSnap.has(shape);
+	}
 		
 	getShapesToIntersect(){
 		return [...this.shapes, ...this.constructions, ...this.guides];
@@ -359,7 +386,12 @@ class Data
 
 	// Array of all points we could snap to
 	getIntersectionCandidates(){
-		return [...this.shapeIntersections , ...this.conIntersections, ...this.guideIntersections];
+		return [...this.shapeIntersections , ...this.conIntersections/*, ...this.guideIntersections*/];
+	}
+
+	// Array of all points we could snap to
+	getGuideIntersectionCandidates(){
+		return [...this.guideIntersections];
 	}
 
 	// Array of all points we could snap to
@@ -368,7 +400,7 @@ class Data
 	}
 	
 	getGuides(){
-		return [...this.guides];
+		return this.guides;
 	}
 
 	getNewShape(type){

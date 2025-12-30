@@ -20,13 +20,13 @@ export class ChamferTool extends Tool
 	}
 
 	begin(){
-		console.log("ChamferTool begin");
+		//console.log("ChamferTool begin");
 		stage.addEventListener('keyUp', this.onKeyUp);
 		stage.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
-		console.log("ChamferTool exit");
+		//console.log("ChamferTool exit");
 		stage.removeEventListener('keyUp', this.onKeyUp);
 		stage.removeEventListener('mouseDown', this.onMouseDown);
 		this.reset();

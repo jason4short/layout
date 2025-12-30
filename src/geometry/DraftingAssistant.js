@@ -24,58 +24,64 @@ class DraftingAssistant
         }
 	}
 	
-	
-	// seek - find the nearest relevant snap instance
+	// seek the nearest relevant snap point
 	snap(mouse)
 	{
-		let snap 	= false;
-		
+		let snap = null;
+		// are we on a guide? - clean up later with a test of active guides
 		this.activateGuides(mouse, data.getGuides());
-		
-		// P1 - special geometry features - endpoints, centerpoints, mid points, etc...
-		snap = this.findNearestSnapPoint_Geometry(mouse, data.getPOICandidates());		
+
+		// 1: snap on features of real geometry (endpoints, quadrants, etc...)
+		snap = this.findNearestSnapPoint_Geometry(mouse, data.getPOICandidates());
 		if(snap){
-			data.setCurrentSnapPoint(snap, true);
-			return;
-		}
-		
-		// P2 - special geometry features - endpoints, centerpoints, mid points, etc...
-		snap = this.findNearestSnapPoint_Geometry(mouse, data.getIntersectionCandidates());		
-		if(snap){
-			data.setCurrentSnapPoint(snap, true);
+			data.setCurrentSnapPoint(snap, true); // store snap point as a DA Snap
 			return;
 		}
 
-		// P3 - on geometry itself - 
-		snap = this.findNearestSnapPoint_OnShape(mouse, [...data.shapes, ...data.constructions]);
-
-		// P4 - on guides
-		if(!snap){
-			snap = this.findNearestSnapPoint_OnShape(mouse, data.guides);
-		}
-
+		// 2, 3: snap on intersections of real geometry and constructions
+		snap = this.findNearestSnapPoint_Geometry(mouse, data.getIntersectionCandidates());
 		if(snap){
-			data.setCurrentSnapPoint(snap, false);
-
-		}else{
-			// no snap, just return the mouse
-			// XXX send null
-			data.setCurrentSnapPoint(new SnapPoint(mouse.x, mouse.y));
+			data.setCurrentSnapPoint(snap, true); // store snap point as a DA Snap
+			return;
 		}
+
+		// 4: snap on intersections of guides and geometry
+		snap = this.findNearestSnapPoint_Geometry(mouse, data.getGuideIntersectionCandidates());
+		if(snap){
+			data.setCurrentSnapPoint(snap, false); // do not store snap point as a DA Snap
+			return;
+		}
+
+		// 5: snap on real geometry
+		snap = this.findNearestSnapPoint_OnShape(mouse, data.getShapes());
+		if(snap){
+			data.setCurrentSnapPoint(snap, false); // do not store snap point as a DA Snap
+			return;
+		}
+
+		// 6: snap on guides
+		snap = this.findNearestSnapPoint_OnShape(mouse, data.getGuides());
+		if(snap){
+			data.setCurrentSnapPoint(snap, false); // do not store snap point as a DA Snap
+			return;
+		}
+
+		// no snap, just return the mouse
+		data.setCurrentSnapPoint(new SnapPoint(mouse.x, mouse.y));
 	}
-
-
+	
 	findNearestSnapPoint_Geometry(mouse, candidates){
 		for(const point of candidates){
+			// Skip points belonging to excluded shapes
+			if(point.shape && data.isExcludedFromSnap(point.shape)){
+				continue;
+			}
+
 			const d = this.getDistance(mouse, point, MAX_SNAP_PX);
 
 			// find the first POI within range
 			// we exit immediately
 			if(d < MAX_SNAP_PX){
-// 				if(point.type === Shape.GUIDE){
-// 					snap = shape.getGeoSnap(mouse, mouseRect, MAX_SNAP_PX);
-// 					shape.active = (snap != null);
-// 				}
 				return point
 			}
 		}
@@ -96,16 +102,19 @@ class DraftingAssistant
 		const mouseRect = new Rectangle(mouse.x-10, mouse.y-10, 20, 20);
 
 		for(const shape of geoSet) {
+			// Skip excluded shapes
+			if(data.isExcludedFromSnap(shape)){
+				continue;
+			}
+
 			let snap = shape.getGeoSnap(mouse, mouseRect, MAX_SNAP_PX);
 
 			if(snap){
 				snap.shape = shape;
 				if(!closestSnap) {
 					closestSnap = snap;
-					//data.selectedShape = shape;
 				}else if(snap.distance < closestSnap.distance){
 					closestSnap = snap;
-					//data.selectedShape = shape;
 				}
 			}
 		}

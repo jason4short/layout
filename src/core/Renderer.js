@@ -119,7 +119,7 @@ export class Renderer
 				ctx.strokeStyle = '#000000';
 				ctx.lineWidth = 0.5;
 
-				const size = 4; // Half-size of square
+				const size = 2; // Half-size of square
 				ctx.fillRect(poi.x - size, poi.y - size, size * 2, size * 2);
 				ctx.strokeRect(poi.x - size, poi.y - size, size * 2, size * 2);
 			}

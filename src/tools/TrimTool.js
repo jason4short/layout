@@ -21,14 +21,14 @@ export class TrimTool extends Tool
 	}
 
 	begin(){
-		console.log("begin Trim Tool");
+		//console.log("begin Trim Tool");
 		stage.addEventListener('keyUp', 		this.onKeyUp);
 		stage.addEventListener('mouseDown',		this.onMouseDown);
 // 		stage.addEventListener('mouseMove',		this.onMouseMove);
 	}
 
 	exit(){
-		console.log("exit Trim Tool");
+		//console.log("exit Trim Tool");
 		stage.removeEventListener('keyUp', 		this.onKeyUp);
 		stage.removeEventListener('mouseDown', 	this.onMouseDown);
 // 		stage.removeEventListener('mouseMove', 	this.onMouseMove);

@@ -22,13 +22,13 @@ export class CenterPointEllipseTool extends Tool
 	}
 
 	begin(){
-		console.log("CenterPointEllipseTool begin");
+		//console.log("CenterPointEllipseTool begin");
 		stage.addEventListener('keyUp', this.onKeyUp);
 		stage.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
-		console.log("CenterPointEllipseTool exit");
+		//console.log("CenterPointEllipseTool exit");
 		stage.removeEventListener('keyUp', this.onKeyUp);
 		stage.removeEventListener('mouseDown', this.onMouseDown);
 		stage.removeEventListener('mouseMove', this.onMouseMove);

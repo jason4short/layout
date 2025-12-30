@@ -24,7 +24,7 @@ export class StrokeTool extends Tool
 
 	
 	begin(){
-		console.log("begin Stroke Tool");
+		//console.log("begin Stroke Tool");
 		stage.addEventListener('keyUp', 		this.onKeyUp);
 		stage.addEventListener('mouseUp', 		this.onMouseUp);
 		stage.addEventListener('mouseMove', 	this.onMouseMove);
@@ -32,7 +32,7 @@ export class StrokeTool extends Tool
 	}
 
 	exit(){
-		console.log("exit Stroke Tool");
+		//console.log("exit Stroke Tool");
 		stage.removeEventListener('keyUp', 		this.onKeyUp);
 		stage.removeEventListener('mouseUp', 	this.onMouseUp);
 		stage.removeEventListener('mouseMove', 	this.onMouseMove);

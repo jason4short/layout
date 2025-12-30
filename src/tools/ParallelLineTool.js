@@ -29,12 +29,12 @@ export class ParallelLineTool extends Tool
 	}
 
 	begin(){
-		console.log("begin ParallelTool");
+		//console.log("begin ParallelTool");
 		stage.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
-		console.log("exit ParallelTool");
+		//console.log("exit ParallelTool");
 		stage.removeEventListener('mouseDown', 	this.onMouseDown);
 		stage.removeEventListener('keyUp', 		this.onKeyUp);
 		stage.removeEventListener('mouseUp', 	this.onMouseUp);

@@ -36,13 +36,13 @@ export class FilletTool extends Tool
 	}
 
 	begin(){
-		console.log("FilletTool begin");
+		//console.log("FilletTool begin");
 		stage.addEventListener('keyUp', this.onKeyUp);
 		stage.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
-		console.log("FilletTool exit");
+		//console.log("FilletTool exit");
 		stage.removeEventListener('keyUp', this.onKeyUp);
 		stage.removeEventListener('mouseDown', this.onMouseDown);
 		stage.removeEventListener('mouseMove', this.onMouseMove);

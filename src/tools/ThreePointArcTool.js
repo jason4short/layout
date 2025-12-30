@@ -24,14 +24,14 @@ export class ThreePointArcTool extends Tool
 	}
 
 	begin(){
-		console.log("ThreePointArcTool begin");
+		//console.log("ThreePointArcTool begin");
 		stage.addEventListener('keyUp', this.onKeyUp);
 		stage.addEventListener('mouseMove', this.onMouseMove);
 		stage.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
-		console.log("ThreePointArcTool exit");
+		//console.log("ThreePointArcTool exit");
 		stage.removeEventListener('keyUp', this.onKeyUp);
 		stage.removeEventListener('mouseMove', this.onMouseMove);
 		stage.removeEventListener('mouseDown', this.onMouseDown);

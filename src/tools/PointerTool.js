@@ -22,6 +22,7 @@ export class PointerTool extends Tool
 		// Move state
 		this.isMoving			= false;
 		this.moveTarget			= null; // {type: 'shape'|'point', shape, pointIndex?}
+		this.moveStart			= null; // Snapped position when move started
 		this.originalPositions	= []; // Store original positions for delta calc
 
 		this.onMouseMove 		= this.onMouseMove.bind(this);
@@ -48,9 +49,11 @@ export class PointerTool extends Tool
 		this.isDragging = false;
 		this.isMoving = false;
 		this.moveTarget = null;
+		this.moveStart = null;
 		this.marqueeRect = null;
 		this.originalPositions = [];
 		stage.renderer.marqueeRect = null;
+		data.clearExcludeFromSnap();
 	}
 
 	// Check if mouse is over a selected point or shape
@@ -94,6 +97,25 @@ export class PointerTool extends Tool
 
 	distanceTo(a, b){
 		return Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2));
+	}
+
+	// Exclude selected shapes from snapping during move
+	setSnapExclusions(){
+		const shapesToExclude = [];
+
+		// Add whole-shape selections
+		for(const shape of data.getSelected()){
+			shapesToExclude.push(shape);
+		}
+
+		// Add shapes with partial point selections
+		for(const [shape] of data.getSelectedPoints().entries()){
+			if(!shapesToExclude.includes(shape)){
+				shapesToExclude.push(shape);
+			}
+		}
+
+		data.setExcludeFromSnap(shapesToExclude);
 	}
 
 	// Store original positions of all selected items
@@ -146,7 +168,12 @@ export class PointerTool extends Tool
 			if(this.moveTarget){
 				// Start move operation
 				this.isMoving = true;
+				// Store the snap point when move started
+				const snap = data.getCurrentSnapPoint();
+				this.moveStart = {x: snap.x, y: snap.y};
 				this.storeOriginalPositions();
+				// Exclude selected shapes from snapping
+				this.setSnapExclusions();
 			} else {
 				// Start marquee selection
 				this.isDragging = true;
@@ -160,6 +187,7 @@ export class PointerTool extends Tool
 			// Move selected items
 			this.updateMove(dx, dy);
 			stage.render();
+			
 		} else if(this.isDragging){
 			// Update marquee rectangle
 			this.marqueeRect = new Rectangle(
@@ -174,14 +202,18 @@ export class PointerTool extends Tool
 	}
 
 	updateMove(dx, dy){
-		// Use snap point for the drag target, apply same delta to all
+		if(this.originalPositions.length === 0) return;
+
+		// Get current snap point (already set by Stage.onMouseMove)
 		const snapPt = data.getCurrentSnapPoint();
-		const snappedDx = snapPt.x - this.dragStart.x;
-		const snappedDy = snapPt.y - this.dragStart.y;
+
+		// Calculate delta from where we started dragging
+		const snapDx = snapPt.x - this.moveStart.x;
+		const snapDy = snapPt.y - this.moveStart.y;
 
 		// Apply delta to all stored original positions
 		for(const original of this.originalPositions){
-			original.shape.updateControlPoint(original.index, original.x + snappedDx, original.y + snappedDy);
+			original.shape.updateControlPoint(original.index, original.x + snapDx, original.y + snapDy);
 		}
 	}
 

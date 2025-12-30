@@ -22,13 +22,13 @@ export class BoxTool extends Tool
 	}
 
 	begin(){
-		console.log("BoxTool begin");
+		//console.log("BoxTool begin");
 		stage.addEventListener('keyUp', this.onKeyUp);
 		stage.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
-		console.log("BoxTool exit");
+		//console.log("BoxTool exit");
 		stage.removeEventListener('keyUp', this.onKeyUp);
 		stage.removeEventListener('mouseDown', this.onMouseDown);
 		stage.removeEventListener('mouseMove', this.onMouseMove);

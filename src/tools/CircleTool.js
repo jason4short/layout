@@ -28,7 +28,7 @@ export class CircleTool extends Tool
 	}
 
 	begin(){
-		console.log("circle tool begin");
+		//console.log("circle tool begin");
 	
 		stage.addEventListener('keyUp', this.onKeyUp);
 		stage.addEventListener('mouseUp', this.onMouseUp);
@@ -37,7 +37,7 @@ export class CircleTool extends Tool
 	}
 
 	exit(){
-		console.log("circle tool exit");
+		//console.log("circle tool exit");
 		stage.removeEventListener('keyUp', this.onKeyUp);
 		stage.removeEventListener('mouseUp', this.onMouseUp);
 		stage.removeEventListener('mouseMove', this.onMouseMove);
