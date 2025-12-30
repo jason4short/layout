@@ -1,4 +1,5 @@
 import draftingAssistant 	from '../geometry/DraftingAssistant.js';
+import data 				from '../data/Data.js';
 
 import { View } 			from "./View.js";
 import { Rectangle } 		from "../geometry/Rectangle.js";
@@ -105,7 +106,15 @@ class Stage extends View
 		else if (e.key === 'Meta')		this.commandKey = true;
 		else if (e.key === 'Control')	this.controlKey = true;
 		else if (e.key === 'Alt') 		this.optionKey 	= true;
-		
+
+		// Cmd+A: Select All
+		if((e.metaKey || e.ctrlKey) && e.key === 'a'){
+			e.preventDefault();
+			data.selectAll();
+			this.render();
+			return;
+		}
+
 		this.dispatchEvent('keyDown', e);
 	}
 	

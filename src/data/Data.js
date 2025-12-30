@@ -144,14 +144,17 @@ class Data
 	}
 	
 	selectShape(mouse, shiftKey){
-		// clear selection
+		// clear selection unless shift is held
 		if(shiftKey == false){this.selectNone();}
 
-		// clear selection
 		let snap = draftingAssistant.findNearestSnapPoint_OnShape(mouse, this.shapes);
 		if(snap){
-			snap.shape.selected = true;
-			console.log(snap.shape.selected);
+			// Toggle selection if shift is held, otherwise select
+			if(shiftKey){
+				snap.shape.selected = !snap.shape.selected;
+			}else{
+				snap.shape.selected = true;
+			}
 			return snap.shape;
 		}
 	}
@@ -159,6 +162,12 @@ class Data
 	selectNone(){
 		for(let i = 0; i < this.shapes.length; i++){
 			this.shapes[i].selected = false;
+		}
+	}
+
+	selectAll(){
+		for(let i = 0; i < this.shapes.length; i++){
+			this.shapes[i].selected = true;
 		}
 	}
 

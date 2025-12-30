@@ -15,13 +15,16 @@ export class CircleTool extends Tool
 		super();
 
 		this.circle 				= false;
-			
+		this.prevCircle 			= null;
+		this.lastDiameter 			= 50;  // Default diameter for option-click
+
 		this.minRadius 				= 5;
 
 		this.onMouseMove 			= this.onMouseMove.bind(this);
 		this.onMouseDown 			= this.onMouseDown.bind(this);
 		this.onMouseUp 				= this.onMouseUp.bind(this);
 		this.onKeyUp 				= this.onKeyUp.bind(this);
+		this.updateDiameter 		= this.updateDiameter.bind(this);
 	}
 
 	begin(){
@@ -52,13 +55,20 @@ export class CircleTool extends Tool
 	
 	onMouseDown(e)
 	{
-// 		console.log("circle tool onMouseDown");
-	
-// 		this.mouseDownPoint 	= data.getCurrentSnapPoint();
-// 		this.hasDragged 		= false;
+		// Option-click: create circle with stored diameter at click point
+		if(stage.optionKey){
+			const snapPt = data.getCurrentSnapPoint();
+			const circle = new Circle([snapPt.x, snapPt.y, this.lastDiameter / 2]);
+			data.addShape(circle);
+			this.prevCircle = circle;
+			stage.setInputCallback(this.updateDiameter);
+			stage.setDimensionInputValue(this.lastDiameter);
+			stage.render();
+			return;
+		}
 
 		if(this.circle){
-			// Second click: we’ll commit on mouseUp.
+			// Second click: we'll commit on mouseUp.
 
 		}else{
 			this.circle = data.getNewShape(Shape.CIRCLE);
@@ -79,16 +89,41 @@ export class CircleTool extends Tool
 
 	onMouseUp(e)
 	{
+		if(!this.circle) return;
+
 		if(this.circle.radius < MIN_RAD){
 			// do nothing, we're still defining the circle
 
 		}else{
 			this.circle.update();
-			data.addShape(this.circle)
+			data.addShape(this.circle);
 			data.removeTempShape();
+
+			// Store for diameter editing
+			this.prevCircle = this.circle;
+			this.lastDiameter = this.circle.radius * 2;
+
+			// Show diameter in input field
+			stage.setInputCallback(this.updateDiameter);
+			stage.setDimensionInputValue(this.lastDiameter);
+
 			this.circle = false;
-			stage.render();
 		}
 		stage.render();
+	}
+
+	updateDiameter(newDiameter)
+	{
+		const d = parseFloat(newDiameter);
+		if(isNaN(d) || d <= 0) return;
+
+		if(this.prevCircle){
+			this.prevCircle.radius = d / 2;
+			this.prevCircle.update();
+			stage.render();
+		}
+
+		// Always update stored diameter for next option-click
+		this.lastDiameter = d;
 	}
 }
