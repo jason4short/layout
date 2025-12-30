@@ -22,7 +22,7 @@ export class PointerTool extends Tool
 		// Move state
 		this.isMoving			= false;
 		this.moveTarget			= null; // {type: 'shape'|'point', shape, pointIndex?}
-		this.originalPositions	= new Map(); // Store original positions for delta calc
+		this.originalPositions	= []; // Store original positions for delta calc
 
 		this.onMouseMove 		= this.onMouseMove.bind(this);
 		this.onMouseDown 		= this.onMouseDown.bind(this);
@@ -49,7 +49,7 @@ export class PointerTool extends Tool
 		this.isMoving = false;
 		this.moveTarget = null;
 		this.marqueeRect = null;
-		this.originalPositions.clear();
+		this.originalPositions = [];
 		stage.renderer.marqueeRect = null;
 	}
 
@@ -80,6 +80,15 @@ export class PointerTool extends Tool
 			}
 		}
 
+		// Check if mouse is on the geometry of any selected shape
+		const mouseRect = new Rectangle(mouse.x - tolerance, mouse.y - tolerance, tolerance * 2, tolerance * 2);
+		for(const shape of data.getSelected()){
+			const geoSnap = shape.getGeoSnap(mouse, mouseRect, tolerance);
+			if(geoSnap){
+				return {type: 'shape', shape, pointIndex: null};
+			}
+		}
+
 		return null;
 	}
 
@@ -89,7 +98,7 @@ export class PointerTool extends Tool
 
 	// Store original positions of all selected items
 	storeOriginalPositions(){
-		this.originalPositions.clear();
+		this.originalPositions = [];
 
 		// Store positions for whole-shape selections
 		for(const shape of data.getSelected()){
@@ -98,8 +107,7 @@ export class PointerTool extends Tool
 			for(const index of selectableIndices){
 				const poi = pois[index];
 				if(poi){
-					this.originalPositions.set(`${shape.geometry}-${shape.x || shape.start?.x}-${index}`,
-						{x: poi.x, y: poi.y, shape, index});
+					this.originalPositions.push({x: poi.x, y: poi.y, shape, index});
 				}
 			}
 		}
@@ -110,8 +118,7 @@ export class PointerTool extends Tool
 			for(const index of indices){
 				const poi = pois[index];
 				if(poi){
-					this.originalPositions.set(`${shape.geometry}-${shape.x || shape.start?.x}-${index}`,
-						{x: poi.x, y: poi.y, shape, index});
+					this.originalPositions.push({x: poi.x, y: poi.y, shape, index});
 				}
 			}
 		}
@@ -172,33 +179,9 @@ export class PointerTool extends Tool
 		const snappedDx = snapPt.x - this.dragStart.x;
 		const snappedDy = snapPt.y - this.dragStart.y;
 
-		// Track which shapes we've fully moved (to avoid double-moving)
-		const movedShapes = new Set();
-
-		// Move whole-shape selections
-		for(const shape of data.getSelected()){
-			if(movedShapes.has(shape)) continue;
-			movedShapes.add(shape);
-
-			const selectableIndices = data.getSelectableIndices(shape);
-			for(const index of selectableIndices){
-				const key = `${shape.geometry}-${shape.x || shape.start?.x}-${index}`;
-				const original = this.originalPositions.get(key);
-				if(original){
-					shape.updateControlPoint(index, original.x + snappedDx, original.y + snappedDy);
-				}
-			}
-		}
-
-		// Move partial point selections
-		for(const [shape, indices] of data.getSelectedPoints().entries()){
-			for(const index of indices){
-				const key = `${shape.geometry}-${shape.x || shape.start?.x}-${index}`;
-				const original = this.originalPositions.get(key);
-				if(original){
-					shape.updateControlPoint(index, original.x + snappedDx, original.y + snappedDy);
-				}
-			}
+		// Apply delta to all stored original positions
+		for(const original of this.originalPositions){
+			original.shape.updateControlPoint(original.index, original.x + snappedDx, original.y + snappedDy);
 		}
 	}
 

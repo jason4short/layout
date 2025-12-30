@@ -116,7 +116,8 @@ export class ToolManager
 	setTool(tool)
 	{
 		data.clearGuides();
-
+		data.selectNone();
+		
 		this.currentTool.exit();
 
 		if(tool == this.strokeTool){
