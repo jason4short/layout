@@ -18,7 +18,7 @@ export class LineTool extends Tool
 		this.onMouseMove 		= this.onMouseMove.bind(this);
 		this.onMouseDown 		= this.onMouseDown.bind(this);
 		this.onMouseUp 			= this.onMouseUp.bind(this);
-		this.onKeyDown 			= this.onKeyDown.bind(this);
+		//this.onKeyDown 			= this.onKeyDown.bind(this);
 		this.onKeyUp 			= this.onKeyUp.bind(this);
 		this.updateDimension 	= this.updateDimension.bind(this);
 	}
@@ -26,6 +26,7 @@ export class LineTool extends Tool
 	begin(){
 		console.log("begin Line Tool");
 		stage.addEventListener('mouseDown',		this.onMouseDown);
+		stage.addEventListener('mouseMove',		this.onMouseMove);
 	}
 
 	exit(){
@@ -47,11 +48,12 @@ export class LineTool extends Tool
 	{
 		stage.addEventListener('keyUp', 		this.onKeyUp);
 		stage.addEventListener('mouseUp', 		this.onMouseUp);
-		stage.addEventListener('mouseMove',		this.onMouseMove);
 
 		if(this.line){
-		
+			// we're in 2-click mode
+			console.log("2-click mode")
 		}else{
+			console.log("start line")
 			this.line = data.getNewShape(Shape.LINE);
 			data.addTempShape(this.line);
 		}
@@ -59,8 +61,11 @@ export class LineTool extends Tool
 	}
 	
 	onMouseMove(e){
+		//console.log("move!")
 		//console.log(data.snapPoint.x)
+
 		if(this.line){
+			console.log("rubber band me")
 			this.line.end.x = data.snapPoint.x
 			this.line.end.y = data.snapPoint.y
 			stage.render();
@@ -70,11 +75,18 @@ export class LineTool extends Tool
 	onMouseUp(e){
 		stage.removeEventListener('keyUp', 		this.onKeyUp);
 		stage.removeEventListener('mouseUp', 	this.onMouseUp);
-		stage.removeEventListener('mouseMove', 	this.onMouseMove);
-
+// 		stage.removeEventListener('mouseMove', 	this.onMouseMove);
+		
+		if(!this.line)return;
+		
+		this.line.end.x = data.snapPoint.x
+		this.line.end.y = data.snapPoint.y
+		
 		if(this.line.length() < 5){
+			console.log("its a click! ")
 			// do nothing, we're still defining the line		
 		}else{
+			console.log("its a line! ")
 			this.line.update();
 			data.addShape(this.line);
 			data.removeTempShape();

@@ -19,10 +19,20 @@ export class FilletTool extends Tool
 		this.linePreview	= null;
 		this.isDragging		= false;
 
+		// For radius adjustment after creation
+		this.lastArc 		= null;
+		this.lastLine1 		= null;
+		this.lastLine2 		= null;
+		this.lastLine1Original = null;  // {start: {x,y}, end: {x,y}}
+		this.lastLine2Original = null;
+		this.lastClickPt1 	= null;
+		this.lastClickPt2 	= null;
+
 		this.onMouseDown 	= this.onMouseDown.bind(this);
 		this.onMouseMove 	= this.onMouseMove.bind(this);
 		this.onMouseUp 		= this.onMouseUp.bind(this);
 		this.onKeyUp 		= this.onKeyUp.bind(this);
+		this.updateRadius 	= this.updateRadius.bind(this);
 	}
 
 	begin(){
@@ -117,6 +127,7 @@ export class FilletTool extends Tool
 
 			this.createFillet(this.firstLine, this.firstClickPt, secondLine, secondClickPt, this.radius, false);
 			this.reset();
+			this.showRadiusInput();
 			stage.render();
 		}
 	}
@@ -155,6 +166,7 @@ export class FilletTool extends Tool
 		   secondLine !== this.firstLine){
 			this.createFillet(this.firstLine, this.firstClickPt, secondLine, releasePt, this.radius, false);
 			this.reset();
+			this.showRadiusInput();
 			stage.render();
 		} else if(dragDist < 5){
 			// Small drag = click, stay in waiting-for-second-click mode
@@ -208,17 +220,34 @@ export class FilletTool extends Tool
 
 		// Use click point as the "corner" point - fillet will trim toward click
 		this.createFillet(line1, clickPt, line2, clickPt, this.radius, false);
+		this.showRadiusInput();
 		stage.render();
 	}
 
-	createFillet(line1, clickPt1, line2, clickPt2, radius, noTrim)
+	createFillet(line1, clickPt1, line2, clickPt2, radius, noTrim, saveState = true)
 	{
 		// Find intersection of the two lines (extended if necessary)
 		const intersection = this.findLineIntersection(line1, line2);
 
 		if(!intersection){
 			console.log("Lines are parallel, cannot fillet");
-			return;
+			return null;
+		}
+
+		// Save original line state for radius adjustment (before trimming)
+		if(saveState){
+			this.lastLine1 = line1;
+			this.lastLine2 = line2;
+			this.lastLine1Original = {
+				start: {x: line1.start.x, y: line1.start.y},
+				end: {x: line1.end.x, y: line1.end.y}
+			};
+			this.lastLine2Original = {
+				start: {x: line2.start.x, y: line2.start.y},
+				end: {x: line2.end.x, y: line2.end.y}
+			};
+			this.lastClickPt1 = clickPt1;
+			this.lastClickPt2 = clickPt2;
 		}
 
 		// Get direction vectors for each line pointing toward where user clicked
@@ -290,11 +319,16 @@ export class FilletTool extends Tool
 		const arc = new Arc([center.x, center.y, radius, arcStartAngle, arcEndAngle]);
 		data.addShape(arc);
 
+		// Always store arc reference for radius adjustment
+		this.lastArc = arc;
+
 		// Trim lines unless noTrim is set
 		if(!noTrim){
 			this.trimLineToPoint(line1, tangent1, intersection, dir1);
 			this.trimLineToPoint(line2, tangent2, intersection, dir2);
 		}
+
+		return arc;
 	}
 
 	// Find intersection point of two lines (extended infinitely)
@@ -402,5 +436,51 @@ export class FilletTool extends Tool
 		}
 
 		line.update();
+	}
+
+	// Show radius input and set up callback for user input
+	showRadiusInput(){
+		stage.setInputCallback(this.updateRadius);
+		stage.setDimensionInputValue(this.radius);
+	}
+
+	// Called when user types a new radius value - redo the fillet with new radius
+	updateRadius(newRadius){
+		const r = parseFloat(newRadius);
+		if(isNaN(r) || r <= 0){
+			return;
+		}
+
+		// Check if we have a previous fillet to adjust
+		if(!this.lastArc || !this.lastLine1 || !this.lastLine2){
+			this.radius = r;
+			return;
+		}
+
+		// Delete the old arc
+		data.deleteShape(this.lastArc);
+
+		// Restore lines to their original state
+		this.lastLine1.start.x = this.lastLine1Original.start.x;
+		this.lastLine1.start.y = this.lastLine1Original.start.y;
+		this.lastLine1.end.x = this.lastLine1Original.end.x;
+		this.lastLine1.end.y = this.lastLine1Original.end.y;
+		this.lastLine1.update();
+
+		this.lastLine2.start.x = this.lastLine2Original.start.x;
+		this.lastLine2.start.y = this.lastLine2Original.start.y;
+		this.lastLine2.end.x = this.lastLine2Original.end.x;
+		this.lastLine2.end.y = this.lastLine2Original.end.y;
+		this.lastLine2.update();
+
+		// Update radius and create new fillet (saveState = false to keep using same originals)
+		this.radius = r;
+		this.createFillet(
+			this.lastLine1, this.lastClickPt1,
+			this.lastLine2, this.lastClickPt2,
+			this.radius, false, false
+		);
+
+		stage.render();
 	}
 }

@@ -134,6 +134,7 @@ class Stage extends View
 
 	onMouseMove(e)
 	{
+		console.log("stage move")
 		this.mouse = this.normalizeMouseEvent(e);
 		if(this.toolSnaps)
 			draftingAssistant.snap(this.mouse);
