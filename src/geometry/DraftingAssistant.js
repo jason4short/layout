@@ -73,7 +73,13 @@ class DraftingAssistant
 	findNearestSnapPoint_Geometry(mouse, candidates){
 		for(const point of candidates){
 			// Skip points belonging to excluded shapes
-			if(point.shape && data.isExcludedFromSnap(point.shape)){
+			// Handle both POIs (single shape) and Intersections (two shapes)
+			if(point.shapes){
+				// Intersection object - skip if either shape is excluded
+				if(point.shapes.some(s => data.isExcludedFromSnap(s))){
+					continue;
+				}
+			} else if(point.shape && data.isExcludedFromSnap(point.shape)){
 				continue;
 			}
 
@@ -146,8 +152,6 @@ class DraftingAssistant
 			data.addGuide(new Guide([snapPoint.x, snapPoint.y, tangentAngle + 90]));
 		}
 	}
-
-
 
 	getDistance(a, b, min)
 	{

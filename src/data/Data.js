@@ -8,6 +8,7 @@ import {Circle} 			from '../geometry/Circle.js';
 import {SnapPoint} 			from '../geometry/SnapPoint.js';
 import draftingAssistant 	from '../geometry/DraftingAssistant.js';
 import {Intersections} 		from './Intersections.js';
+import {Intersection}		from './Intersection.js';
 
 
 
@@ -35,11 +36,11 @@ class Data
 		this.snapPoints				= []; // DA snap storage - only geometry points of interest are stored
 		this.snapIndex				= 0;
 		
-        // geometry intersections
-		this.shapePOIs			 	= []; 	// when we add a shape, we intersect all existing geometry
-		this.shapeIntersections 	= []; 	// when we add a shape, we intersect all existing geometry
-		this.conIntersections		= [];	// when we add a constructions, we intersect all existing geometry
-		this.guideIntersections		= [];	// when we add a temp guide, we intersect all existing geometry
+        // geometry intersections - new architecture
+		this.shapePOIs			 	= []; 	// POIs from shapes (endpoints, centers, etc.)
+		this.intersectionSet		= new Set();	// All Intersection objects
+		this.intersectionsByShape	= new Map();	// Map<shape, Set<Intersection>> for quick lookup
+		this.guideIntersections		= [];	// temp guide intersections (ephemeral)
 
 		// the point under the cursor
 		this.snapPoint				= new SnapPoint();
@@ -62,27 +63,77 @@ class Data
 	
 	// generate an ID for each shape
 	generateID(){ Math.random().toString(36).slice(2);}
-	
-		
-	// generate array of all points we could snap to
-	resetSnapCandidates(){
+
+	// --------------------------------------------------------------------------------
+	// Intersection Management
+	// --------------------------------------------------------------------------------
+
+	// Register an intersection between two shapes
+	registerIntersection(shapeA, shapeB, point){
+		const intersection = new Intersection(shapeA, shapeB, point);
+		this.intersectionSet.add(intersection);
+
+		// Add to lookup map for both shapes
+		if(!this.intersectionsByShape.has(shapeA)){
+			this.intersectionsByShape.set(shapeA, new Set());
+		}
+		this.intersectionsByShape.get(shapeA).add(intersection);
+
+		if(!this.intersectionsByShape.has(shapeB)){
+			this.intersectionsByShape.set(shapeB, new Set());
+		}
+		this.intersectionsByShape.get(shapeB).add(intersection);
+
+		return intersection;
+	}
+
+	// Find and register all intersections between two shapes
+	findAndRegisterIntersections(shapeA, shapeB){
+		if(!shapeA.bounds.intersects(shapeB.bounds)){
+			return;
+		}
+		const points = this.intersections.intersect_shapes(shapeA, shapeB);
+		if(points && points.length){
+			for(const point of points){
+				this.registerIntersection(shapeA, shapeB, point);
+			}
+		}
+	}
+
+	// Remove all intersections involving a shape
+	removeIntersectionsForShape(shape){
+		const shapeIntersections = this.intersectionsByShape.get(shape);
+		if(!shapeIntersections) return;
+
+		for(const intersection of shapeIntersections){
+			// Remove from the main set
+			this.intersectionSet.delete(intersection);
+
+			// Remove from the other shape's lookup
+			const otherShape = intersection.shapeA === shape ? intersection.shapeB : intersection.shapeA;
+			const otherSet = this.intersectionsByShape.get(otherShape);
+			if(otherSet){
+				otherSet.delete(intersection);
+			}
+		}
+
+		// Remove this shape's entry from the map
+		this.intersectionsByShape.delete(shape);
+	}
+
+	// --------------------------------------------------------------------------------
+	// POI Management
+	// --------------------------------------------------------------------------------
+
+	// Rebuild POIs for all shapes (called after shape deletion)
+	rebuildPOIs(){
 		this.shapePOIs = [];
-		this.shapeIntersections = [];
-
 		for(const shape of this.shapes){
-			// ask shape for it's key snap points
 			const points = shape.getSnapPOIs();
-
-			// Add shape reference to each POI for exclusion checking
 			for(const p of points){
 				p.shape = shape;
 			}
-
-			//fill up snap candidates array
 			this.shapePOIs.push(...points);
-
-			// Rebuild intersections with all other shapes
-			this.findIntersections(shape, this.shapeIntersections);
 		}
 	}
 
@@ -308,50 +359,67 @@ class Data
 	}
 
 	deleteConstructions(){
+		// Remove all intersections for each construction
+		for(const construction of this.constructions){
+			this.removeIntersectionsForShape(construction);
+		}
 		this.constructions = [];
-		this.resetSnapCandidates();
 	}
 
 	deleteShape(shape){
-		console.log("deleteShape "+shape)
 		// Try to delete from shapes first
 		let index = this.shapes.indexOf(shape);
 		if(index > -1){
 			this.shapes.splice(index, 1);
-			this.resetSnapCandidates();
+			this.removeIntersectionsForShape(shape);
+			this.rebuildPOIs();
 			return;
 		}
 
 		// Try constructions
-// 		index = this.constructions.indexOf(shape);
-// 		if(index > -1){
-// 			this.constructions.splice(index, 1);
-// 			this.resetSnapCandidates();
-// 			return;
-// 		}
+		index = this.constructions.indexOf(shape);
+		if(index > -1){
+			this.constructions.splice(index, 1);
+			this.removeIntersectionsForShape(shape);
+			return;
+		}
 	}
 
 
 	// 	stores a shape from a shape geometry object
 	//	useful for interactively generating shapes via tools
 	addShape(newShape){
-		newShape.id = this.generateID();	
-		
-		// pre-store the POIs from each shape
-		// could be stored in the shapes themselves??? would make editing chapes easier
+		newShape.id = this.generateID();
+
+		// Store POIs for this shape
 		this.storeShapePOIs(newShape);
-		
-		// will go through all the shapes and try to intersect and store the points
-		this.findIntersections(newShape, this.shapeIntersections);
-		
-		// add shape to the DB
+
+		// Find intersections with existing shapes
+		for(const shape of this.shapes){
+			this.findAndRegisterIntersections(newShape, shape);
+		}
+
+		// Find intersections with existing constructions
+		for(const construction of this.constructions){
+			this.findAndRegisterIntersections(newShape, construction);
+		}
+
+		// Add shape to the array
 		this.shapes.push(newShape);
 	}
 
 	// from stroke commands
-	addConstruction(construction){ 
-		console.log("Add constructions!!!! ")
-		this.findIntersections(construction, this.conIntersections);
+	addConstruction(construction){
+		// Find intersections with existing shapes
+		for(const shape of this.shapes){
+			this.findAndRegisterIntersections(construction, shape);
+		}
+
+		// Find intersections with existing constructions
+		for(const existingCon of this.constructions){
+			this.findAndRegisterIntersections(construction, existingCon);
+		}
+
 		this.constructions.push(construction);
 	}
 	
@@ -393,9 +461,11 @@ class Data
 		return [...this.shapes, ...this.constructions, ...this.guides, this.shapePreview].filter(Boolean);
 	}
 
-	// Array of all points we could snap to
+	// Array of all intersection points we could snap to
 	getIntersectionCandidates(){
-		return [...this.shapeIntersections , ...this.conIntersections/*, ...this.guideIntersections*/];
+		// Convert Intersection objects to point-like objects for snapping
+		// Intersection has x, y properties so it works directly
+		return [...this.intersectionSet];
 	}
 
 	// Array of all points we could snap to

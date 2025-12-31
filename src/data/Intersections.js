@@ -9,7 +9,6 @@ export class Intersections {
 	{
 	}
 
-
 	intersect_shapes(shape0, shape1){
 
 		const shapes = this.normalizeShapePair(shape0, shape1);

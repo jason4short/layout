@@ -115,14 +115,14 @@ export class ToolManager
 
 	setTool(tool)
 	{
-		data.clearGuides();
-		data.selectNone();
 		
 		this.currentTool.exit();
 
 		if(tool == this.strokeTool){
 			this.strokeTool.begin();
 		}else{
+			data.clearGuides();
+			data.selectNone();
 			this.currentTool = tool;
 			this.currentTool.begin();
 		}
