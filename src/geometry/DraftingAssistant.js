@@ -25,7 +25,7 @@ class DraftingAssistant
 	}
 	
 	// seek the nearest relevant snap point
-	snap(mouse)
+	snap(mouse, generateGuides = true)
 	{
 		let snap = null;
 		// are we on a guide? - clean up later with a test of active guides
@@ -34,14 +34,14 @@ class DraftingAssistant
 		// 1: snap on features of real geometry (endpoints, quadrants, etc...)
 		snap = this.findNearestSnapPoint_Geometry(mouse, data.getPOICandidates());
 		if(snap){
-			data.setCurrentSnapPoint(snap, true); // store snap point as a DA Snap
+			data.setCurrentSnapPoint(snap, generateGuides); // store snap point as a DA Snap
 			return;
 		}
 
 		// 2, 3: snap on intersections of real geometry and constructions
 		snap = this.findNearestSnapPoint_Geometry(mouse, data.getIntersectionCandidates());
 		if(snap){
-			data.setCurrentSnapPoint(snap, true); // store snap point as a DA Snap
+			data.setCurrentSnapPoint(snap, generateGuides); // store snap point as a DA Snap
 			return;
 		}
 
@@ -128,56 +128,26 @@ class DraftingAssistant
 	{
 		// vert
 		data.addGuide(new Guide([snapPoint.x, snapPoint.y, 90]));
-		
+
 		// horz
 		data.addGuide(new Guide([snapPoint.x, snapPoint.y, 0]));
-		
-		// XXX
-		// angle 45
 
-		// angle -45
-	  
-	}
+		// 45°
+		data.addGuide(new Guide([snapPoint.x, snapPoint.y, 45]));
 
+		// -45°
+		data.addGuide(new Guide([snapPoint.x, snapPoint.y, -45]));
 
-	// store the snap points and create guide geometry
-	// snaps is a hash of keys and points
-	createGuidesXXX(snaps, key, point, limit = 4)
-	{
-		// XXX replace snaps with a ring buffer? 
-
-		// only new snap points
-		if (!snaps.has(key)) { 
-		
-			snaps.set(key, point);
-			
-			if (snaps.size > limit){
-				// XXX does this really work? 
-				const firstKey = snaps.keys().next().value;
-				snaps.delete(firstKey);
-			}
-	
-			// XXX we reset guides for now when a point gets reset
-			data.clearGuides();
-
-			// create guide geometry
-			for (const point of snaps.values()) {
-				//console.log(point);
-
-				// vert
-				data.addGuide(new Guide([point.x, point.y, 90]));
-				
-				// horz
-				data.addGuide(new Guide([point.x, point.y, 0]));
-				
-				// XXX
-				// angle 45
-
-				// angle -45
-			  
-			}
+		// Tangent and perpendicular guides if snap point is on a shape
+		if (snapPoint.shape && typeof snapPoint.shape.getTangentAngle === 'function') {
+			const tangentAngle = snapPoint.shape.getTangentAngle(snapPoint);
+			data.addGuide(new Guide([snapPoint.x, snapPoint.y, tangentAngle]));
+			// Perpendicular to tangent (normal)
+			data.addGuide(new Guide([snapPoint.x, snapPoint.y, tangentAngle + 90]));
 		}
 	}
+
+
 
 	getDistance(a, b, min)
 	{

@@ -10,7 +10,7 @@ export class OppositeCornerEllipseTool extends Tool
 	constructor()
 	{
 		super();
-		this.willSnap = true;
+		this.generateGuides = true;
 
 		this.startPt	= null;
 		this.ellipse	= null;

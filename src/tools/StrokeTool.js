@@ -77,6 +77,12 @@ export class StrokeTool extends Tool
 			}else if (gesture == 'downRight'){
 				// zoom in
 				
+			}else if (gesture == 'upRight'){
+				// zoom out
+				data.deleteConstructions();
+			}else if (gesture == 'downLeft'){
+				// zoom in
+				
 			}
 			
 			this.line = false;

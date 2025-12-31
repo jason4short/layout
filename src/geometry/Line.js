@@ -73,16 +73,22 @@ export class Line extends Geometry
 	getAngleDeg(){
 		const dx = this.end.x - this.start.x;
 		const dy = this.end.y - this.start.y;
-	
+
 		// atan2 returns angle in radians (-π to +π)
-		// canvas is flipped Y - 
+		// canvas is flipped Y -
 		const angleRad = Math.atan2(-dy, dx);
-	
+
 		// convert to degrees (0–360)
 		let angleDeg = angleRad * (180 / Math.PI);
 		if(angleDeg < 0) angleDeg += 360;
-	
+
 		return angleDeg;
+	}
+
+	// Get tangent angle (in degrees) at any point on the line
+	// For a line, tangent is just the line's angle
+	getTangentAngle(point) {
+		return this.getAngleDeg();
 	}
 
 	/**

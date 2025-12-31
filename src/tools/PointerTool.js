@@ -11,7 +11,7 @@ export class PointerTool extends Tool
 	{
 		super();
 
-		this.willSnap 			= true; // Enable snapping for move operations
+		this.generateGuides 	= false; // Enable snapping for move operations
 
 		// Drag state
 		this.dragStart			= null;
@@ -32,6 +32,7 @@ export class PointerTool extends Tool
 
 
 	begin(){
+		data.resetSnaps();
 		stage.addEventListener('mouseUp', 		this.onMouseUp);
 		stage.addEventListener('mouseMove',		this.onMouseMove);
 		stage.addEventListener('mouseDown',		this.onMouseDown);
@@ -148,6 +149,7 @@ export class PointerTool extends Tool
 
 	onMouseDown(e)
 	{
+		data.resetSnaps();
 		this.dragStart = {x: e.x, y: e.y};
 		this.isDragging = false;
 		this.isMoving = false;
@@ -157,6 +159,7 @@ export class PointerTool extends Tool
 	}
 
 	onMouseMove(e){
+//		data.resetSnaps();
 		if(!this.dragStart) return;
 
 		const dx = e.x - this.dragStart.x;
@@ -218,6 +221,7 @@ export class PointerTool extends Tool
 	}
 
 	onMouseUp(e){
+		data.resetSnaps();
 		if(this.isMoving){
 			// Move operation complete - positions already updated
 		} else if(this.isDragging && this.marqueeRect){

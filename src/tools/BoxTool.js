@@ -10,7 +10,7 @@ export class BoxTool extends Tool
 	constructor()
 	{
 		super();
-		this.willSnap = true;
+		this.generateGuides = true;
 
 		this.startPt		= null;
 		this.previewLines	= [];  // 4 lines for box preview
@@ -57,6 +57,7 @@ export class BoxTool extends Tool
 
 	onMouseDown(e)
 	{
+		data.resetSnaps();
 		const snapPt = data.getCurrentSnapPoint();
 		this.startPt = {x: snapPt.x, y: snapPt.y};
 
@@ -84,6 +85,7 @@ export class BoxTool extends Tool
 
 	onMouseUp(e)
 	{
+		data.resetSnaps();
 		stage.removeEventListener('mouseMove', this.onMouseMove);
 		stage.removeEventListener('mouseUp', this.onMouseUp);
 

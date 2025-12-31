@@ -10,7 +10,7 @@ export class ChamferTool extends Tool
 	constructor()
 	{
 		super();
-		this.willSnap = false;
+		this.generateGuides = false;
 
 		this.firstLine 		= null;
 		this.distance 		= 25;  // Default chamfer distance

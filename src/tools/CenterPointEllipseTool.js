@@ -10,7 +10,7 @@ export class CenterPointEllipseTool extends Tool
 	constructor()
 	{
 		super();
-		this.willSnap = true;
+		this.generateGuides = true;
 
 		this.centerPt	= null;
 		this.ellipse	= null;

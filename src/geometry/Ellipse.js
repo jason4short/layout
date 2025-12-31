@@ -108,6 +108,29 @@ export class Ellipse extends Geometry
 		return new Ellipse([this.x, this.y, this.radiusX, this.radiusY, this.rotation]);
 	}
 
+	// Get tangent angle (in degrees) at a point on the ellipse
+	getTangentAngle(point) {
+		const dx = point.x - this.x;
+		const dy = point.y - this.y;
+
+		// For axis-aligned ellipse, tangent slope = -b²x / (a²y)
+		// where a = radiusX, b = radiusY
+		const a2 = this.radiusX * this.radiusX;
+		const b2 = this.radiusY * this.radiusY;
+
+		// Avoid division by zero
+		if (Math.abs(dy) < 0.0001) {
+			// At top/bottom of ellipse, tangent is horizontal
+			return 0;
+		}
+
+		const slope = -(b2 * dx) / (a2 * dy);
+		// atan gives angle, convert to degrees
+		// Note: using atan2 for proper quadrant handling
+		const tangentAngle = Math.atan2(-slope, 1); // negative because canvas Y is flipped
+		return tangentAngle * (180 / Math.PI);
+	}
+
 	// Update a specific control point by index
 	// POI indices: 0=center, 1=right, 2=left, 3=bottom, 4=top
 	updateControlPoint(index, newX, newY){

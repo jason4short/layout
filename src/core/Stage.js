@@ -144,8 +144,8 @@ class Stage extends View
 	onMouseMove(e)
 	{
 		this.mouse = this.normalizeMouseEvent(e);
-		if(this.toolSnaps)
-			draftingAssistant.snap(this.mouse);
+		//if(this.toolSnaps)
+		draftingAssistant.snap(this.mouse, this.generateGuides);
 		this.dispatchEvent('mouseMove', this.mouse);
 		this.render();
 	}

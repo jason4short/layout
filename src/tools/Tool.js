@@ -8,7 +8,7 @@ export class Tool extends InteractiveObject
 	constructor()
 	{
 		super();
-		this.willSnap = true;
+		this.generateGuides = true;
 
 	}
 	

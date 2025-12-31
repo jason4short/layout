@@ -126,7 +126,8 @@ export class ToolManager
 			this.currentTool = tool;
 			this.currentTool.begin();
 		}
-		stage.toolSnaps = this.currentTool.willSnap;
+		
+		stage.generateGuides = this.currentTool.generateGuides;
 		this.updateToolNameDisplay();
 		stage.render();
 	}

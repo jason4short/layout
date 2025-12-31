@@ -56,6 +56,7 @@ export class ThreePointArcTool extends Tool
 
 	onMouseDown(e)
 	{
+		data.resetSnaps();
 		const currentPoint = data.getCurrentSnapPoint();
 
 		if(this.step === 0){

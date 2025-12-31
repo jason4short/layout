@@ -11,8 +11,8 @@ export class FilletTool extends Tool
 	constructor()
 	{
 		super();
-		this.willSnap = true;
-
+		this.generateGuides = false;
+		
 		this.firstLine 		= null;
 		this.firstClickPt	= null;
 		this.radius 		= 25;  // Default radius

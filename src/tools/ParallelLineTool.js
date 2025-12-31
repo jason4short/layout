@@ -50,7 +50,7 @@ export class ParallelLineTool extends Tool
 
 	onMouseDown(e)
 	{
-		console.log('[ParallelLineTool] mouseDown');
+		data.resetSnaps();
 		data.selectNone();
 		const startMousePoint = data.getCurrentSnapPoint();
 		const selectedShape = data.getTargetShape(startMousePoint);
@@ -146,6 +146,7 @@ export class ParallelLineTool extends Tool
 	 */
 	onMouseUp(e)
 	{
+		data.resetSnaps();
 		stage.removeEventListener('keyUp', 		this.onKeyUp);
 		stage.removeEventListener('mouseUp', 	this.onMouseUp);
 		stage.removeEventListener('mouseMove', 	this.onMouseMove);

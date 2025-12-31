@@ -13,7 +13,7 @@ export class TrimTool extends Tool
 	constructor()
 	{
 		super();
-		this.willSnap = false; // Disable snapping for trim tool
+		this.generateGuides		= false;
 
 		this.onMouseDown 		= this.onMouseDown.bind(this);
 //		this.onMouseMove 		= this.onMouseMove.bind(this);
@@ -47,6 +47,7 @@ export class TrimTool extends Tool
 
 	onMouseDown(e)
 	{
+		data.resetSnaps();
 		if(stage.shiftKey){
 			// Toggle boundary selection
 			data.selectShape(e, stage.shiftKey);

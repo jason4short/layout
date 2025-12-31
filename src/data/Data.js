@@ -67,6 +67,7 @@ class Data
 	// generate array of all points we could snap to
 	resetSnapCandidates(){
 		this.shapePOIs = [];
+		this.shapeIntersections = [];
 
 		for(const shape of this.shapes){
 			// ask shape for it's key snap points
@@ -79,6 +80,9 @@ class Data
 
 			//fill up snap candidates array
 			this.shapePOIs.push(...points);
+
+			// Rebuild intersections with all other shapes
+			this.findIntersections(shape, this.shapeIntersections);
 		}
 	}
 
@@ -303,6 +307,11 @@ class Data
 		return newShape;
 	}
 
+	deleteConstructions(){
+		this.constructions = [];
+		this.resetSnapCandidates();
+	}
+
 	deleteShape(shape){
 		console.log("deleteShape "+shape)
 		// Try to delete from shapes first
@@ -452,11 +461,16 @@ class Data
 			draftingAssistant.createGuides(snapPoint);
 		}
 	}
-	
+
+	resetSnaps(){
+		this.snapPoints			= []	
+		this.snapIndex 			= 0;
+	}
+
 	// reset DA guides
 	clearGuides(){
 		this.guideIntersections = [];
-		this.guides = [];
+		this.guides 			= [];
 	}
 	
 	// DA guides

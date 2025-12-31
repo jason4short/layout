@@ -81,6 +81,15 @@ export class Circle extends Geometry
 		return 2 * Math.PI * this.radius;
 	}
 
+	// Get tangent angle (in degrees) at a point on the circle
+	// Tangent is perpendicular to the radius at that point
+	getTangentAngle(point) {
+		const radiusAngle = Math.atan2(point.y - this.y, point.x - this.x);
+		// Tangent is perpendicular to radius (add 90°)
+		const tangentAngle = radiusAngle + Math.PI / 2;
+		return tangentAngle * (180 / Math.PI);
+	}
+
 	// Update a specific control point by index
 	// POI indices: 0=center, 1=right, 2=left, 3=bottom, 4=top
 	updateControlPoint(index, newX, newY){

@@ -46,6 +46,7 @@ export class LineTool extends Tool
 
 	onMouseDown(e)
 	{
+		data.resetSnaps();
 		stage.addEventListener('keyUp', 		this.onKeyUp);
 		stage.addEventListener('mouseUp', 		this.onMouseUp);
 
@@ -69,6 +70,7 @@ export class LineTool extends Tool
 	}
 
 	onMouseUp(e){
+		data.resetSnaps();
 		stage.removeEventListener('keyUp', 		this.onKeyUp);
 		stage.removeEventListener('mouseUp', 	this.onMouseUp);
 		

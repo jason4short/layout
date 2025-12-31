@@ -55,6 +55,7 @@ export class CircleTool extends Tool
 	
 	onMouseDown(e)
 	{
+		data.resetSnaps();
 		// Option-click: create circle with stored diameter at click point
 		if(stage.optionKey){
 			const snapPt = data.getCurrentSnapPoint();
@@ -89,6 +90,7 @@ export class CircleTool extends Tool
 
 	onMouseUp(e)
 	{
+		data.resetSnaps();
 		if(!this.circle) return;
 
 		if(this.circle.radius < MIN_RAD){
