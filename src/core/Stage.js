@@ -1,5 +1,6 @@
 import draftingAssistant 	from '../geometry/DraftingAssistant.js';
 import data 				from '../data/Data.js';
+import toolManager			from '../tools/ToolManager.js';
 
 import { View } 			from "./View.js";
 import { Rectangle } 		from "../geometry/Rectangle.js";
@@ -39,7 +40,6 @@ class Stage extends View
 
 		this.renderer 			= new Renderer();
 
-		this.init();		
         return Stage.instance;
 	}
 	
@@ -47,7 +47,6 @@ class Stage extends View
 		this.canvas 	= document.getElementById('stage');
 		this.ctx 		= this.canvas.getContext('2d');;
 		this.document 	= document;
-
 
 		// Initial DPI setup + on window resize (CSS size may change)
 		this.configureCanvasForHighDPI();
@@ -59,6 +58,7 @@ class Stage extends View
 		this.canvas.addEventListener('mousedown', 	this.onMouseDown);
 		this.canvas.addEventListener('mousemove',	this.onMouseMove);
 		this.canvas.addEventListener('mouseup',		this.onMouseUp);
+		this.render();
     }
 
 	/** Redraw everything. */
@@ -145,7 +145,7 @@ class Stage extends View
 	{
 		this.mouse = this.normalizeMouseEvent(e);
 		//if(this.toolSnaps)
-		draftingAssistant.snap(this.mouse, this.generateGuides);
+		draftingAssistant.snap(this.mouse, toolManager.generateGuides());
 		this.dispatchEvent('mouseMove', this.mouse);
 		this.render();
 	}

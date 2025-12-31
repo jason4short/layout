@@ -1,9 +1,10 @@
 import {Tool} 	from './Tool.js';
-
 import {Shape} from '../geometry/Geometry.js';
 import {Line} 	from '../geometry/Line.js'
-import stage 	from '../core/Stage.js';
-import data 	from '../data/Data.js';
+
+import stage 			from '../core/Stage.js';
+import toolManager		from './ToolManager.js';
+import data 			from '../data/Data.js';
 
 export class LineTool extends Tool
 {
@@ -12,43 +13,38 @@ export class LineTool extends Tool
 	constructor()
 	{
 		super();
+
+		this.name 	= "Line";
+		this.usage 	= "Click to set start point, drag or click again to set end point. Press Escape to cancel.";
+		this.cursor = "cursor_crosshair";
+
 		this.line 				= false;
 		this.prevLine 			= false;
 
 		this.onMouseMove 		= this.onMouseMove.bind(this);
 		this.onMouseDown 		= this.onMouseDown.bind(this);
 		this.onMouseUp 			= this.onMouseUp.bind(this);
-		//this.onKeyDown 			= this.onKeyDown.bind(this);
-		this.onKeyUp 			= this.onKeyUp.bind(this);
+
 		this.updateDimension 	= this.updateDimension.bind(this);
 	}
 	
 	begin(){
 		//console.log("begin Line Tool");
-		stage.addEventListener('mouseDown',		this.onMouseDown);
-		stage.addEventListener('mouseMove',		this.onMouseMove);
+		toolManager.addEventListener('mouseDown',		this.onMouseDown);
+		toolManager.addEventListener('mouseMove',		this.onMouseMove);
 	}
 
 	exit(){
 		//console.log("exit Line Tool");
-		stage.removeEventListener('keyUp', 		this.onKeyUp);
-		stage.removeEventListener('mouseUp', 	this.onMouseUp);
-		stage.removeEventListener('mouseMove', 	this.onMouseMove);
-		stage.removeEventListener('mouseDown', 	this.onMouseDown);
+		toolManager.removeEventListener('mouseUp', 	this.onMouseUp);
+		toolManager.removeEventListener('mouseMove', 	this.onMouseMove);
+		toolManager.removeEventListener('mouseDown', 	this.onMouseDown);
 	}
 	
-	onKeyUp(e){
-		if (e.key === 'Escape' && this.line){
-			this.line = false;
-			stage.render();
-		}
-	}
-
 	onMouseDown(e)
 	{
 		data.resetSnaps();
-		stage.addEventListener('keyUp', 		this.onKeyUp);
-		stage.addEventListener('mouseUp', 		this.onMouseUp);
+		toolManager.addEventListener('mouseUp', 		this.onMouseUp);
 
 		if(this.line){
 			// we're in 2-click mode
@@ -71,8 +67,7 @@ export class LineTool extends Tool
 
 	onMouseUp(e){
 		data.resetSnaps();
-		stage.removeEventListener('keyUp', 		this.onKeyUp);
-		stage.removeEventListener('mouseUp', 	this.onMouseUp);
+		toolManager.removeEventListener('mouseUp', 	this.onMouseUp);
 		
 		if(!this.line)return;
 		

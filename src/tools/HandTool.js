@@ -1,7 +1,8 @@
 import {Tool} 	from './Tool.js';
 
-import stage	from '../core/Stage.js';
-import data 	from '../data/Data.js';
+import stage 			from '../core/Stage.js';
+import toolManager		from './ToolManager.js';
+import data 			from '../data/Data.js';
 
 export class HandTool extends Tool
 {
@@ -10,29 +11,28 @@ export class HandTool extends Tool
 	constructor()
 	{
 		super();
+
+		this.name 	= "Hand";
+		this.usage 	= "Drag to pan the canvas view.";
+		this.cursor = "cursor_grab";
+
 		this.onMouseMove 		= this.onMouseMove.bind(this);
 		this.onMouseDown 		= this.onMouseDown.bind(this);
 		this.onMouseUp 			= this.onMouseUp.bind(this);
-		this.onKeyDown 			= this.onKeyDown.bind(this);
-		this.onKeyUp 			= this.onKeyUp.bind(this);
 	}
 	
 	begin(){
-		stage.addEventListener('keyUp', this.onKeyUp);
-		stage.addEventListener('mouseUp', this.onMouseUp);
-		stage.addEventListener('mouseMove', this.onMouseMove);
-		stage.addEventListener('mouseDown', this.onMouseDown);
+		toolManager.addEventListener('mouseUp', this.onMouseUp);
+		toolManager.addEventListener('mouseMove', this.onMouseMove);
+		toolManager.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
-		stage.removeEventListener('keyUp', this.onKeyUp);
-		stage.removeEventListener('mouseUp', this.onMouseUp);
-		stage.removeEventListener('mouseMove', this.onMouseMove);
-		stage.removeEventListener('mouseDown', this.onMouseDown);
+		toolManager.removeEventListener('mouseUp', this.onMouseUp);
+		toolManager.removeEventListener('mouseMove', this.onMouseMove);
+		toolManager.removeEventListener('mouseDown', this.onMouseDown);
 	}
 	
-	onKeyUp(e){
-	}
 
 	onMouseDown(e)
 	{

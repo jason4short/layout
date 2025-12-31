@@ -26,7 +26,7 @@ class DraftingAssistant
 	
 	// seek the nearest relevant snap point
 	snap(mouse, generateGuides = true)
-	{
+	{		
 		let snap = null;
 		// are we on a guide? - clean up later with a test of active guides
 		this.activateGuides(mouse, data.getGuides());

@@ -8,7 +8,6 @@ export class InputHandler
 		this.onDimensionCommit 		= null;
 		this.id 					= id;
 		this.init();
-		console.log(this)
 	}
 		
     init(id=null){

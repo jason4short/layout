@@ -1,11 +1,14 @@
 import stage from './core/Stage.js';
+
 import data from './data/Data.js';
+import toolManager from './tools/ToolManager.js';
+
 import {Shape} from './geometry/Geometry.js';
 import {Intersections} from './data/Intersections.js';
 
-import {ToolManager} from './tools/ToolManager.js';
+//import toolManager from './tools/ToolManager.js';
 
-let tools = new ToolManager();
+//let tools = new ToolManager();
 
 
 let intersections = new Intersections();
@@ -15,7 +18,9 @@ let intersections = new Intersections();
 //data.createShape(Shape.CIRCLE, [300,300,100]);
 
 
-stage.render();
+stage.init();		
+toolManager.init();
+
 
 window.addEventListener('keydown', onKeyDown);
 

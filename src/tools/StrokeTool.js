@@ -2,7 +2,9 @@ import {Shape} 			from '../geometry/Geometry.js';
 import {Tool} 			from "./Tool.js";
 import {Line} 			from '../geometry/Line.js'
 import {Construction} 	from '../geometry/Construction.js'
+
 import stage 			from '../core/Stage.js';
+import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
 
 export class StrokeTool extends Tool
@@ -12,35 +14,41 @@ export class StrokeTool extends Tool
 	constructor()
 	{
 		super();
-		this.drawing = false;
-		this.Line = false;
 
-		this.onMouseMove 		= this.onMouseMove.bind(this);
+		this.name 	= "Gesture";
+		this.usage 	= "Draw gestures to create construction lines or trigger commands.";
+		this.cursor = "cursor_gesture";
+
+		this.generateGuides = false;
+
+		this.active 		= false;
+
+		this.drawing 		= false;
+		this.Line 			= false;
+
 		this.onMouseDown 		= this.onMouseDown.bind(this);
+		this.onMouseMove 		= this.onMouseMove.bind(this);
 		this.onMouseUp 			= this.onMouseUp.bind(this);
-		this.onKeyDown 			= this.onKeyDown.bind(this);
-		this.onKeyUp 			= this.onKeyUp.bind(this);
 	}
 
-	
-	begin(){
-		//console.log("begin Stroke Tool");
-		stage.addEventListener('keyUp', 		this.onKeyUp);
-		stage.addEventListener('mouseUp', 		this.onMouseUp);
-		stage.addEventListener('mouseMove', 	this.onMouseMove);
-		stage.addEventListener('mouseDown', 	this.onMouseDown);
+
+	activate(){
+		data.resetSnaps();		
+		this.active 		= true;
+		console.log("begin Stroke Tool");
+// 		toolManager.addEventListener('mouseUp', 		this.onMouseUp);
+// 		toolManager.addEventListener('mouseMove', 	this.onMouseMove);
+// 		toolManager.addEventListener('mouseDown', 	this.onMouseDown);
 	}
 
-	exit(){
-		//console.log("exit Stroke Tool");
-		stage.removeEventListener('keyUp', 		this.onKeyUp);
-		stage.removeEventListener('mouseUp', 	this.onMouseUp);
-		stage.removeEventListener('mouseMove', 	this.onMouseMove);
-		stage.removeEventListener('mouseDown', 	this.onMouseDown);
+	deactivate(){
+		console.log("exit Stroke Tool");
+		this.active 		= false;
+// 		toolManager.removeEventListener('mouseUp', 	this.onMouseUp);
+// 		toolManager.removeEventListener('mouseMove', 	this.onMouseMove);
+// 		toolManager.removeEventListener('mouseDown', 	this.onMouseDown);
 	}
-	
-	onKeyUp(e){
-	}
+
 
 	onMouseDown(e)
 	{
@@ -54,7 +62,6 @@ export class StrokeTool extends Tool
 // 			this.line.end.y = e.y
 // 		}
 	}
-
 
 	onMouseUp(e){
 		if(this.line){
@@ -78,11 +85,9 @@ export class StrokeTool extends Tool
 				// zoom in
 				
 			}else if (gesture == 'upRight'){
-				// zoom out
 				data.deleteConstructions();
 			}else if (gesture == 'downLeft'){
-				// zoom in
-				
+				toolManager.dispatchEvent('keyUp', {key:'v'});
 			}
 			
 			this.line = false;

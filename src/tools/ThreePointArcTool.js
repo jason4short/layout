@@ -1,9 +1,10 @@
-import {Tool} from './Tool.js';
-
+import {Tool} 				from './Tool.js';
 import {Shape, Geometry} 	from '../geometry/Geometry.js';
 import {Arc} 				from '../geometry/Arc.js';
 import {Line} 				from '../geometry/Line.js';
+
 import stage 				from '../core/Stage.js';
+import toolManager			from './ToolManager.js';
 import data 				from '../data/Data.js';
 
 export class ThreePointArcTool extends Tool
@@ -11,6 +12,10 @@ export class ThreePointArcTool extends Tool
 	constructor()
 	{
 		super();
+
+		this.name 	= "3-Point Arc";
+		this.usage 	= "Click start point, click end point, then click a point on the arc to define curvature.";
+		this.cursor = "cursor_arc";
 
 		this.arc 			= null;
 		this.linePreview	= null;
@@ -20,21 +25,20 @@ export class ThreePointArcTool extends Tool
 
 		this.onMouseMove 	= this.onMouseMove.bind(this);
 		this.onMouseDown 	= this.onMouseDown.bind(this);
-		this.onKeyUp 		= this.onKeyUp.bind(this);
+		this.onMouseUp		= this.onMouseUp.bind(this);
+
 	}
 
 	begin(){
 		//console.log("ThreePointArcTool begin");
-		stage.addEventListener('keyUp', this.onKeyUp);
-		stage.addEventListener('mouseMove', this.onMouseMove);
-		stage.addEventListener('mouseDown', this.onMouseDown);
+		toolManager.addEventListener('mouseMove', this.onMouseMove);
+		toolManager.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
 		//console.log("ThreePointArcTool exit");
-		stage.removeEventListener('keyUp', this.onKeyUp);
-		stage.removeEventListener('mouseMove', this.onMouseMove);
-		stage.removeEventListener('mouseDown', this.onMouseDown);
+		toolManager.removeEventListener('mouseMove', this.onMouseMove);
+		toolManager.removeEventListener('mouseDown', this.onMouseDown);
 		this.reset();
 	}
 
@@ -45,13 +49,6 @@ export class ThreePointArcTool extends Tool
 		this.endPoint 		= null;
 		this.step 			= 0;
 		data.removeTempShape();
-	}
-
-	onKeyUp(e){
-		if(e.key === 'Escape'){
-			this.reset();
-			stage.render();
-		}
 	}
 
 	onMouseDown(e)
@@ -142,6 +139,10 @@ export class ThreePointArcTool extends Tool
 		}
 
 		stage.render();
+	}
+
+	onMouseUp(e){
+		
 	}
 
 }

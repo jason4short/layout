@@ -1,21 +1,24 @@
 import stage 					from '../core/Stage.js';
 import data 					from '../data/Data.js';
-	
-import { LineTool } 			from "./LineTool.js";
-import { HandTool } 			from "./HandTool.js";
-import { PointerTool } 			from "./PointerTool.js";
-import { StrokeTool } 			from "./StrokeTool.js";
-import { CircleTool } 			from "./CircleTool.js";
-import { ParallelLineTool }		from "./ParallelLineTool.js";
-import { TrimTool } 			from "./TrimTool.js";
-import { ThreePointArcTool } 	from "./ThreePointArcTool.js";
-import { CenterPointArcTool } 	from "./CenterPointArcTool.js";
-import { TangentPointArcTool } 	from "./TangentPointArcTool.js";
-import { FilletTool } 			from "./FilletTool.js";
-import { ChamferTool } 			from "./ChamferTool.js";
-import { BoxTool } 				from "./BoxTool.js";
-import { OppositeCornerEllipseTool } from "./OppositeCornerEllipseTool.js";
-import { CenterPointEllipseTool } 	from "./CenterPointEllipseTool.js";
+
+import { EventDispatcher } 				from '../core/EventDispatcher.js';
+
+import { LineTool } 					from "./LineTool.js";
+import { HandTool } 					from "./HandTool.js";
+import { PointerTool } 					from "./PointerTool.js";
+import { StrokeTool } 					from "./StrokeTool.js";
+import { CircleTool } 					from "./CircleTool.js";
+import { ParallelLineTool }				from "./ParallelLineTool.js";
+import { TrimTool } 					from "./TrimTool.js";
+import { ThreePointArcTool } 			from "./ThreePointArcTool.js";
+import { CenterPointArcTool } 			from "./CenterPointArcTool.js";
+import { TangentPointArcTool } 			from "./TangentPointArcTool.js";
+import { FilletTool } 					from "./FilletTool.js";
+import { ChamferTool } 					from "./ChamferTool.js";
+import { BoxTool } 						from "./BoxTool.js";
+import { OppositeCornerEllipseTool } 	from "./OppositeCornerEllipseTool.js";
+import { CenterPointEllipseTool } 		from "./CenterPointEllipseTool.js";
+import { SplineTool } 					from "./SplineTool.js";
 
 
 
@@ -23,35 +26,37 @@ import { CenterPointEllipseTool } 	from "./CenterPointEllipseTool.js";
 //import flash.events.MouseEvent;
 
 
-export class ToolManager
+
+class ToolManager extends EventDispatcher
 {
  	constructor(){
-
+ 		super();
+		if (ToolManager.instance) return ToolManager.instance;
+		
 		// Bind handlers so `this` stays the Stage instance
-		this.onKeyDown 			= this.onKeyDown.bind(this);
-		this.onKeyUp 			= this.onKeyUp.bind(this);
-
-		window.addEventListener('keydown', 			this.onKeyDown, 	{ capture: true });
-		window.addEventListener('keyup', 			this.onKeyUp, 		{ capture: true });
-
-		this.stroke	 			= false;
+		this.onKeyDown 					= this.onKeyDown.bind(this);
+		this.onKeyUp 					= this.onKeyUp.bind(this);
+		this.onMouseDown 				= this.onMouseDown.bind(this);
+		this.onMouseMove 				= this.onMouseMove.bind(this);
+		this.onMouseUp 					= this.onMouseUp.bind(this);
 
 		// keep tools handy
-		this.lineTool	 			= new LineTool();
-		this.circleTool 			= new CircleTool();
-		this.strokeTool 			= new StrokeTool();
-		this.handTool				= new HandTool();
-		this.pointerTool			= new PointerTool();
-		this.parallelLineTool		= new ParallelLineTool();
-		this.trimTool				= new TrimTool();
-		this.threePointArcTool		= new ThreePointArcTool();
-		this.centerPointArcTool		= new CenterPointArcTool();
-		this.tangentPointArcTool	= new TangentPointArcTool();
-		this.filletTool				= new FilletTool();
-		this.chamferTool			= new ChamferTool();
-		this.boxTool				= new BoxTool();
+		this.lineTool	 				= new LineTool();
+		this.circleTool 				= new CircleTool();
+		this.strokeTool 				= new StrokeTool();
+		this.handTool					= new HandTool();
+		this.pointerTool				= new PointerTool();
+		this.parallelLineTool			= new ParallelLineTool();
+		this.trimTool					= new TrimTool();
+		this.threePointArcTool			= new ThreePointArcTool();
+		this.centerPointArcTool			= new CenterPointArcTool();
+		this.tangentPointArcTool		= new TangentPointArcTool();
+		this.filletTool					= new FilletTool();
+		this.chamferTool				= new ChamferTool();
+		this.boxTool					= new BoxTool();
 		this.oppositeCornerEllipseTool	= new OppositeCornerEllipseTool();
 		this.centerPointEllipseTool		= new CenterPointEllipseTool();
+		this.splineTool					= new SplineTool();
 
 		// Tool palette configuration: [tool, displayName, shortcut]
 		this.toolPaletteConfig = [
@@ -63,6 +68,7 @@ export class ToolManager
 			{ tool: this.circleTool, name: 'Circle', shortcut: 'C' },
 			{ tool: this.oppositeCornerEllipseTool, name: 'Ellipse', shortcut: 'E' },
 			{ tool: this.centerPointEllipseTool, name: 'Ellipse (Center)', shortcut: '4' },
+			{ tool: this.splineTool, name: 'Spline', shortcut: 'S' },
 			{ category: 'Arcs' },
 			{ tool: this.threePointArcTool, name: '3-Point Arc', shortcut: 'A' },
 			{ tool: this.centerPointArcTool, name: 'Center Arc', shortcut: '1' },
@@ -74,10 +80,24 @@ export class ToolManager
 			{ tool: this.parallelLineTool, name: 'Parallel', shortcut: 'P' },
 		];
 
-		this.buildToolPalette();
-		this.initTool(this.pointerTool);
+		return ToolManager.instance;
 	}
 	
+	
+	init(){
+		this.buildToolPalette();		
+
+		stage.addEventListener('keyUp', 	this.onKeyUp);
+		stage.addEventListener('keyDown', 	this.onKeyDown);
+		stage.addEventListener('mouseDown', this.onMouseDown);
+		stage.addEventListener('mouseMove', this.onMouseMove);
+		stage.addEventListener('mouseUp', 	this.onMouseUp);
+
+		this.currentTool 	= this.pointerTool;
+		this.currentTool.begin();
+		this.updateToolNameDisplay();
+	}
+
 	/** Redraw everything. */
 	render(){this.renderer.draw();}
 
@@ -107,12 +127,6 @@ export class ToolManager
 		}
 	}
 
-	initTool(tool){
-		this.currentTool 	= tool;
-		this.currentTool.begin();
-		this.updateToolNameDisplay();
-	}
-
 	setTool(tool)
 	{
 		
@@ -126,22 +140,18 @@ export class ToolManager
 			this.currentTool = tool;
 			this.currentTool.begin();
 		}
-		
-		stage.generateGuides = this.currentTool.generateGuides;
+
 		this.updateToolNameDisplay();
 		stage.render();
 	}
 
-	// Display current tool name in the toolbar and update palette active state
+	// Display current tool name and usage in the toolbar, update palette active state
 	updateToolNameDisplay(){
 		const toolNameEl = document.getElementById('currentToolName');
 		if(toolNameEl && this.currentTool){
-			// Convert "FilletTool" to "Fillet Tool"
-			const name = this.currentTool.constructor.name
-				.replace(/Tool$/, '')
-				.replace(/([A-Z])/g, ' $1')
-				.trim();
-			toolNameEl.textContent = name;
+			const name = this.currentTool.name || 'Tool';
+			const usage = this.currentTool.usage || '';
+			toolNameEl.innerHTML = `<strong>${name}</strong> ${usage}`;
 		}
 
 		// Update palette active state
@@ -185,51 +195,87 @@ export class ToolManager
 		}
 	}
 
+	generateGuides(){
+		if(stage.commandKey){
+			return false;
+		}else {
+			return this.currentTool.generateGuides
+		}
+	}
+	
 	deleteSelected()
 	{
 		if(data.deleteSelected() > 0){
 			stage.render();
 		}
 	}
+	
+	
+	onMouseDown(e)
+	{
+		
+		if(stage.commandKey){
+			this.strokeTool.onMouseDown(e)
+		}else{
+			this.currentTool.onMouseDown(e)
+		}
+	}
 
+	onMouseMove(e)
+	{
+		if(stage.commandKey){
+			this.strokeTool.onMouseMove(e)
+		}else{
+			this.currentTool.onMouseMove(e)
+		}
+	}
+
+	onMouseUp(e)
+	{
+		if(stage.commandKey){
+			this.strokeTool.onMouseUp(e)
+		}else{
+			this.currentTool.onMouseUp(e)
+		}
+	}
+	
 	onKeyDown(e)
 	{
 		if(stage.commandKey){
-			this.stroke = true;
-			this.setTool(this.strokeTool);
+			this.strokeTool.activate();
+			data.resetSnaps();		
 		}
 	}
 	
 	onKeyUp(e)
 	{
-		if(this.stroke){
-			this.stroke = false;
-			this.strokeTool.exit();
-			this.setTool(this.currentTool);
-		}else{
-		
-			switch(e.key){
-				case 'c':
+		if(this.strokeTool.active){
+			this.strokeTool.deactivate();
+			return;
+		}
+	
+		switch(e.key){
+			case 'c':
 				this.setTool(this.circleTool);
 				break;
-			
-				case 'l':
+		
+			case 'l':
 				this.setTool(this.lineTool);
 				break;
-				
-				case 'v':
+			
+			case 'v':
 				this.setTool(this.pointerTool);
 				break;
 
-				case 'p':
+			case 'p':
 				this.setTool(this.parallelLineTool);
 				break;
 
-				case 't':
+			case 't':
 				this.setTool(this.trimTool);
 				break;
 
-				case 'a':
+			case 'a':
 				this.setTool(this.threePointArcTool);
 				break;
 
@@ -245,34 +291,46 @@ export class ToolManager
 // 				this.setTool(this.tangentPointArcTool);
 // 				break;
 
-				case 'f':
+			case 'f':
 				this.setTool(this.filletTool);
 				break;
 
-				case 'k':
+			case 'k':
 				this.setTool(this.chamferTool);
 				break;
 
-				case 'b':
+			case 'b':
 				this.setTool(this.boxTool);
 				break;
 
-				case 'e':
+			case 'e':
 				this.setTool(this.oppositeCornerEllipseTool);
+				break;
+
+			case 's':
+				this.setTool(this.splineTool);
 				break;
 
 // 				case '4':
 // 				this.setTool(this.centerPointEllipseTool);
 // 				break;
 
-				case 'Delete':
-				case 'Backspace':
+			case 'Escape':
+				this.currentTool.reset();
+				stage.render();
+				break;
+			
+			case 'Delete':
+			case 'Backspace':
 				this.deleteSelected();
 				break;
 
-				default:
-			}
+			default:
 		}
 	}	
 }
+
+const instance = new ToolManager();
+export default instance;
+
 

@@ -1,7 +1,9 @@
-import {Tool} from "./Tool.js";
-import {Rectangle} from '../geometry/Rectangle.js';
-import stage from '../core/Stage.js';
-import data from '../data/Data.js';
+import {Tool} 			from "./Tool.js";
+import {Rectangle} 		from '../geometry/Rectangle.js';
+
+import stage 			from '../core/Stage.js';
+import toolManager		from './ToolManager.js';
+import data 			from '../data/Data.js';
 
 export class PointerTool extends Tool
 {
@@ -10,6 +12,10 @@ export class PointerTool extends Tool
 	constructor()
 	{
 		super();
+
+		this.name 	= "Pointer";
+		this.usage 	= "Click to select shapes. Drag to marquee select or move selected geometry.";
+		this.cursor = "cursor_pointer";
 
 		this.generateGuides 	= false; // Enable snapping for move operations
 
@@ -25,23 +31,23 @@ export class PointerTool extends Tool
 		this.moveStart			= null; // Snapped position when move started
 		this.originalPositions	= []; // Store original positions for delta calc
 
-		this.onMouseMove 		= this.onMouseMove.bind(this);
 		this.onMouseDown 		= this.onMouseDown.bind(this);
+		this.onMouseMove 		= this.onMouseMove.bind(this);
 		this.onMouseUp 			= this.onMouseUp.bind(this);
 	}
 
 
 	begin(){
 		data.resetSnaps();
-		stage.addEventListener('mouseUp', 		this.onMouseUp);
-		stage.addEventListener('mouseMove',		this.onMouseMove);
-		stage.addEventListener('mouseDown',		this.onMouseDown);
+		toolManager.addEventListener('mouseUp', 		this.onMouseUp);
+		toolManager.addEventListener('mouseMove',		this.onMouseMove);
+		toolManager.addEventListener('mouseDown',		this.onMouseDown);
 	}
 
 	exit(){
-		stage.removeEventListener('mouseUp', 	this.onMouseUp);
-		stage.removeEventListener('mouseMove', 	this.onMouseMove);
-		stage.removeEventListener('mouseDown', 	this.onMouseDown);
+		toolManager.removeEventListener('mouseUp', 	this.onMouseUp);
+		toolManager.removeEventListener('mouseMove', 	this.onMouseMove);
+		toolManager.removeEventListener('mouseDown', 	this.onMouseDown);
 		this.resetDrag();
 	}
 
@@ -150,6 +156,14 @@ export class PointerTool extends Tool
 	onMouseDown(e)
 	{
 		data.resetSnaps();
+
+		// Cmd+click toggles control point visibility
+		if(stage.commandKey){
+			data.toggleControlPoints(e);
+			stage.render();
+			return;
+		}
+
 		this.dragStart = {x: e.x, y: e.y};
 		this.isDragging = false;
 		this.isMoving = false;
@@ -159,7 +173,6 @@ export class PointerTool extends Tool
 	}
 
 	onMouseMove(e){
-//		data.resetSnaps();
 		if(!this.dragStart) return;
 
 		const dx = e.x - this.dragStart.x;

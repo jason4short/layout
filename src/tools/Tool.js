@@ -1,5 +1,5 @@
-import {InteractiveObject} from "../core/InteractiveObject.js";
-import stage from '../core/Stage.js';
+import {InteractiveObject} 	from "../core/InteractiveObject.js";
+//import stage 				from '../core/Stage.js';
 
 export class Tool extends InteractiveObject
 {
@@ -10,6 +10,10 @@ export class Tool extends InteractiveObject
 		super();
 		this.generateGuides = true;
 
+		// Tool metadata for UI
+		this.name 	= "Tool";
+		this.usage 	= "";
+		this.cursor = "default";
 	}
 	
 	onKeyDown(e){

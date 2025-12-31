@@ -1,46 +1,44 @@
-import {Tool} from './Tool.js';
+import {Tool} 		from './Tool.js';
+import {Shape} 		from '../geometry/Geometry.js';
+import {Line} 		from '../geometry/Line.js';
 
-import {Shape} from '../geometry/Geometry.js';
-import {Line} from '../geometry/Line.js';
-import stage from '../core/Stage.js';
-import data from '../data/Data.js';
+import stage 			from '../core/Stage.js';
+import toolManager		from './ToolManager.js';
+import data 			from '../data/Data.js';
 
 export class ChamferTool extends Tool
 {
 	constructor()
 	{
 		super();
-		this.generateGuides = false;
 
-		this.firstLine 		= null;
-		this.distance 		= 25;  // Default chamfer distance
+		this.name 				= "Chamfer";
+		this.usage 				= "Click two lines to add a beveled corner at their intersection.";
+		this.cursor 			= "cursor_chamfer";
 
-		this.onMouseDown 	= this.onMouseDown.bind(this);
-		this.onKeyUp 		= this.onKeyUp.bind(this);
+		this.generateGuides 	= false;
+
+		this.firstLine 			= null;
+		this.distance 			= 25;  // Default chamfer distance
+
+		this.onMouseUp 			= this.onMouseUp.bind(this);
+		this.onMouseMove 		= this.onMouseMove.bind(this);
+		this.onMouseDown 		= this.onMouseDown.bind(this);
 	}
 
 	begin(){
 		//console.log("ChamferTool begin");
-		stage.addEventListener('keyUp', this.onKeyUp);
-		stage.addEventListener('mouseDown', this.onMouseDown);
+		toolManager.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
 		//console.log("ChamferTool exit");
-		stage.removeEventListener('keyUp', this.onKeyUp);
-		stage.removeEventListener('mouseDown', this.onMouseDown);
+		toolManager.removeEventListener('mouseDown', this.onMouseDown);
 		this.reset();
 	}
 
 	reset(){
 		this.firstLine = null;
-	}
-
-	onKeyUp(e){
-		if(e.key === 'Escape'){
-			this.reset();
-			stage.render();
-		}
 	}
 
 	onMouseDown(e)
@@ -73,7 +71,13 @@ export class ChamferTool extends Tool
 			stage.render();
 		}
 	}
+	
+	onMouseMove(e){
+	}
 
+	onMouseUp(e){		
+	}
+	
 	createChamfer(line1, line2, distance, noTrim)
 	{
 		// Find intersection of the two lines (extended if necessary)

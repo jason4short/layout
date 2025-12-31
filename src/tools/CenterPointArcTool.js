@@ -1,16 +1,21 @@
-import {Tool} from './Tool.js';
-
-import {Shape} from '../geometry/Geometry.js';
-import {Arc} from '../geometry/Arc.js';
-import {Line} from '../geometry/Line.js';
-import stage from '../core/Stage.js';
-import data from '../data/Data.js';
+import {Tool} 			from './Tool.js';
+import {Shape} 			from '../geometry/Geometry.js';
+import {Arc} 			from '../geometry/Arc.js';
+import {Line} 			from '../geometry/Line.js';
+	
+import stage 			from '../core/Stage.js';
+import toolManager		from './ToolManager.js';
+import data 			from '../data/Data.js';
 
 export class CenterPointArcTool extends Tool
 {
 	constructor()
 	{
 		super();
+
+		this.name 	= "Center Arc";
+		this.usage 	= "Click center, click again to set radius and start angle, then click to set end angle.";
+		this.cursor = "cursor_arc";
 
 		this.arc 			= null;
 		this.radiusLine		= null;
@@ -21,21 +26,19 @@ export class CenterPointArcTool extends Tool
 
 		this.onMouseMove 	= this.onMouseMove.bind(this);
 		this.onMouseDown 	= this.onMouseDown.bind(this);
-		this.onKeyUp 		= this.onKeyUp.bind(this);
+		this.onMouseUp 		= this.onMouseUp.bind(this);
 	}
 
 	begin(){
 		//console.log("CenterPointArcTool begin");
-		stage.addEventListener('keyUp', this.onKeyUp);
-		stage.addEventListener('mouseMove', this.onMouseMove);
-		stage.addEventListener('mouseDown', this.onMouseDown);
+		toolManager.addEventListener('mouseMove', this.onMouseMove);
+		toolManager.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
 		//console.log("CenterPointArcTool exit");
-		stage.removeEventListener('keyUp', this.onKeyUp);
-		stage.removeEventListener('mouseMove', this.onMouseMove);
-		stage.removeEventListener('mouseDown', this.onMouseDown);
+		toolManager.removeEventListener('mouseMove', this.onMouseMove);
+		toolManager.removeEventListener('mouseDown', this.onMouseDown);
 		this.reset();
 	}
 
@@ -47,13 +50,6 @@ export class CenterPointArcTool extends Tool
 		this.startAngle = 0;
 		this.step = 0;
 		data.removeTempShape();
-	}
-
-	onKeyUp(e){
-		if(e.key === 'Escape'){
-			this.reset();
-			stage.render();
-		}
 	}
 
 	onMouseDown(e)
@@ -126,5 +122,9 @@ export class CenterPointArcTool extends Tool
 			this.arc.update();
 			stage.render();
 		}
+	}
+	
+	onMouseUp(e){
+		
 	}
 }

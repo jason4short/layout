@@ -1,49 +1,41 @@
-import {Tool} 	from './Tool.js';
+import {Tool} 				from './Tool.js';
+import {Shape} 				from '../geometry/Geometry.js';
+import {Line} 				from '../geometry/Line.js';
+import {Arc} 				from '../geometry/Arc.js';
+import {EllipticalArc} 		from '../geometry/EllipticalArc.js';
 
-import {Shape} from '../geometry/Geometry.js';
-import {Line} 	from '../geometry/Line.js';
-import {Arc} from '../geometry/Arc.js';
-import {EllipticalArc} from '../geometry/EllipticalArc.js';
-import stage 	from '../core/Stage.js';
-import data 	from '../data/Data.js';
-import draftingAssistant from '../geometry/DraftingAssistant.js';
+import stage 				from '../core/Stage.js';
+import toolManager			from './ToolManager.js';
+import data 				from '../data/Data.js';
+import draftingAssistant 	from '../geometry/DraftingAssistant.js';
 
 export class TrimTool extends Tool
 {
 	constructor()
 	{
 		super();
+
+		this.name 	= "Trim";
+		this.usage 	= "Click on a segment to trim it at the nearest intersections.";
+		this.cursor = "cursor_trim";
+
 		this.generateGuides		= false;
 
 		this.onMouseDown 		= this.onMouseDown.bind(this);
-//		this.onMouseMove 		= this.onMouseMove.bind(this);
-		this.onKeyUp 			= this.onKeyUp.bind(this);
+		this.onMouseMove 		= this.onMouseMove.bind(this);
+		this.onMouseUp 			= this.onMouseUp.bind(this);
 	}
 
 	begin(){
 		//console.log("begin Trim Tool");
-		stage.addEventListener('keyUp', 		this.onKeyUp);
-		stage.addEventListener('mouseDown',		this.onMouseDown);
-// 		stage.addEventListener('mouseMove',		this.onMouseMove);
+		toolManager.addEventListener('mouseDown',		this.onMouseDown);
 	}
 
 	exit(){
 		//console.log("exit Trim Tool");
-		stage.removeEventListener('keyUp', 		this.onKeyUp);
-		stage.removeEventListener('mouseDown', 	this.onMouseDown);
-// 		stage.removeEventListener('mouseMove', 	this.onMouseMove);
+		toolManager.removeEventListener('mouseDown', 	this.onMouseDown);
 	}
 
-	onKeyUp(e){
-		if (e.key === 'Escape'){
-			data.selectNone();
-			stage.render();
-		}
-	}
-
-// 	onMouseMove(e){
-// 		// Could add hover highlighting here in the future
-// 	}
 
 	onMouseDown(e)
 	{
@@ -83,6 +75,13 @@ export class TrimTool extends Tool
 			}
 		}
 		stage.render();
+	}
+	
+	onMouseMove(e){
+		
+	}
+	onMouseUp(e){
+		
 	}
 
 // 	// Find clicked shape, excluding boundary shapes

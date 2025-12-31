@@ -1,15 +1,21 @@
-import {Tool} from './Tool.js';
+import {Tool} 			from './Tool.js';
+import {Shape} 			from '../geometry/Geometry.js';
+import {Ellipse} 		from '../geometry/Ellipse.js';
 
-import {Shape} from '../geometry/Geometry.js';
-import {Ellipse} from '../geometry/Ellipse.js';
-import stage from '../core/Stage.js';
-import data from '../data/Data.js';
+import stage 			from '../core/Stage.js';
+import toolManager		from './ToolManager.js';
+import data 			from '../data/Data.js';
 
 export class OppositeCornerEllipseTool extends Tool
 {
 	constructor()
 	{
 		super();
+
+		this.name 	= "Corner Ellipse";
+		this.usage 	= "Click one corner of the bounding box, drag to the opposite corner.";
+		this.cursor = "cursor_ellipse";
+
 		this.generateGuides = true;
 
 		this.startPt	= null;
@@ -18,39 +24,29 @@ export class OppositeCornerEllipseTool extends Tool
 		this.onMouseDown 	= this.onMouseDown.bind(this);
 		this.onMouseMove 	= this.onMouseMove.bind(this);
 		this.onMouseUp 		= this.onMouseUp.bind(this);
-		this.onKeyUp 		= this.onKeyUp.bind(this);
 	}
 
 	begin(){
 		//console.log("OppositeCornerEllipseTool begin");
-		stage.addEventListener('keyUp', this.onKeyUp);
-		stage.addEventListener('mouseDown', this.onMouseDown);
+		toolManager.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
 		//console.log("OppositeCornerEllipseTool exit");
-		stage.removeEventListener('keyUp', this.onKeyUp);
-		stage.removeEventListener('mouseDown', this.onMouseDown);
-		stage.removeEventListener('mouseMove', this.onMouseMove);
-		stage.removeEventListener('mouseUp', this.onMouseUp);
+		toolManager.removeEventListener('mouseDown', this.onMouseDown);
+		toolManager.removeEventListener('mouseMove', this.onMouseMove);
+		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		this.reset();
 	}
 
 	reset(){
-		stage.removeEventListener('mouseMove', this.onMouseMove);
-		stage.removeEventListener('mouseUp', this.onMouseUp);
+		toolManager.removeEventListener('mouseMove', this.onMouseMove);
+		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 
 		this.startPt = null;
 		if(this.ellipse){
 			data.removeTempShape();
 			this.ellipse = null;
-		}
-	}
-
-	onKeyUp(e){
-		if(e.key === 'Escape'){
-			this.reset();
-			stage.render();
 		}
 	}
 
@@ -63,8 +59,8 @@ export class OppositeCornerEllipseTool extends Tool
 		this.ellipse = new Ellipse([this.startPt.x, this.startPt.y, 0, 0, 0]);
 		data.addTempShape(this.ellipse);
 
-		stage.addEventListener('mouseMove', this.onMouseMove);
-		stage.addEventListener('mouseUp', this.onMouseUp);
+		toolManager.addEventListener('mouseMove', this.onMouseMove);
+		toolManager.addEventListener('mouseUp', this.onMouseUp);
 
 		stage.render();
 	}
@@ -78,8 +74,8 @@ export class OppositeCornerEllipseTool extends Tool
 
 	onMouseUp(e)
 	{
-		stage.removeEventListener('mouseMove', this.onMouseMove);
-		stage.removeEventListener('mouseUp', this.onMouseUp);
+		toolManager.removeEventListener('mouseMove', this.onMouseMove);
+		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 
 		const snapPt = data.getCurrentSnapPoint();
 

@@ -68,6 +68,64 @@ export class Renderer
 			} else if(shape.geometry === Shape.ELLIPTICAL_ARC){
 				ctx.ellipse(shape.x, shape.y, shape.radiusX, shape.radiusY, shape.rotation, shape.startAngle, shape.endAngle);
 				ctx.stroke();
+
+			} else if(shape.geometry === Shape.SPLINE){
+				// Draw the cubic Bezier curve
+				//ctx.beginPath();
+				//ctx.strokeStyle = shape.selected ? '#FF0000' : '#2563eb';  // Blue spline
+				//ctx.lineWidth = 1.5;
+				ctx.moveTo(shape.p0.x, shape.p0.y);
+				ctx.bezierCurveTo(
+					shape.p1.x, shape.p1.y,
+					shape.p2.x, shape.p2.y,
+					shape.p3.x, shape.p3.y
+				);
+				ctx.stroke();
+
+				// Only draw control points if toggled on or selected
+				if(shape.showControlPoints || shape.selected){
+					// Draw control polygon (gray lines)
+					ctx.beginPath();
+					ctx.strokeStyle = '#AAAAAA';
+					ctx.lineWidth = 0.5;
+					ctx.setLineDash([2, 2]);
+					ctx.moveTo(shape.p0.x, shape.p0.y);
+					ctx.lineTo(shape.p1.x, shape.p1.y);
+					ctx.lineTo(shape.p2.x, shape.p2.y);
+					ctx.lineTo(shape.p3.x, shape.p3.y);
+					ctx.stroke();
+					ctx.setLineDash([]);
+
+					// Draw control point handles (circles)
+					ctx.lineWidth = 0.5;
+					ctx.strokeStyle = '#666666';
+					ctx.fillStyle = '#FFFFFF';
+					const handleRadius = 4;
+
+					// p0 - start
+					ctx.beginPath();
+					ctx.arc(shape.p0.x, shape.p0.y, handleRadius, 0, Math.PI * 2);
+					ctx.fill();
+					ctx.stroke();
+
+					// p1 - handle 1
+					ctx.beginPath();
+					ctx.arc(shape.p1.x, shape.p1.y, handleRadius, 0, Math.PI * 2);
+					ctx.fill();
+					ctx.stroke();
+
+					// p2 - handle 2
+					ctx.beginPath();
+					ctx.arc(shape.p2.x, shape.p2.y, handleRadius, 0, Math.PI * 2);
+					ctx.fill();
+					ctx.stroke();
+
+					// p3 - end
+					ctx.beginPath();
+					ctx.arc(shape.p3.x, shape.p3.y, handleRadius, 0, Math.PI * 2);
+					ctx.fill();
+					ctx.stroke();
+				}
 			}
 		}
 		

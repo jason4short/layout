@@ -1,18 +1,24 @@
-import {Tool} from './Tool.js';
+import {Tool} 	from './Tool.js';
+import {Shape} 	from '../geometry/Geometry.js';
+import {Arc} 	from '../geometry/Arc.js';
+import {Line} 	from '../geometry/Line.js';
 
-import {Shape} from '../geometry/Geometry.js';
-import {Arc} from '../geometry/Arc.js';
-import {Line} from '../geometry/Line.js';
-import stage from '../core/Stage.js';
-import data from '../data/Data.js';
+import stage 			from '../core/Stage.js';
+import toolManager		from './ToolManager.js';
+import data 			from '../data/Data.js';
 
 export class FilletTool extends Tool
 {
 	constructor()
 	{
 		super();
+
+		this.name 	= "Fillet";
+		this.usage 	= "Click two lines to add a rounded corner. Drag to adjust radius interactively.";
+		this.cursor = "cursor_fillet";
+
 		this.generateGuides = false;
-		
+
 		this.firstLine 		= null;
 		this.firstClickPt	= null;
 		this.radius 		= 25;  // Default radius
@@ -31,29 +37,26 @@ export class FilletTool extends Tool
 		this.onMouseDown 	= this.onMouseDown.bind(this);
 		this.onMouseMove 	= this.onMouseMove.bind(this);
 		this.onMouseUp 		= this.onMouseUp.bind(this);
-		this.onKeyUp 		= this.onKeyUp.bind(this);
 		this.updateRadius 	= this.updateRadius.bind(this);
 	}
 
 	begin(){
 		//console.log("FilletTool begin");
-		stage.addEventListener('keyUp', this.onKeyUp);
-		stage.addEventListener('mouseDown', this.onMouseDown);
+		toolManager.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
 		//console.log("FilletTool exit");
-		stage.removeEventListener('keyUp', this.onKeyUp);
-		stage.removeEventListener('mouseDown', this.onMouseDown);
-		stage.removeEventListener('mouseMove', this.onMouseMove);
-		stage.removeEventListener('mouseUp', this.onMouseUp);
+		toolManager.removeEventListener('mouseDown', this.onMouseDown);
+		toolManager.removeEventListener('mouseMove', this.onMouseMove);
+		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		this.reset();
 	}
 
 	reset(){
 		// Clean up listeners
-		stage.removeEventListener('mouseMove', this.onMouseMove);
-		stage.removeEventListener('mouseUp', this.onMouseUp);
+		toolManager.removeEventListener('mouseMove', this.onMouseMove);
+		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 
 		if(this.firstLine){
 			this.firstLine.selected = false;
@@ -64,13 +67,6 @@ export class FilletTool extends Tool
 		if(this.linePreview){
 			data.removeTempShape();
 			this.linePreview = null;
-		}
-	}
-
-	onKeyUp(e){
-		if(e.key === 'Escape'){
-			this.reset();
-			stage.render();
 		}
 	}
 
@@ -108,8 +104,8 @@ export class FilletTool extends Tool
 			data.addTempShape(this.linePreview);
 
 			// Add drag listeners
-			stage.addEventListener('mouseMove', this.onMouseMove);
-			stage.addEventListener('mouseUp', this.onMouseUp);
+			toolManager.addEventListener('mouseMove', this.onMouseMove);
+			toolManager.addEventListener('mouseUp', this.onMouseUp);
 
 			stage.render();
 
@@ -123,7 +119,7 @@ export class FilletTool extends Tool
 			}
 
 			// Remove preview listener before completing
-			stage.removeEventListener('mouseMove', this.onMouseMove);
+			toolManager.removeEventListener('mouseMove', this.onMouseMove);
 
 			this.createFillet(this.firstLine, this.firstClickPt, secondLine, secondClickPt, this.radius, false);
 			this.reset();
@@ -147,8 +143,8 @@ export class FilletTool extends Tool
 
 	onMouseUp(e)
 	{
-		stage.removeEventListener('mouseMove', this.onMouseMove);
-		stage.removeEventListener('mouseUp', this.onMouseUp);
+		toolManager.removeEventListener('mouseMove', this.onMouseMove);
+		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 
 		const releasePt = {x: e.x, y: e.y};
 
@@ -171,7 +167,7 @@ export class FilletTool extends Tool
 		} else if(dragDist < 5){
 			// Small drag = click, stay in waiting-for-second-click mode
 			this.isDragging = false;
-			stage.addEventListener('mouseMove', this.onMouseMove);
+			toolManager.addEventListener('mouseMove', this.onMouseMove);
 		} else {
 			// Dragged but released on empty space - reset
 			this.reset();

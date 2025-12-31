@@ -174,7 +174,7 @@ class Data
 				// zip through 
 				//if(this.shapes[i] === this.shapes[j]) continue;
 				const intersects = this.shapes[i].bounds.intersects(this.shapes[j].bounds);
-				console.log(`${n} intersects ${intersects}`);
+				//console.log(`${n} intersects ${intersects}`);
 				n++;
 			}
 		}
@@ -235,6 +235,16 @@ class Data
 		this.selectedPoints.clear();
 	}
 
+	// Toggle control point visibility on a shape (Cmd+click)
+	toggleControlPoints(mouse){
+		let snap = draftingAssistant.findNearestSnapPoint_OnShape(mouse, this.shapes);
+		if(snap && snap.shape){
+			snap.shape.showControlPoints = !snap.shape.showControlPoints;
+			return snap.shape;
+		}
+		return null;
+	}
+
 	selectAll(){
 		for(let i = 0; i < this.shapes.length; i++){
 			this.shapes[i].selected = true;
@@ -272,6 +282,8 @@ class Data
 				return [0]; // center only (not quadrants at 1-4)
 			case Shape.ELLIPTICAL_ARC:
 				return [0, 1, 2]; // center, start, end (not midpoint at index 3)
+			case Shape.SPLINE:
+				return [0, 1, 2, 3]; // all 4 control points are selectable
 			default:
 				return [];
 		}

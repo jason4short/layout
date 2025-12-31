@@ -9,6 +9,7 @@ export const Shape = Object.freeze({
 	ARC: "arc",
 	ELLIPSE: "ellipse",
 	ELLIPTICAL_ARC: "elliptical_arc",
+	SPLINE: "spline",
 
 	/*types*/
 	CONSTRUCTION: "construction",
@@ -21,9 +22,10 @@ export class Geometry
 {
 	constructor()
 	{
-		this.selected 	= false;
-		this.stroke 	= '#000';
-		this.bounds 	= new Rectangle();
+		this.selected 			= false;
+		this.showControlPoints 	= false;  // Toggle with Cmd+click
+		this.stroke 			= '#000';
+		this.bounds 			= new Rectangle();
 	}
 
 	/**

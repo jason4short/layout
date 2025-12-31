@@ -1,8 +1,9 @@
-import {Tool} from './Tool.js';
+import {Tool} 			from './Tool.js';
+import {Shape} 			from '../geometry/Geometry.js';
 
-import {Shape} from '../geometry/Geometry.js';
-import stage from '../core/Stage.js';
-import data from '../data/Data.js';
+import stage 			from '../core/Stage.js';
+import toolManager		from './ToolManager.js';
+import data 			from '../data/Data.js';
 
 export class ParallelLineTool extends Tool
 {
@@ -11,6 +12,10 @@ export class ParallelLineTool extends Tool
 	constructor()
 	{
 		super();
+
+		this.name 	= "Parallel Line";
+		this.usage 	= "Click a line, then drag to create a parallel copy at an offset distance.";
+		this.cursor = "cursor_parallel";
 
 		this.originalLine 					= null;
 		this.previewLine 					= null;
@@ -24,28 +29,19 @@ export class ParallelLineTool extends Tool
 		this.onMouseMove 					= this.onMouseMove.bind(this);
 		this.onMouseDown 					= this.onMouseDown.bind(this);
 		this.onMouseUp 						= this.onMouseUp.bind(this);
-		this.onKeyUp 						= this.onKeyUp.bind(this);
 		this.updateDimension 				= this.updateDimension.bind(this);
 	}
 
 	begin(){
 		//console.log("begin ParallelTool");
-		stage.addEventListener('mouseDown', this.onMouseDown);
+		toolManager.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
 		//console.log("exit ParallelTool");
-		stage.removeEventListener('mouseDown', 	this.onMouseDown);
-		stage.removeEventListener('keyUp', 		this.onKeyUp);
-		stage.removeEventListener('mouseUp', 	this.onMouseUp);
-		stage.removeEventListener('mouseMove', 	this.onMouseMove);
-	}
-
-	onKeyUp(e){
-		if(e.key === 'Escape' && this.previewLine){
-			this.resetDragState();
-			stage.render();
-		}
+		toolManager.removeEventListener('mouseDown', 	this.onMouseDown);
+		toolManager.removeEventListener('mouseUp', 		this.onMouseUp);
+		toolManager.removeEventListener('mouseMove', 	this.onMouseMove);
 	}
 
 	onMouseDown(e)
@@ -62,9 +58,8 @@ export class ParallelLineTool extends Tool
 			return;
 		}
 
-		stage.addEventListener('keyUp', 	this.onKeyUp);
-		stage.addEventListener('mouseUp', 	this.onMouseUp);
-		stage.addEventListener('mouseMove', this.onMouseMove);
+		toolManager.addEventListener('mouseUp', 	this.onMouseUp);
+		toolManager.addEventListener('mouseMove', 	this.onMouseMove);
 
 		this.originalLine 	= selectedShape;
 		this.previewLine 	= this.originalLine.clone();
@@ -147,9 +142,8 @@ export class ParallelLineTool extends Tool
 	onMouseUp(e)
 	{
 		data.resetSnaps();
-		stage.removeEventListener('keyUp', 		this.onKeyUp);
-		stage.removeEventListener('mouseUp', 	this.onMouseUp);
-		stage.removeEventListener('mouseMove', 	this.onMouseMove);
+		toolManager.removeEventListener('mouseUp', 		this.onMouseUp);
+		toolManager.removeEventListener('mouseMove', 	this.onMouseMove);
 
 		if(!this.previewLine){
 			console.log("this.previewLine "+this.previewLine)
