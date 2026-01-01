@@ -104,6 +104,19 @@ export class Circle extends Geometry
 		this.update();
 	}
 
+	// Mirror the circle across a line defined by two points
+	mirror(x1, y1, x2, y2){
+		const dx = x2 - x1;
+		const dy = y2 - y1;
+		const t = ((this.x - x1) * dx + (this.y - y1) * dy) / (dx * dx + dy * dy);
+		const cx = x1 + t * dx;
+		const cy = y1 + t * dy;
+		this.x = 2 * cx - this.x;
+		this.y = 2 * cy - this.y;
+		// radius stays the same
+		this.update();
+	}
+
 	// Update a specific control point by index
 	// POI indices: 0=center, 1=right, 2=left, 3=bottom, 4=top
 	updateControlPoint(index, newX, newY){

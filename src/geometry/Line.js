@@ -174,6 +174,27 @@ export class Line extends Geometry
 		this.update();
 	}
 
+	// Mirror the line across a line defined by two points
+	mirror(x1, y1, x2, y2){
+		const mirrorPoint = (px, py) => {
+			const dx = x2 - x1;
+			const dy = y2 - y1;
+			const t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
+			const cx = x1 + t * dx;
+			const cy = y1 + t * dy;
+			return { x: 2 * cx - px, y: 2 * cy - py };
+		};
+
+		const newStart = mirrorPoint(this.start.x, this.start.y);
+		const newEnd = mirrorPoint(this.end.x, this.end.y);
+
+		this.start.x = newStart.x;
+		this.start.y = newStart.y;
+		this.end.x = newEnd.x;
+		this.end.y = newEnd.y;
+		this.update();
+	}
+
 	// Update a specific control point by index
 	// POI indices: 0=start, 1=end, 2=midpoint
 	updateControlPoint(index, newX, newY){

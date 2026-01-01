@@ -179,6 +179,9 @@ export class ScaleTool extends Tool
 		for(const shape of selected){
 			shape.scale(this.anchor.x, this.anchor.y, scaleFactor);
 		}
+
+		// Rebuild POI cache after modifying shapes
+		data.rebuildPOIs();
 	}
 
 	distance(p1, p2){

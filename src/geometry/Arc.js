@@ -126,10 +126,6 @@ export class Arc extends Circle
 		return this.radius * span;
 	}
 
-	clone() {
-		return new Arc([this.x, this.y, this.radius, this.startAngle, this.endAngle]);
-	}
-
 	// Static factory: Calculate arc parameters from 3 points
 	// Returns {cx, cy, radius, startAngle, endAngle} or null if collinear
 	static calculateArcFrom3Points(p1, p2, p3)
@@ -222,6 +218,29 @@ export class Arc extends Circle
 		this.y = anchorY + (this.y - anchorY) * factor;
 		this.radius = this.radius * Math.abs(factor);
 		// startAngle and endAngle remain unchanged (relative to center)
+		this.update();
+	}
+
+	// Mirror the arc across a line defined by two points
+	mirror(x1, y1, x2, y2){
+		// Mirror center
+		const dx = x2 - x1;
+		const dy = y2 - y1;
+		const t = ((this.x - x1) * dx + (this.y - y1) * dy) / (dx * dx + dy * dy);
+		const cx = x1 + t * dx;
+		const cy = y1 + t * dy;
+		this.x = 2 * cx - this.x;
+		this.y = 2 * cy - this.y;
+
+		// Mirror line angle
+		const lineAngle = Math.atan2(dy, dx);
+
+		// Reflect angles across the mirror line and swap (direction reverses)
+		const newStart = 2 * lineAngle - this.endAngle;
+		const newEnd = 2 * lineAngle - this.startAngle;
+		this.startAngle = newStart;
+		this.endAngle = newEnd;
+
 		this.update();
 	}
 

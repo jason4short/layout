@@ -201,6 +201,30 @@ export class Spline extends Geometry
 		this.update();
 	}
 
+	// Mirror the spline across a line defined by two points
+	mirror(x1, y1, x2, y2){
+		const mirrorPoint = (px, py) => {
+			const dx = x2 - x1;
+			const dy = y2 - y1;
+			const t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
+			const cx = x1 + t * dx;
+			const cy = y1 + t * dy;
+			return { x: 2 * cx - px, y: 2 * cy - py };
+		};
+
+		const m0 = mirrorPoint(this.p0.x, this.p0.y);
+		const m1 = mirrorPoint(this.p1.x, this.p1.y);
+		const m2 = mirrorPoint(this.p2.x, this.p2.y);
+		const m3 = mirrorPoint(this.p3.x, this.p3.y);
+
+		this.p0.x = m0.x; this.p0.y = m0.y;
+		this.p1.x = m1.x; this.p1.y = m1.y;
+		this.p2.x = m2.x; this.p2.y = m2.y;
+		this.p3.x = m3.x; this.p3.y = m3.y;
+
+		this.update();
+	}
+
 	// Update a specific control point by index
 	// POI indices: 0=p0, 1=p1, 2=p2, 3=p3
 	updateControlPoint(index, newX, newY){

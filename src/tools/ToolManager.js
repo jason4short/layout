@@ -20,6 +20,7 @@ import { OppositeCornerEllipseTool } 	from "./OppositeCornerEllipseTool.js";
 import { CenterPointEllipseTool } 		from "./CenterPointEllipseTool.js";
 import { SplineTool } 					from "./SplineTool.js";
 import { ScaleTool } 					from "./ScaleTool.js";
+import { MirrorTool } 					from "./MirrorTool.js";
 
 
 
@@ -59,6 +60,7 @@ class ToolManager extends EventDispatcher
 		this.centerPointEllipseTool		= new CenterPointEllipseTool();
 		this.splineTool					= new SplineTool();
 		this.scaleTool					= new ScaleTool();
+		this.mirrorTool					= new MirrorTool();
 
 		// Tool palette configuration: [tool, displayName, shortcut]
 		this.toolPaletteConfig = [
@@ -82,6 +84,7 @@ class ToolManager extends EventDispatcher
 			{ tool: this.chamferTool, name: 'Chamfer', shortcut: 'K' },
 			{ tool: this.parallelLineTool, name: 'Parallel', shortcut: 'P' },
 			{ tool: this.scaleTool, name: 'Scale', shortcut: 'X' },
+			{ tool: this.mirrorTool, name: 'Mirror', shortcut: 'M' },
 		];
 
 		return ToolManager.instance;
@@ -326,6 +329,10 @@ class ToolManager extends EventDispatcher
 
 			case 'x':
 				this.setTool(this.scaleTool);
+				break;
+
+			case 'm':
+				this.setTool(this.mirrorTool);
 				break;
 
 // 				case '4':

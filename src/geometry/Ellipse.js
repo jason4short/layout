@@ -142,6 +142,24 @@ export class Ellipse extends Geometry
 		this.update();
 	}
 
+	// Mirror the ellipse across a line defined by two points
+	mirror(x1, y1, x2, y2){
+		// Mirror center
+		const dx = x2 - x1;
+		const dy = y2 - y1;
+		const t = ((this.x - x1) * dx + (this.y - y1) * dy) / (dx * dx + dy * dy);
+		const cx = x1 + t * dx;
+		const cy = y1 + t * dy;
+		this.x = 2 * cx - this.x;
+		this.y = 2 * cy - this.y;
+
+		// Reflect rotation across mirror line angle
+		const lineAngle = Math.atan2(dy, dx);
+		this.rotation = 2 * lineAngle - this.rotation;
+
+		this.update();
+	}
+
 	// Update a specific control point by index
 	// POI indices: 0=center, 1=right, 2=left, 3=bottom, 4=top
 	updateControlPoint(index, newX, newY){
