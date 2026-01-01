@@ -4,11 +4,11 @@ import {Shape} from '../geometry/Geometry.js';
 
 export class Renderer
 {
-	// private members
 
 	constructor()
 	{
 		this.marqueeRect = null; // Set by PointerTool during drag
+		this.zoomRect = null;    // Set by StrokeTool during zoom gesture
 	}
 
 	// Helper to convert world point to screen
@@ -21,7 +21,6 @@ export class Renderer
 		return stage.worldToScreenScale(worldValue);
 	}
 
-//data
 	draw()
 	{
 		let ctx = stage.ctx;
@@ -164,6 +163,9 @@ export class Renderer
 
 		// Draw marquee selection box
 		this.drawMarquee(ctx);
+
+		// Draw zoom box preview
+		this.drawZoomRect(ctx);
 	}
 
 	drawSelectedControlPoints(ctx){
@@ -209,6 +211,28 @@ export class Renderer
 
 		// Semi-transparent fill
 		ctx.fillStyle = 'rgba(0, 102, 204, 0.1)';
+		ctx.fillRect(topLeft.x, topLeft.y, width, height);
+	}
+
+	drawZoomRect(ctx){
+		if(!this.zoomRect) return;
+
+		const r = this.zoomRect;
+
+		// Convert world coords to screen
+		const topLeft = this.toScreen(r.x, r.y);
+		const width = this.toScreenScale(r.width);
+		const height = this.toScreenScale(r.height);
+
+		// Orange dashed outline for zoom box
+		ctx.strokeStyle = '#FF6600';
+		ctx.lineWidth = 2;
+		ctx.setLineDash([6, 3]);
+		ctx.strokeRect(topLeft.x, topLeft.y, width, height);
+		ctx.setLineDash([]);
+
+		// Semi-transparent orange fill
+		ctx.fillStyle = 'rgba(255, 102, 0, 0.1)';
 		ctx.fillRect(topLeft.x, topLeft.y, width, height);
 	}
 

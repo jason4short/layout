@@ -2,6 +2,7 @@ import {Shape} 			from '../geometry/Geometry.js';
 import {Tool} 			from "./Tool.js";
 import {Line} 			from '../geometry/Line.js'
 import {Construction} 	from '../geometry/Construction.js'
+import {Rectangle} 		from '../geometry/Rectangle.js'
 
 import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
@@ -57,10 +58,19 @@ export class StrokeTool extends Tool
 	}
 	
 	onMouseMove(e){
-// 		if(this.line){
-// 			this.line.end.x = e.x
-// 			this.line.end.y = e.y
-// 		}
+		if(this.line){
+			this.line.end.x = e.x;
+			this.line.end.y = e.y;
+
+			// Show zoom box preview for downRight gesture
+			const x = Math.min(this.line.start.x, this.line.end.x);
+			const y = Math.min(this.line.start.y, this.line.end.y);
+			const width = Math.abs(this.line.end.x - this.line.start.x);
+			const height = Math.abs(this.line.end.y - this.line.start.y);
+
+			stage.renderer.zoomRect = new Rectangle(x, y, width, height);
+			stage.render();
+		}
 	}
 
 	onMouseUp(e){
@@ -79,11 +89,21 @@ export class StrokeTool extends Tool
 				data.addConstruction(new Construction([this.line.start.x, this.line.start.y, 0]));
 	
 			}else if (gesture == 'upLeft'){
-				// zoom out
-			
+				// Zoom out - pop view stack
+				stage.popView();
+
 			}else if (gesture == 'downRight'){
-				// zoom in
-				
+				// Zoom into box defined by gesture
+				const x = Math.min(this.line.start.x, this.line.end.x);
+				const y = Math.min(this.line.start.y, this.line.end.y);
+				const width = Math.abs(this.line.end.x - this.line.start.x);
+				const height = Math.abs(this.line.end.y - this.line.start.y);
+
+				// Only zoom if box has meaningful size
+				if(width > 10 && height > 10){
+					stage.zoomToRect(new Rectangle(x, y, width, height));
+				}
+
 			}else if (gesture == 'upRight'){
 				data.deleteConstructions();
 			}else if (gesture == 'downLeft'){
@@ -91,6 +111,7 @@ export class StrokeTool extends Tool
 			}
 			
 			this.line = false;
+			stage.renderer.zoomRect = null;
 		}
 		stage.render();		
 	}

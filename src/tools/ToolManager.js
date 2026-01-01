@@ -214,29 +214,34 @@ class ToolManager extends EventDispatcher
 	
 	onMouseDown(e)
 	{
-		
-		if(stage.commandKey){
-			this.strokeTool.onMouseDown(e)
+		if(stage.spaceKey){
+			this.handTool.onMouseDown(e);
+		}else if(stage.commandKey){
+			this.strokeTool.onMouseDown(e);
 		}else{
-			this.currentTool.onMouseDown(e)
+			this.currentTool.onMouseDown(e);
 		}
 	}
 
 	onMouseMove(e)
 	{
-		if(stage.commandKey){
-			this.strokeTool.onMouseMove(e)
+		if(stage.spaceKey){
+			this.handTool.onMouseMove(e);
+		}else if(stage.commandKey){
+			this.strokeTool.onMouseMove(e);
 		}else{
-			this.currentTool.onMouseMove(e)
+			this.currentTool.onMouseMove(e);
 		}
 	}
 
 	onMouseUp(e)
 	{
-		if(stage.commandKey){
-			this.strokeTool.onMouseUp(e)
+		if(stage.spaceKey){
+			this.handTool.onMouseUp(e);
+		}else if(stage.commandKey){
+			this.strokeTool.onMouseUp(e);
 		}else{
-			this.currentTool.onMouseUp(e)
+			this.currentTool.onMouseUp(e);
 		}
 	}
 	

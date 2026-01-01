@@ -34,6 +34,7 @@ class Stage extends View
 		this.controlKey			= false;
 		this.shiftKey			= false;
 		this.commandKey			= false;
+		this.spaceKey			= false;
 		this.toolSnaps			= false;
 
 		// View transform (pan & zoom)
@@ -42,6 +43,9 @@ class Stage extends View
 		this.zoom				= 1;
 		this.minZoom			= 0.1;
 		this.maxZoom			= 20;
+
+		// View stack for zoom history
+		this.viewStack			= [];
 		
 		// UI
 		this.inputHandler 		= new InputHandler('toolbarTextInput');
@@ -115,6 +119,10 @@ class Stage extends View
 		else if (e.key === 'Meta')		this.commandKey = true;
 		else if (e.key === 'Control')	this.controlKey = true;
 		else if (e.key === 'Alt') 		this.optionKey 	= true;
+		else if (e.key === ' ') {
+			this.spaceKey = true;
+			e.preventDefault(); // Prevent page scroll
+		}
 
 		// Cmd+A: Select All
 		if((e.metaKey || e.ctrlKey) && e.key === 'a'){
@@ -133,6 +141,7 @@ class Stage extends View
 		else if (e.key === 'Meta')		this.commandKey = false;
 		else if (e.key === 'Control')	this.controlKey = false;
 		else if (e.key === 'Alt') 		this.optionKey 	= false;
+		else if (e.key === ' ') 		this.spaceKey 	= false;
 
 		this.dispatchEvent('keyUp', e);
 	}
@@ -188,6 +197,56 @@ class Stage extends View
 		this.panX = 0;
 		this.panY = 0;
 		this.zoom = 1;
+		this.viewStack = [];
+		this.render();
+	}
+
+	// Push current view state onto stack
+	pushView() {
+		this.viewStack.push({
+			panX: this.panX,
+			panY: this.panY,
+			zoom: this.zoom
+		});
+	}
+
+	// Pop view state from stack and restore it
+	popView() {
+		if(this.viewStack.length === 0) return false;
+
+		const view = this.viewStack.pop();
+		this.panX = view.panX;
+		this.panY = view.panY;
+		this.zoom = view.zoom;
+		this.render();
+		return true;
+	}
+
+	// Zoom to fit a world-space rectangle in the viewport
+	// Pushes current view to stack first
+	zoomToRect(worldRect) {
+		// Push current view before changing
+		this.pushView();
+
+		// Get canvas dimensions (CSS pixels)
+		const canvasWidth = this.canvas.clientWidth;
+		const canvasHeight = this.canvas.clientHeight;
+
+		// Calculate zoom to fit the rect with some padding
+		const padding = 0.9; // 90% of viewport
+		const zoomX = (canvasWidth * padding) / worldRect.width;
+		const zoomY = (canvasHeight * padding) / worldRect.height;
+		this.zoom = Math.min(zoomX, zoomY, this.maxZoom);
+		this.zoom = Math.max(this.zoom, this.minZoom);
+
+		// Center the rect in the viewport
+		const worldCenterX = worldRect.x + worldRect.width / 2;
+		const worldCenterY = worldRect.y + worldRect.height / 2;
+
+		// Pan so world center maps to screen center
+		this.panX = canvasWidth / 2 - worldCenterX * this.zoom;
+		this.panY = canvasHeight / 2 - worldCenterY * this.zoom;
+
 		this.render();
 	}
 

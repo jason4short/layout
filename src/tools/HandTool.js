@@ -16,6 +16,8 @@ export class HandTool extends Tool
 		this.usage 	= "Drag to pan the canvas view.";
 		this.cursor = "cursor_grab";
 
+		this.generateGuides 	= false;
+
 		this.isPanning 			= false;
 		this.lastScreenX 		= 0;
 		this.lastScreenY 		= 0;
