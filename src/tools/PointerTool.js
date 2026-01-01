@@ -45,35 +45,44 @@ export class PointerTool extends Tool
 	}
 
 	exit(){
-		toolManager.removeEventListener('mouseUp', 	this.onMouseUp);
+		toolManager.removeEventListener('mouseUp', 		this.onMouseUp);
 		toolManager.removeEventListener('mouseMove', 	this.onMouseMove);
 		toolManager.removeEventListener('mouseDown', 	this.onMouseDown);
 		this.resetDrag();
 	}
 
 	resetDrag(){
-		this.dragStart = null;
-		this.isDragging = false;
-		this.isMoving = false;
-		this.moveTarget = null;
-		this.moveStart = null;
-		this.marqueeRect = null;
-		this.originalPositions = [];
-		stage.renderer.marqueeRect = null;
+		// state
+		this.isDragging 			= false;
+		this.isMoving 				= false;
+
+		// items
+		this.dragStart 				= null;
+		this.moveTarget 			= null;
+		this.moveStart 				= null;
+		this.marqueeRect 			= null;
+		stage.renderer.marqueeRect 	= null;
+		this.originalPositions 		= [];
+		
 		data.clearExcludeFromSnap();
 	}
 
 	// Check if mouse is over a selected point or shape
 	hitTestSelection(mouse){
-		const tolerance = 8;
+		const tolerance = 8; // screen pixels
+		const screenMouse = { x: mouse.screenX, y: mouse.screenY };
 
-		// Check selected control points first
+		// Check selected control points first (compare in screen space)
 		for(const [shape, indices] of data.getSelectedPoints().entries()){
 			const pois = shape.getSnapPOIs();
+
 			for(const index of indices){
 				const poi = pois[index];
-				if(poi && this.distanceTo(mouse, poi) < tolerance){
-					return {type: 'point', shape, pointIndex: index};
+				if(poi){
+					const screenPOI = stage.worldToScreen(poi.x, poi.y);
+					if(this.distanceTo(screenMouse, screenPOI) < tolerance){
+						return {type: 'point', shape, pointIndex: index};
+					}
 				}
 			}
 		}
@@ -82,18 +91,25 @@ export class PointerTool extends Tool
 		for(const shape of data.getSelected()){
 			const pois = shape.getSnapPOIs();
 			const selectableIndices = data.getSelectableIndices(shape);
+
 			for(const index of selectableIndices){
 				const poi = pois[index];
-				if(poi && this.distanceTo(mouse, poi) < tolerance){
-					return {type: 'shape', shape, pointIndex: index};
+				if(poi){
+					const screenPOI = stage.worldToScreen(poi.x, poi.y);
+					if(this.distanceTo(screenMouse, screenPOI) < tolerance){
+						return {type: 'shape', shape, pointIndex: index};
+					}
 				}
 			}
 		}
 
 		// Check if mouse is on the geometry of any selected shape
-		const mouseRect = new Rectangle(mouse.x - tolerance, mouse.y - tolerance, tolerance * 2, tolerance * 2);
+		// (getGeoSnap works in world space, so convert tolerance)
+		const worldTolerance = tolerance / stage.zoom;
+		const mouseRect = new Rectangle(mouse.x - worldTolerance, mouse.y - worldTolerance, worldTolerance * 2, worldTolerance * 2);
+
 		for(const shape of data.getSelected()){
-			const geoSnap = shape.getGeoSnap(mouse, mouseRect, tolerance);
+			const geoSnap = shape.getGeoSnap(mouse, mouseRect, worldTolerance);
 			if(geoSnap){
 				return {type: 'shape', shape, pointIndex: null};
 			}
@@ -164,7 +180,8 @@ export class PointerTool extends Tool
 			return;
 		}
 
-		this.dragStart = {x: e.x, y: e.y};
+		// Store both world and screen coords
+		this.dragStart = {x: e.x, y: e.y, screenX: e.screenX, screenY: e.screenY};
 		this.isDragging = false;
 		this.isMoving = false;
 
@@ -175,12 +192,17 @@ export class PointerTool extends Tool
 	onMouseMove(e){
 		if(!this.dragStart) return;
 
+		// Calculate distance in screen space for threshold check
+		const screenDx = e.screenX - this.dragStart.screenX;
+		const screenDy = e.screenY - this.dragStart.screenY;
+		const screenDist = Math.sqrt(screenDx * screenDx + screenDy * screenDy);
+
+		// World-space delta for marquee
 		const dx = e.x - this.dragStart.x;
 		const dy = e.y - this.dragStart.y;
-		const dist = Math.sqrt(dx * dx + dy * dy);
 
-		// Check if we've moved past the drag threshold
-		if(!this.isDragging && !this.isMoving && dist > this.dragThreshold){
+		// Check if we've moved past the drag threshold (screen pixels)
+		if(!this.isDragging && !this.isMoving && screenDist > this.dragThreshold){
 			if(this.moveTarget){
 				// Start move operation
 				this.isMoving = true;
@@ -200,12 +222,12 @@ export class PointerTool extends Tool
 		}
 
 		if(this.isMoving){
-			// Move selected items
-			this.updateMove(dx, dy);
+			// Move selected items (uses snap points, not dx/dy)
+			this.updateMove();
 			stage.render();
-			
+
 		} else if(this.isDragging){
-			// Update marquee rectangle
+			// Update marquee rectangle (world coords)
 			this.marqueeRect = new Rectangle(
 				Math.min(this.dragStart.x, e.x),
 				Math.min(this.dragStart.y, e.y),
@@ -217,7 +239,7 @@ export class PointerTool extends Tool
 		}
 	}
 
-	updateMove(dx, dy){
+	updateMove(){
 		if(this.originalPositions.length === 0) return;
 
 		// Get current snap point (already set by Stage.onMouseMove)

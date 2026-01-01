@@ -1,6 +1,7 @@
-const MAX_SNAP_PX = 20; // intersections only snap if within 12px on screen
+const MAX_SNAP_PX = 20; // snap if within 20 screen pixels
 
 import data 			from '../data/Data.js';
+import stage 			from '../core/Stage.js';
 
 import {Point} 			from './Point.js';
 import {SnapPoint} 		from './SnapPoint.js';
@@ -71,6 +72,9 @@ class DraftingAssistant
 	}
 	
 	findNearestSnapPoint_Geometry(mouse, candidates){
+		// Compare in screen space using screen pixel tolerance
+		const screenMouse = { x: mouse.screenX, y: mouse.screenY };
+
 		for(const point of candidates){
 			// Skip points belonging to excluded shapes
 			// Handle both POIs (single shape) and Intersections (two shapes)
@@ -83,29 +87,46 @@ class DraftingAssistant
 				continue;
 			}
 
-			const d = this.getDistance(mouse, point, MAX_SNAP_PX);
+			// Convert POI to screen space for comparison
+			const screenPOI = stage.worldToScreen(point.x, point.y);
+			const d = this.getDistance(screenMouse, screenPOI, MAX_SNAP_PX);
 
 			// find the first POI within range
-			// we exit immediately
+			// we exit immediately, returning the world-space point
 			if(d < MAX_SNAP_PX){
-				return point
+				return point;
 			}
 		}
 		return false;
 	}
 
 	activateGuides(mouse, geoSet){
-		const mouseRect = new Rectangle(mouse.x-10, mouse.y-10, 20, 20);
+		// Shape.getGeoSnap works in world space, so convert screen tolerance to world
+		const worldTolerance = MAX_SNAP_PX / stage.zoom;
+		const mouseRect = new Rectangle(
+			mouse.x - worldTolerance,
+			mouse.y - worldTolerance,
+			worldTolerance * 2,
+			worldTolerance * 2
+		);
 
 		for(const shape of geoSet) {
-			let snap = shape.getGeoSnap(mouse, mouseRect, MAX_SNAP_PX);
+			let snap = shape.getGeoSnap(mouse, mouseRect, worldTolerance);
 			shape.active = (snap != null);
 		}
 	}
 
 	findNearestSnapPoint_OnShape(mouse, geoSet){
+		// Shape.getGeoSnap works in world space, so convert screen tolerance to world
+		const worldTolerance = MAX_SNAP_PX / stage.zoom;
+		const mouseRect = new Rectangle(
+			mouse.x - worldTolerance,
+			mouse.y - worldTolerance,
+			worldTolerance * 2,
+			worldTolerance * 2
+		);
+
 		let closestSnap = null;
-		const mouseRect = new Rectangle(mouse.x-10, mouse.y-10, 20, 20);
 
 		for(const shape of geoSet) {
 			// Skip excluded shapes
@@ -113,7 +134,7 @@ class DraftingAssistant
 				continue;
 			}
 
-			let snap = shape.getGeoSnap(mouse, mouseRect, MAX_SNAP_PX);
+			let snap = shape.getGeoSnap(mouse, mouseRect, worldTolerance);
 
 			if(snap){
 				snap.shape = shape;

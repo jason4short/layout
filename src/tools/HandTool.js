@@ -16,33 +16,56 @@ export class HandTool extends Tool
 		this.usage 	= "Drag to pan the canvas view.";
 		this.cursor = "cursor_grab";
 
+		this.isPanning 			= false;
+		this.lastScreenX 		= 0;
+		this.lastScreenY 		= 0;
+
 		this.onMouseMove 		= this.onMouseMove.bind(this);
 		this.onMouseDown 		= this.onMouseDown.bind(this);
 		this.onMouseUp 			= this.onMouseUp.bind(this);
 	}
-	
+
 	begin(){
-		toolManager.addEventListener('mouseUp', this.onMouseUp);
-		toolManager.addEventListener('mouseMove', this.onMouseMove);
-		toolManager.addEventListener('mouseDown', this.onMouseDown);
+		stage.addEventListener('mouseUp', this.onMouseUp);
+		stage.addEventListener('mouseMove', this.onMouseMove);
+		stage.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
-		toolManager.removeEventListener('mouseUp', this.onMouseUp);
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseDown', this.onMouseDown);
+		stage.removeEventListener('mouseUp', this.onMouseUp);
+		stage.removeEventListener('mouseMove', this.onMouseMove);
+		stage.removeEventListener('mouseDown', this.onMouseDown);
+		this.isPanning = false;
 	}
-	
+
 
 	onMouseDown(e)
 	{
+		this.isPanning = true;
+		this.lastScreenX = e.screenX;
+		this.lastScreenY = e.screenY;
 	}
-	
+
 	onMouseMove(e){
+		if(!this.isPanning) return;
+
+		// Calculate delta in screen space
+		const dx = e.screenX - this.lastScreenX;
+		const dy = e.screenY - this.lastScreenY;
+
+		// Update pan
+		stage.panX += dx;
+		stage.panY += dy;
+
+		// Store for next move
+		this.lastScreenX = e.screenX;
+		this.lastScreenY = e.screenY;
+
+		stage.render();
 	}
 
 	onMouseUp(e){
-		
+		this.isPanning = false;
 	}
 
 }

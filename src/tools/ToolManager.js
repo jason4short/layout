@@ -62,6 +62,7 @@ class ToolManager extends EventDispatcher
 		this.toolPaletteConfig = [
 			{ category: 'Select' },
 			{ tool: this.pointerTool, name: 'Pointer', shortcut: 'V' },
+			{ tool: this.handTool, name: 'Hand', shortcut: 'H' },
 			{ category: 'Draw' },
 			{ tool: this.lineTool, name: 'Line', shortcut: 'L' },
 			{ tool: this.boxTool, name: 'Box', shortcut: 'B' },
@@ -267,6 +268,10 @@ class ToolManager extends EventDispatcher
 				this.setTool(this.pointerTool);
 				break;
 
+			case 'h':
+				this.setTool(this.handTool);
+				break;
+
 			case 'p':
 				this.setTool(this.parallelLineTool);
 				break;
@@ -323,6 +328,10 @@ class ToolManager extends EventDispatcher
 			case 'Delete':
 			case 'Backspace':
 				this.deleteSelected();
+				break;
+
+			case '0':
+				stage.resetView();
 				break;
 
 			default:

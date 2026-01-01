@@ -27,6 +27,7 @@ class Stage extends View
 		this.onMouseUp 			= this.onMouseUp.bind(this);
 		this.onKeyDown 			= this.onKeyDown.bind(this);
 		this.onKeyUp 			= this.onKeyUp.bind(this);
+		this.onWheel 			= this.onWheel.bind(this);
 
 		// Modifier key state
 		this.optionKey			= false;
@@ -34,6 +35,13 @@ class Stage extends View
 		this.shiftKey			= false;
 		this.commandKey			= false;
 		this.toolSnaps			= false;
+
+		// View transform (pan & zoom)
+		this.panX				= 0;
+		this.panY				= 0;
+		this.zoom				= 1;
+		this.minZoom			= 0.1;
+		this.maxZoom			= 20;
 		
 		// UI
 		this.inputHandler 		= new InputHandler('toolbarTextInput');
@@ -58,6 +66,7 @@ class Stage extends View
 		this.canvas.addEventListener('mousedown', 	this.onMouseDown);
 		this.canvas.addEventListener('mousemove',	this.onMouseMove);
 		this.canvas.addEventListener('mouseup',		this.onMouseUp);
+		this.canvas.addEventListener('wheel',		this.onWheel, { passive: false });
 		this.render();
     }
 
@@ -129,15 +138,77 @@ class Stage extends View
 	}
 		
 	// Normalize mouse event to canvas-relative coordinates
+	// Converts screen coords to world coords (accounting for pan/zoom)
 	normalizeMouseEvent(e) {
-		// Create a simple object with canvas-relative x/y
-		// offsetX/offsetY are relative to the canvas element
+		// Screen coords (relative to canvas element)
+		const screenX = e.offsetX;
+		const screenY = e.offsetY;
+
+		// Convert to world coords
+		const worldX = (screenX - this.panX) / this.zoom;
+		const worldY = (screenY - this.panY) / this.zoom;
+
 		return {
-			x: e.offsetX,
-			y: e.offsetY,
-			offsetX: e.offsetX,
-			offsetY: e.offsetY,
+			x: worldX,
+			y: worldY,
+			screenX: screenX,
+			screenY: screenY,
 			originalEvent: e
+		};
+	}
+
+	// Zoom centered on cursor position
+	onWheel(e) {
+		e.preventDefault();
+
+		const zoomFactor = 1.1;
+		const screenX = e.offsetX;
+		const screenY = e.offsetY;
+
+		// World position under cursor before zoom
+		const worldX = (screenX - this.panX) / this.zoom;
+		const worldY = (screenY - this.panY) / this.zoom;
+
+		// Apply zoom
+		if(e.deltaY < 0){
+			this.zoom = Math.min(this.maxZoom, this.zoom * zoomFactor);
+		} else {
+			this.zoom = Math.max(this.minZoom, this.zoom / zoomFactor);
+		}
+
+		// Adjust pan so the world point stays under cursor
+		this.panX = screenX - worldX * this.zoom;
+		this.panY = screenY - worldY * this.zoom;
+
+		this.render();
+	}
+
+	// Reset view to default (no pan, zoom = 1)
+	resetView() {
+		this.panX = 0;
+		this.panY = 0;
+		this.zoom = 1;
+		this.render();
+	}
+
+	// Convert world coordinates to screen coordinates
+	worldToScreen(worldX, worldY) {
+		return {
+			x: worldX * this.zoom + this.panX,
+			y: worldY * this.zoom + this.panY
+		};
+	}
+
+	// Convert a world-space distance/radius to screen pixels
+	worldToScreenScale(worldValue) {
+		return worldValue * this.zoom;
+	}
+
+	// Convert screen coordinates to world coordinates
+	screenToWorld(screenX, screenY) {
+		return {
+			x: (screenX - this.panX) / this.zoom,
+			y: (screenY - this.panY) / this.zoom
 		};
 	}
 
