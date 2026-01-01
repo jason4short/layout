@@ -70,7 +70,6 @@ export class Line extends Geometry
 		let l = new Line([this.start.x, this.start.y, this.end.x, this.end.y]);
 		l.type 		= this.type;	
 		l.geometry	= this.geometry;
-			
 		return l;
 	}
 

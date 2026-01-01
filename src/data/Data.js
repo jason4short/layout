@@ -30,7 +30,8 @@ class Data
 		this.shapes 				= [];
 		this.constructions			= [];
 		this.guides					= []; // temp constructions, ephemeral, gen on snap points
-		this.shapePreview 			= null; // 
+		this.shapePreview 			= null; // single preview shape
+		this.shapePreviews 			= []; // multiple preview shapes (for scale tool, etc.)
 
 		// store unique snap points in a ring buffer	
 		this.snapPoints				= []; // DA snap storage - only geometry points of interest are stored
@@ -181,7 +182,7 @@ class Data
 	}
 	
 	getTargetShape(mouse){
-		let snap = draftingAssistant.findNearestSnapPoint_OnShape(mouse, this.shapes);
+		let snap = draftingAssistant.findNearestSnapPoint_OnShape(mouse, this.getShapes());
 		if(snap){
 			return snap.shape;
 		}
@@ -400,8 +401,12 @@ class Data
 
 	// 	stores a shape from a shape geometry object
 	//	useful for interactively generating shapes via tools
+	// should this be a clone?
 	addShape(newShape){
 		newShape.id = this.generateID();
+
+		// make sure all the geometry is updated internally
+		newShape.update();
 
 		// Store POIs for this shape
 		this.storeShapePOIs(newShape);
@@ -445,6 +450,15 @@ class Data
 		this.shapePreview = null;
 	}
 
+	// Multiple preview shapes (for scale tool, etc.)
+	setTempShapes(shapes){
+		this.shapePreviews = shapes;
+	}
+
+	clearTempShapes(){
+		this.shapePreviews = [];
+	}
+
 	getShapes(){
 		return [...this.shapes, ...this.constructions];
 	}
@@ -470,7 +484,7 @@ class Data
 
 	// Array of all geometry to render
 	getShapesToRender(){
-		return [...this.shapes, ...this.constructions, ...this.guides, this.shapePreview].filter(Boolean);
+		return [...this.shapes, ...this.constructions, ...this.guides, ...this.shapePreviews, this.shapePreview].filter(Boolean);
 	}
 
 	// Array of all intersection points we could snap to

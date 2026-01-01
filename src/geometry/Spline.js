@@ -178,12 +178,14 @@ export class Spline extends Geometry
 	}
 
 	clone() {
-		return new Spline([
+		let s = new Spline([
 			this.p0.x, this.p0.y,
 			this.p1.x, this.p1.y,
 			this.p2.x, this.p2.y,
 			this.p3.x, this.p3.y
 		]);
+		s.type = this.type;
+		return s;
 	}
 
 	// Scale the spline relative to an anchor point

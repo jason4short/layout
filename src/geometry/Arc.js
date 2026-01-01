@@ -13,6 +13,12 @@ export class Arc extends Circle
 		this.endAngle 	= params[4];  // radians
 	}
 
+	clone(){
+		const a 	= new Arc([this.x, this.y, this.radius, this.startAngle, this.endAngle]);
+		a.type 		= this.type;	
+		return a;
+	}
+
 	// Normalize angle in radians to [0, 2*PI);
 	normalizeAngle(angle) {
 		const TWO_PI 	= Math.PI * 2;

@@ -33,6 +33,12 @@ export class Circle extends Geometry
 		this.bounds.height 	= this.radius * 2;
 	}
 
+	clone(){
+		const c 	= new Circle([this.x, this.y, this.radius]);
+		c.type 		= this.type;	
+		return c;
+	}
+	
 	getSnapPOIs() {
 		return [
 			{ x: this.x, y: this.y },

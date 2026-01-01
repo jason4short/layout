@@ -30,6 +30,9 @@ export class ScaleTool extends Tool
 		this.isDragging 	= false;
 		this.dragStart 		= null;
 
+		// Preview clones
+		this.previewShapes 	= [];
+
 		this.onMouseDown 	= this.onMouseDown.bind(this);
 		this.onMouseMove 	= this.onMouseMove.bind(this);
 		this.onMouseUp 		= this.onMouseUp.bind(this);
@@ -69,6 +72,8 @@ export class ScaleTool extends Tool
 		this.target 	= null;
 		this.isDragging = false;
 		this.dragStart 	= null;
+		this.previewShapes = [];
+		data.clearTempShapes();
 	}
 
 	onMouseMove(e){
@@ -82,15 +87,39 @@ export class ScaleTool extends Tool
 			if(dist > 5){
 				this.isDragging = true;
 				this.target = { x: snap.x, y: snap.y };
+				this.updatePreview();
+				stage.render();
 			}
 		}
 	}
 
+	updatePreview(){
+		if(!this.anchor || !this.reference || !this.target) return;
+
+		const refDist 		= this.distance(this.anchor, this.reference);
+		const targetDist 	= this.distance(this.anchor, this.target);
+
+		if(refDist < 0.001) return;
+
+		const scaleFactor = targetDist / refDist;
+
+		// Clone selected shapes and scale the clones
+		const selected = data.getSelected();
+		this.previewShapes = selected.map(shape => {
+			const clone = shape.clone();
+			clone.scale(this.anchor.x, this.anchor.y, scaleFactor);
+			return clone;
+		});
+
+		data.setTempShapes(this.previewShapes);
+	}
+
 	onMouseUp(e){
 		if(this.state === 2 && this.isDragging){
-			// Drag complete - apply scale
+			// Drag complete - apply scale to originals
 			const snap = data.snapPoint;
 			this.target = { x: snap.x, y: snap.y };
+			data.clearTempShapes();
 			this.applyScale();
 			this.resetState();
 			this.usage = "Click to set anchor point.";

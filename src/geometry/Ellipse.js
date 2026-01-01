@@ -105,7 +105,9 @@ export class Ellipse extends Geometry
 	}
 
 	clone() {
-		return new Ellipse([this.x, this.y, this.radiusX, this.radiusY, this.rotation]);
+		let e = new Ellipse([this.x, this.y, this.radiusX, this.radiusY, this.rotation]);
+		e.type = this.type; 
+		return e;
 	}
 
 	// Get tangent angle (in degrees) at a point on the ellipse
