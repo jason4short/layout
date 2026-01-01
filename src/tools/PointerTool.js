@@ -4,6 +4,8 @@ import {Rectangle} 		from '../geometry/Rectangle.js';
 import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
+import undoManager		from '../core/UndoManager.js';
+import {AddShapesCommand} from '../core/Commands.js';
 
 export class PointerTool extends Tool
 {
@@ -302,6 +304,11 @@ export class PointerTool extends Tool
 		if(this.isMoving){
 			// Move operation complete - rebuild POI cache
 			data.rebuildPOIs();
+
+			// Record clone command for undo (shapes already added)
+			if(this.isCloning && this.clonedShapes.length > 0){
+				undoManager.record(new AddShapesCommand(this.clonedShapes));
+			}
 		} else if(this.isDragging && this.marqueeRect){
 			// Finish marquee selection
 			data.selectByMarquee(this.marqueeRect, stage.shiftKey);

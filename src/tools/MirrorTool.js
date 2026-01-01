@@ -4,6 +4,8 @@ import stage 		from '../core/Stage.js';
 import toolManager	from './ToolManager.js';
 import data 		from '../data/Data.js';
 import {Line} 		from '../geometry/Line.js';
+import undoManager	from '../core/UndoManager.js';
+import {AddShapesCommand, MirrorCommand} from '../core/Commands.js';
 
 export class MirrorTool extends Tool
 {
@@ -156,18 +158,20 @@ export class MirrorTool extends Tool
 
 		if(duplicate){
 			// Create mirrored copies
+			const clones = [];
 			for(const shape of selected){
 				const clone = shape.clone();
 				clone.mirror(this.lineStart.x, this.lineStart.y, this.lineEnd.x, this.lineEnd.y);
-				data.addShape(clone);
+				clones.push(clone);
 			}
+			undoManager.execute(new AddShapesCommand(clones));
 		} else {
-			// Mirror in place
-			for(const shape of selected){
-				shape.mirror(this.lineStart.x, this.lineStart.y, this.lineEnd.x, this.lineEnd.y);
-			}
-			// Rebuild POI cache after modifying shapes in place
-			data.rebuildPOIs();
+			// Mirror in place (use command for undo support)
+			undoManager.execute(new MirrorCommand(
+				[...selected],
+				this.lineStart.x, this.lineStart.y,
+				this.lineEnd.x, this.lineEnd.y
+			));
 		}
 	}
 }

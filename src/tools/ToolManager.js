@@ -1,5 +1,7 @@
 import stage 					from '../core/Stage.js';
 import data 					from '../data/Data.js';
+import undoManager				from '../core/UndoManager.js';
+import { DeleteShapesCommand }	from '../core/Commands.js';
 
 import { EventDispatcher } 				from '../core/EventDispatcher.js';
 
@@ -212,7 +214,21 @@ class ToolManager extends EventDispatcher
 	
 	deleteSelected()
 	{
-		if(data.deleteSelected() > 0){
+		const selected = data.getSelected();
+		if(selected.length > 0){
+			undoManager.execute(new DeleteShapesCommand([...selected]));
+			stage.render();
+		}
+	}
+
+	undo(){
+		if(undoManager.undo()){
+			stage.render();
+		}
+	}
+
+	redo(){
+		if(undoManager.redo()){
 			stage.render();
 		}
 	}
@@ -353,9 +369,19 @@ class ToolManager extends EventDispatcher
 				stage.resetView();
 				break;
 
+			case 'z':
+				if(stage.commandKey){
+					if(stage.shiftKey){
+						this.redo();
+					} else {
+						this.undo();
+					}
+				}
+				break;
+
 			default:
 		}
-	}	
+	}
 }
 
 const instance = new ToolManager();

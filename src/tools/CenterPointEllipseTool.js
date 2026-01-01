@@ -5,6 +5,8 @@ import {Ellipse} 		from '../geometry/Ellipse.js';
 import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
+import undoManager		from '../core/UndoManager.js';
+import {AddShapeCommand} from '../core/Commands.js';
 
 export class CenterPointEllipseTool extends Tool
 {
@@ -93,7 +95,7 @@ export class CenterPointEllipseTool extends Tool
 		// Finalize ellipse
 		this.updateEllipse(this.centerPt, snapPt);
 		data.removeTempShape();
-		data.addShape(this.ellipse);
+		undoManager.execute(new AddShapeCommand(this.ellipse));
 
 		// Clear references
 		this.centerPt = null;

@@ -6,6 +6,8 @@ import {Line} 			from '../geometry/Line.js';
 import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
+import undoManager		from '../core/UndoManager.js';
+import {AddShapeCommand} from '../core/Commands.js';
 
 export class SplineTool extends Tool
 {
@@ -106,7 +108,7 @@ export class SplineTool extends Tool
 
 				// Commit the spline
 				data.removeTempShape();
-				data.addShape(this.spline);
+				undoManager.execute(new AddShapeCommand(this.spline));
 
 				// Reset for next spline
 				this.step = 0;

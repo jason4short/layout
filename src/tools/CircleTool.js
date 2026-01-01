@@ -5,6 +5,8 @@ import {Circle} 	from '../geometry/Circle.js';
 import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
+import undoManager		from '../core/UndoManager.js';
+import {AddShapeCommand} from '../core/Commands.js';
 
 const MIN_RAD 		= 5; // intersections only snap if within 12px on screen
 
@@ -44,7 +46,15 @@ export class CircleTool extends Tool
 		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		toolManager.removeEventListener('mouseMove', this.onMouseMove);
 		toolManager.removeEventListener('mouseDown', this.onMouseDown);
-	}	
+	}
+	
+	reset(){
+		if(this.circle)
+			this.circle = false
+		data.resetSnaps();
+		data.removeTempShape();
+		stage.render();
+	}
 	
 	onMouseDown(e)
 	{
@@ -53,7 +63,7 @@ export class CircleTool extends Tool
 		if(stage.optionKey){
 			const snapPt = data.getCurrentSnapPoint();
 			const circle = new Circle([snapPt.x, snapPt.y, this.lastDiameter / 2]);
-			data.addShape(circle);
+			undoManager.execute(new AddShapeCommand(circle));
 			this.prevCircle = circle;
 			stage.setInputCallback(this.updateDiameter);
 			stage.setDimensionInputValue(this.lastDiameter);
@@ -91,7 +101,7 @@ export class CircleTool extends Tool
 
 		}else{
 			this.circle.update();
-			data.addShape(this.circle);
+			undoManager.execute(new AddShapeCommand(this.circle));
 			data.removeTempShape();
 
 			// Store for diameter editing

@@ -2,10 +2,12 @@ import {Tool} 			from './Tool.js';
 import {Shape} 			from '../geometry/Geometry.js';
 import {Arc} 			from '../geometry/Arc.js';
 import {Line} 			from '../geometry/Line.js';
-	
+
 import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
+import undoManager		from '../core/UndoManager.js';
+import {AddShapeCommand} from '../core/Commands.js';
 
 export class CenterPointArcTool extends Tool
 {
@@ -90,8 +92,8 @@ export class CenterPointArcTool extends Tool
 			// Third click: commit the arc
 			if(this.arc && this.radius > 0){
 				this.arc.update();
-				data.addShape(this.arc);
 				data.removeTempShape();
+				undoManager.execute(new AddShapeCommand(this.arc));
 			}
 			this.reset();
 		}

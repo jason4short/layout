@@ -3,6 +3,8 @@ import {Tool} from './Tool.js';
 import stage 		from '../core/Stage.js';
 import toolManager	from './ToolManager.js';
 import data 		from '../data/Data.js';
+import undoManager	from '../core/UndoManager.js';
+import {ScaleCommand} from '../core/Commands.js';
 
 export class ScaleTool extends Tool
 {
@@ -176,12 +178,12 @@ export class ScaleTool extends Tool
 		const scaleFactor = targetDist / refDist;
 
 		const selected = data.getSelected();
-		for(const shape of selected){
-			shape.scale(this.anchor.x, this.anchor.y, scaleFactor);
-		}
-
-		// Rebuild POI cache after modifying shapes
-		data.rebuildPOIs();
+		undoManager.execute(new ScaleCommand(
+			[...selected],
+			this.anchor.x,
+			this.anchor.y,
+			scaleFactor
+		));
 	}
 
 	distance(p1, p2){
