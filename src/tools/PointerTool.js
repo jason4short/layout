@@ -14,7 +14,7 @@ export class PointerTool extends Tool
 		super();
 
 		this.name 	= "Pointer";
-		this.usage 	= "Click to select shapes. Drag to marquee select or move selected geometry.";
+		this.usage 	= "Click to select. Drag to marquee or move. Option+drag to clone.";
 		this.cursor = "cursor_pointer";
 
 		this.generateGuides 	= false; // Enable snapping for move operations
@@ -27,9 +27,11 @@ export class PointerTool extends Tool
 
 		// Move state
 		this.isMoving			= false;
+		this.isCloning			= false; // Option+drag clones instead of moves
 		this.moveTarget			= null; // {type: 'shape'|'point', shape, pointIndex?}
 		this.moveStart			= null; // Snapped position when move started
 		this.originalPositions	= []; // Store original positions for delta calc
+		this.clonedShapes		= []; // Shapes created during clone operation
 
 		this.onMouseDown 		= this.onMouseDown.bind(this);
 		this.onMouseMove 		= this.onMouseMove.bind(this);
@@ -50,11 +52,14 @@ export class PointerTool extends Tool
 		toolManager.removeEventListener('mouseDown', 	this.onMouseDown);
 		this.resetDrag();
 	}
+	reset(){
+	}
 
 	resetDrag(){
 		// state
 		this.isDragging 			= false;
 		this.isMoving 				= false;
+		this.isCloning 				= false;
 
 		// items
 		this.dragStart 				= null;
@@ -63,7 +68,8 @@ export class PointerTool extends Tool
 		this.marqueeRect 			= null;
 		stage.renderer.marqueeRect 	= null;
 		this.originalPositions 		= [];
-		
+		this.clonedShapes 			= [];
+
 		data.clearExcludeFromSnap();
 	}
 
@@ -141,6 +147,36 @@ export class PointerTool extends Tool
 		data.setExcludeFromSnap(shapesToExclude);
 	}
 
+	// Clone selected shapes and switch selection to clones
+	cloneSelectedShapes(){
+		this.isCloning = true;
+		this.clonedShapes = [];
+
+		const selected = data.getSelected();
+
+		// Clone each selected shape
+		for(const shape of selected){
+			const clone = shape.clone();
+			data.addShape(clone);
+			clone.selected = true;
+			this.clonedShapes.push(clone);
+		}
+
+		// Deselect originals
+		for(const shape of selected){
+			shape.selected = false;
+		}
+
+		// Update moveTarget to reference a cloned shape
+		if(this.moveTarget && this.clonedShapes.length > 0){
+			// Find the clone corresponding to the original target
+			const originalIndex = selected.indexOf(this.moveTarget.shape);
+			if(originalIndex >= 0 && originalIndex < this.clonedShapes.length){
+				this.moveTarget.shape = this.clonedShapes[originalIndex];
+			}
+		}
+	}
+
 	// Store original positions of all selected items
 	storeOriginalPositions(){
 		this.originalPositions = [];
@@ -209,6 +245,12 @@ export class PointerTool extends Tool
 				// Store the snap point when move started
 				const snap = data.getCurrentSnapPoint();
 				this.moveStart = {x: snap.x, y: snap.y};
+
+				// Option+drag = clone shapes
+				if(stage.optionKey){
+					this.cloneSelectedShapes();
+				}
+
 				this.storeOriginalPositions();
 				// Exclude selected shapes from snapping
 				this.setSnapExclusions();
@@ -258,7 +300,8 @@ export class PointerTool extends Tool
 	onMouseUp(e){
 		data.resetSnaps();
 		if(this.isMoving){
-			// Move operation complete - positions already updated
+			// Move operation complete - rebuild POI cache
+			data.rebuildPOIs();
 		} else if(this.isDragging && this.marqueeRect){
 			// Finish marquee selection
 			data.selectByMarquee(this.marqueeRect, stage.shiftKey);
