@@ -19,6 +19,7 @@ import { BoxTool } 						from "./BoxTool.js";
 import { OppositeCornerEllipseTool } 	from "./OppositeCornerEllipseTool.js";
 import { CenterPointEllipseTool } 		from "./CenterPointEllipseTool.js";
 import { SplineTool } 					from "./SplineTool.js";
+import { ScaleTool } 					from "./ScaleTool.js";
 
 
 
@@ -57,6 +58,7 @@ class ToolManager extends EventDispatcher
 		this.oppositeCornerEllipseTool	= new OppositeCornerEllipseTool();
 		this.centerPointEllipseTool		= new CenterPointEllipseTool();
 		this.splineTool					= new SplineTool();
+		this.scaleTool					= new ScaleTool();
 
 		// Tool palette configuration: [tool, displayName, shortcut]
 		this.toolPaletteConfig = [
@@ -79,6 +81,7 @@ class ToolManager extends EventDispatcher
 			{ tool: this.filletTool, name: 'Fillet', shortcut: 'F' },
 			{ tool: this.chamferTool, name: 'Chamfer', shortcut: 'K' },
 			{ tool: this.parallelLineTool, name: 'Parallel', shortcut: 'P' },
+			{ tool: this.scaleTool, name: 'Scale', shortcut: 'X' },
 		];
 
 		return ToolManager.instance;
@@ -137,7 +140,7 @@ class ToolManager extends EventDispatcher
 			this.strokeTool.begin();
 		}else{
 			data.clearGuides();
-			data.selectNone();
+			//data.selectNone();
 			this.currentTool = tool;
 			this.currentTool.begin();
 		}
@@ -319,6 +322,10 @@ class ToolManager extends EventDispatcher
 
 			case 's':
 				this.setTool(this.splineTool);
+				break;
+
+			case 'x':
+				this.setTool(this.scaleTool);
 				break;
 
 // 				case '4':

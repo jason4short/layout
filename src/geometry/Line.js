@@ -67,7 +67,11 @@ export class Line extends Geometry
 	}
 	
 	clone(){
-		return new Line([this.start.x, this.start.y, this.end.x, this.end.y]);			
+		let l = new Line([this.start.x, this.start.y, this.end.x, this.end.y]);
+		l.type 		= this.type;	
+		l.geometry	= this.geometry;
+			
+		return l;
 	}
 
 	getAngleDeg(){
@@ -159,6 +163,15 @@ export class Line extends Geometry
 			this.end.x = newEnd.x;
 			this.end.y = newEnd.y;
 		}
+		this.update();
+	}
+
+	// Scale the line relative to an anchor point
+	scale(anchorX, anchorY, factor){
+		this.start.x = anchorX + (this.start.x - anchorX) * factor;
+		this.start.y = anchorY + (this.start.y - anchorY) * factor;
+		this.end.x = anchorX + (this.end.x - anchorX) * factor;
+		this.end.y = anchorY + (this.end.y - anchorY) * factor;
 		this.update();
 	}
 

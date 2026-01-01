@@ -209,6 +209,16 @@ export class Arc extends Circle
 		}
 	}
 
+	// Scale the arc relative to an anchor point
+	// Inherits center/radius scaling from Circle, angles stay relative to center
+	scale(anchorX, anchorY, factor){
+		this.x = anchorX + (this.x - anchorX) * factor;
+		this.y = anchorY + (this.y - anchorY) * factor;
+		this.radius = this.radius * Math.abs(factor);
+		// startAngle and endAngle remain unchanged (relative to center)
+		this.update();
+	}
+
 	// Update a specific control point by index
 	// POI indices: 0=center, 1=start endpoint, 2=end endpoint, 3=midpoint
 	updateControlPoint(index, newX, newY){

@@ -90,6 +90,14 @@ export class Circle extends Geometry
 		return tangentAngle * (180 / Math.PI);
 	}
 
+	// Scale the circle relative to an anchor point
+	scale(anchorX, anchorY, factor){
+		this.x = anchorX + (this.x - anchorX) * factor;
+		this.y = anchorY + (this.y - anchorY) * factor;
+		this.radius = this.radius * Math.abs(factor);
+		this.update();
+	}
+
 	// Update a specific control point by index
 	// POI indices: 0=center, 1=right, 2=left, 3=bottom, 4=top
 	updateControlPoint(index, newX, newY){

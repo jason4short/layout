@@ -186,6 +186,19 @@ export class Spline extends Geometry
 		]);
 	}
 
+	// Scale the spline relative to an anchor point
+	scale(anchorX, anchorY, factor){
+		this.p0.x = anchorX + (this.p0.x - anchorX) * factor;
+		this.p0.y = anchorY + (this.p0.y - anchorY) * factor;
+		this.p1.x = anchorX + (this.p1.x - anchorX) * factor;
+		this.p1.y = anchorY + (this.p1.y - anchorY) * factor;
+		this.p2.x = anchorX + (this.p2.x - anchorX) * factor;
+		this.p2.y = anchorY + (this.p2.y - anchorY) * factor;
+		this.p3.x = anchorX + (this.p3.x - anchorX) * factor;
+		this.p3.y = anchorY + (this.p3.y - anchorY) * factor;
+		this.update();
+	}
+
 	// Update a specific control point by index
 	// POI indices: 0=p0, 1=p1, 2=p2, 3=p3
 	updateControlPoint(index, newX, newY){
