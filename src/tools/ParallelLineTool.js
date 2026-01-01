@@ -4,11 +4,17 @@ import {Shape} 			from '../geometry/Geometry.js';
 import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
+import undoManager		from '../core/UndoManager.js';
+import {AddShapeCommand} from '../core/Commands.js';
+
+const STATE = {
+	IDLE: 0,		// Waiting for click on a line
+	DRAGGING: 1,	// Dragging to set offset distance
+	ADJUSTING: 2	// Line created, user can type new dimension
+};
 
 export class ParallelLineTool extends Tool
 {
-	// private members
-
 	constructor()
 	{
 		super();
@@ -17,174 +23,163 @@ export class ParallelLineTool extends Tool
 		this.usage 	= "Click a line, then drag to create a parallel copy at an offset distance.";
 		this.cursor = "cursor_parallel";
 
-		this.originalLine 					= null;
-		this.previewLine 					= null;
-		
-		this.dragStartMousePoint 			= null;
-		this.originalStartPointAtDragStart 	= null;
-		this.originalEndPointAtDragStart 	= null;
-		this.originalUnitNormalAtDragStart 	= null;
-		this.signedOffset					= 0;
-		
-		this.onMouseMove 					= this.onMouseMove.bind(this);
-		this.onMouseDown 					= this.onMouseDown.bind(this);
-		this.onMouseUp 						= this.onMouseUp.bind(this);
-		this.updateDimension 				= this.updateDimension.bind(this);
+		this.state 			= STATE.IDLE;
+		this.originalLine 	= null;
+		this.previewLine 	= null;
+		this.createdLine 	= null;  // The committed line (for dimension adjustment)
+
+		// Drag state
+		this.dragStartPt 	= null;
+		this.lineStartOrig 	= null;
+		this.lineEndOrig 	= null;
+		this.unitNormal 	= null;
+		this.signedOffset 	= 0;
+
+		this.onMouseDown 	= this.onMouseDown.bind(this);
+		this.onMouseMove 	= this.onMouseMove.bind(this);
+		this.onMouseUp 		= this.onMouseUp.bind(this);
+		this.updateDimension = this.updateDimension.bind(this);
 	}
 
-	begin(){
-		//console.log("begin ParallelTool");
+	begin() {
+		this.state = STATE.IDLE;
 		toolManager.addEventListener('mouseDown', this.onMouseDown);
+		toolManager.addEventListener('mouseMove', this.onMouseMove);
+		toolManager.addEventListener('mouseUp', this.onMouseUp);
 	}
 
-	exit(){
-		//console.log("exit ParallelTool");
-		toolManager.removeEventListener('mouseDown', 	this.onMouseDown);
-		toolManager.removeEventListener('mouseUp', 		this.onMouseUp);
-		toolManager.removeEventListener('mouseMove', 	this.onMouseMove);
+	exit() {
+		toolManager.removeEventListener('mouseDown', this.onMouseDown);
+		toolManager.removeEventListener('mouseMove', this.onMouseMove);
+		toolManager.removeEventListener('mouseUp', this.onMouseUp);
+		this.reset();
 	}
 
-	onMouseDown(e)
-	{
-		data.resetSnaps();
-		data.selectNone();
-		const startMousePoint = data.getCurrentSnapPoint();
-		const selectedShape = data.getTargetShape(startMousePoint);
-	
-		if(!selectedShape || selectedShape.geometry !== Shape.LINE){
-			console.log('[ParallelLineTool] No line selected. Drag not started.');
-			this.resetDragState();
-			stage.render();
+	reset() {
+		if (this.previewLine) {
+			data.removeTempShape();
+			this.previewLine = null;
+		}
+
+		this.state 			= STATE.IDLE;
+		this.originalLine 	= null;
+		this.createdLine 	= null;
+		this.dragStartPt 	= null;
+		this.lineStartOrig 	= null;
+		this.lineEndOrig 	= null;
+		this.unitNormal 	= null;
+		this.signedOffset 	= 0;
+	}
+
+	onMouseDown(e) {
+		// If we were adjusting or dragging, reset for new operation
+		if (this.state !== STATE.IDLE) {
+			this.reset();
+		}
+
+		const clickedShape = data.getTargetShape(e);
+
+		if (!clickedShape || clickedShape.geometry !== Shape.LINE) {
 			return;
 		}
 
-		toolManager.addEventListener('mouseUp', 	this.onMouseUp);
-		toolManager.addEventListener('mouseMove', 	this.onMouseMove);
-
-		this.originalLine 	= selectedShape;
-		this.previewLine 	= this.originalLine.clone();
+		// Start dragging
+		this.originalLine = clickedShape;
+		this.previewLine = this.originalLine.clone();
 		data.addTempShape(this.previewLine);
 
-		this.dragStartMousePoint = {x: data.snapPoint.x, y: data.snapPoint.y};
+		this.dragStartPt = { x: e.x, y: e.y };
+		this.lineStartOrig = { x: this.originalLine.start.x, y: this.originalLine.start.y };
+		this.lineEndOrig = { x: this.originalLine.end.x, y: this.originalLine.end.y };
 
-		this.originalStartPointAtDragStart = {
-			x: this.originalLine.start.x,
-			y: this.originalLine.start.y
-		};
+		// Calculate perpendicular unit normal
+		const dx = this.lineEndOrig.x - this.lineStartOrig.x;
+		const dy = this.lineEndOrig.y - this.lineStartOrig.y;
+		const len = Math.sqrt(dx * dx + dy * dy);
 
-		this.originalEndPointAtDragStart = {
-			x: this.originalLine.end.x,
-			y: this.originalLine.end.y
-		};
-
-		const lineDeltaX = this.originalEndPointAtDragStart.x - this.originalStartPointAtDragStart.x;
-		const lineDeltaY = this.originalEndPointAtDragStart.y - this.originalStartPointAtDragStart.y;
-
-		const lineLength = Math.sqrt((lineDeltaX * lineDeltaX) + (lineDeltaY * lineDeltaY));
-
-		if(lineLength === 0){
-			this.resetDragState();
-			stage.render();
+		if (len === 0) {
+			this.reset();
 			return;
 		}
 
-		// Perpendicular unit normal (rotated 90 degrees)
-		this.originalUnitNormalAtDragStart = {
-			x: -lineDeltaY / lineLength,
-			y: lineDeltaX / lineLength
-		};
-		
-		
+		// Perpendicular (rotated 90 degrees)
+		this.unitNormal = { x: -dy / len, y: dx / len };
+
+		this.state = STATE.DRAGGING;
 		stage.render();
 	}
 
-	/**
-	 * Mouse move translates the cloned line by the mouse delta (in world space).
-	 * Because we use data.snapPoint, the translation snaps to other geometry automatically.
-	 */
-	onMouseMove(e)
-	{
-		if(!this.previewLine || !this.dragStartMousePoint){
-			return;
-		}
-		const currentMousePoint = data.getCurrentSnapPoint ? data.getCurrentSnapPoint() : {x: e.x, y: e.y};
+	onMouseMove(e) {
+		if (this.state !== STATE.DRAGGING) return;
+		if (!this.previewLine || !this.dragStartPt) return;
 
-		const mouseDeltaX 			= currentMousePoint.x - this.dragStartMousePoint.x;
-		const mouseDeltaY 			= currentMousePoint.y - this.dragStartMousePoint.y;
+		const currentPt = { x: e.x, y: e.y };
 
-		// Project mouse delta onto the line normal to get the signed perpendicular offset
-		this.signedOffset =
-			(mouseDeltaX * this.originalUnitNormalAtDragStart.x) +
-			(mouseDeltaY * this.originalUnitNormalAtDragStart.y);
+		// Project mouse delta onto line normal to get perpendicular offset
+		const mouseDx = currentPt.x - this.dragStartPt.x;
+		const mouseDy = currentPt.y - this.dragStartPt.y;
 
-		this.offsetLine(this.signedOffset);
-	}
-	
-	offsetLine(newDim){
-	
-		const translationX 			= this.originalUnitNormalAtDragStart.x * newDim;
-		const translationY 			= this.originalUnitNormalAtDragStart.y * newDim;
+		this.signedOffset = mouseDx * this.unitNormal.x + mouseDy * this.unitNormal.y;
 
-		this.previewLine.start.x 	= this.originalStartPointAtDragStart.x + translationX;
-		this.previewLine.start.y 	= this.originalStartPointAtDragStart.y + translationY;
-
-		this.previewLine.end.x 		= this.originalEndPointAtDragStart.x + translationX;
-		this.previewLine.end.y 		= this.originalEndPointAtDragStart.y + translationY;
-		
-		this.previewLine.update();
-
+		this.updatePreviewOffset(this.signedOffset);
 		stage.render();
 	}
 
-	/**
-	 * Mouse up commits the preview line as a new shape.
-	 */
-	onMouseUp(e)
-	{
-		data.resetSnaps();
-		toolManager.removeEventListener('mouseUp', 		this.onMouseUp);
-		toolManager.removeEventListener('mouseMove', 	this.onMouseMove);
+	onMouseUp(e) {
+		if (this.state !== STATE.DRAGGING) return;
+		if (!this.previewLine) return;
 
-		if(!this.previewLine){
-			console.log("this.previewLine "+this.previewLine)
-			return;
-		}
-
-		this.previewLine.update();
-		data.addShape(this.previewLine);
+		// Commit the preview line
 		data.removeTempShape();
+		this.previewLine.update();
+		undoManager.execute(new AddShapeCommand(this.previewLine));
 
-		//this.resetDragState();
-		stage.render();
-		stage.setInputCallback(this.updateDimension)
-		stage.setDimensionInputValue(Math.abs(this.signedOffset));
-		
-	}
-
-	updateDimension(newDim){
-		//this.prevLine.scaleToDim(newDim);
-		if(this.signedOffset < 0)
-			newDim = -newDim;
-
-		this.offsetLine(newDim);
-
+		// Keep reference for dimension adjustment
+		this.createdLine = this.previewLine;
 		this.previewLine = null;
+
+		this.state = STATE.ADJUSTING;
+
+		// Show dimension input
+		stage.setInputCallback(this.updateDimension);
+		stage.setDimensionInputValue(Math.abs(this.signedOffset).toFixed(2));
+
 		stage.render();
 	}
 
-	/**
-	 * Clear all state for the current drag operation.
-	 */
-	resetDragState()
-	{
-//		this.originalLine = null;
-		//this.previewLine = null;
+	updatePreviewOffset(offset) {
+		if (!this.previewLine) return;
 
-		this.dragStartMousePoint = null;
-		this.originalStartPointAtDragStart = null;
-		this.originalEndPointAtDragStart = null;
-		this.originalUnitNormalAtDragStart = null;	
+		const tx = this.unitNormal.x * offset;
+		const ty = this.unitNormal.y * offset;
+
+		this.previewLine.start.x = this.lineStartOrig.x + tx;
+		this.previewLine.start.y = this.lineStartOrig.y + ty;
+		this.previewLine.end.x = this.lineEndOrig.x + tx;
+		this.previewLine.end.y = this.lineEndOrig.y + ty;
+		this.previewLine.update();
+	}
+
+	updateDimension(newDim) {
+		const dim = parseFloat(newDim);
+		if (isNaN(dim) || dim === 0) return;
+		if (this.state !== STATE.ADJUSTING) return;
+		if (!this.createdLine) return;
+
+		// Apply sign from original drag direction
+		const signedDim = this.signedOffset < 0 ? -Math.abs(dim) : Math.abs(dim);
+
+		const tx = this.unitNormal.x * signedDim;
+		const ty = this.unitNormal.y * signedDim;
+
+		this.createdLine.start.x = this.lineStartOrig.x + tx;
+		this.createdLine.start.y = this.lineStartOrig.y + ty;
+		this.createdLine.end.x = this.lineEndOrig.x + tx;
+		this.createdLine.end.y = this.lineEndOrig.y + ty;
+		this.createdLine.update();
+
+		this.signedOffset = signedDim;
+
+		stage.render();
 	}
 }
-
-
