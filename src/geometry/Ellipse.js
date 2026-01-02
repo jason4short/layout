@@ -206,6 +206,7 @@ export class Ellipse extends Geometry
 		return {
 			geometry: this.geometry,
 			type: this.type,
+			penStyle: this.penStyle,
 			x: this.x,
 			y: this.y,
 			radiusX: this.radiusX,
@@ -217,6 +218,7 @@ export class Ellipse extends Geometry
 	static fromJSON(data) {
 		const ellipse = new Ellipse([data.x, data.y, data.radiusX, data.radiusY, data.rotation]);
 		ellipse.type = data.type;
+		if(data.penStyle) ellipse.penStyle = data.penStyle;
 		return ellipse;
 	}
 }

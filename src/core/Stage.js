@@ -28,6 +28,7 @@ class Stage extends View
 		this.onKeyDown 			= this.onKeyDown.bind(this);
 		this.onKeyUp 			= this.onKeyUp.bind(this);
 		this.onWheel 			= this.onWheel.bind(this);
+		this.onBlur 			= this.onBlur.bind(this);
 
 		// Modifier key state
 		this.optionKey			= false;
@@ -67,6 +68,7 @@ class Stage extends View
 		// the stage hears all
 		window.addEventListener('keydown', 			this.onKeyDown, 	{ capture: true });
 		window.addEventListener('keyup', 			this.onKeyUp, 		{ capture: true });
+		window.addEventListener('blur', 			this.onBlur);
 		this.canvas.addEventListener('mousedown', 	this.onMouseDown);
 		this.canvas.addEventListener('mousemove',	this.onMouseMove);
 		this.canvas.addEventListener('mouseup',		this.onMouseUp);
@@ -152,6 +154,17 @@ class Stage extends View
 		else if (e.key === ' ') 		this.spaceKey 	= false;
 
 		this.dispatchEvent('keyUp', e);
+	}
+
+	// Reset all modifier keys when window loses focus
+	// This prevents stuck keys when switching apps with Cmd+Tab etc.
+	onBlur()
+	{
+		this.optionKey 	= false;
+		this.controlKey = false;
+		this.shiftKey 	= false;
+		this.commandKey = false;
+		this.spaceKey 	= false;
 	}
 		
 	// Normalize mouse event to canvas-relative coordinates

@@ -297,6 +297,7 @@ export class TangentArc extends Geometry
 		return {
 			geometry: this.geometry,
 			type: this.type,
+			penStyle: this.penStyle,
 			startPoint: { x: this.startPoint.x, y: this.startPoint.y },
 			tangentPoint: { x: this.tangentPoint.x, y: this.tangentPoint.y },
 			endPoint: { x: this.endPoint.x, y: this.endPoint.y }
@@ -310,6 +311,7 @@ export class TangentArc extends Geometry
 			data.endPoint.x, data.endPoint.y
 		]);
 		arc.type = data.type;
+		if(data.penStyle) arc.penStyle = data.penStyle;
 		return arc;
 	}
 }

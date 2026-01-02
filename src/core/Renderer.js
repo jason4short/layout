@@ -1,6 +1,6 @@
 import stage from './Stage.js';
 import data from '../data/Data.js';
-import {Shape} from '../geometry/Geometry.js';
+import {Shape, PenStyle} from '../geometry/Geometry.js';
 
 export class Renderer
 {
@@ -9,6 +9,16 @@ export class Renderer
 	{
 		this.marqueeRect = null; // Set by PointerTool during drag
 		this.zoomRect = null;    // Set by StrokeTool during zoom gesture
+
+		// Pen style definitions: [color, dashPattern, lineWidth]
+		this.penStyles = {
+			[PenStyle.VISIBLE]:      { color: '#111111', dash: [],           width: 0.5 },
+			[PenStyle.CONSTRUCTION]: { color: '#B400F5', dash: [1, 4],       width: 0.5 },
+			[PenStyle.CENTERLINE]:   { color: '#0066CC', dash: [12, 3, 3, 3], width: 0.5 },
+			[PenStyle.HIDDEN]:       { color: '#666666', dash: [6, 3],       width: 0.5 },
+			[PenStyle.PHANTOM]:      { color: '#888888', dash: [12, 3, 2, 3, 2, 3], width: 0.5 },
+			[PenStyle.OUTLINE]:      { color: '#000000', dash: [],           width: 1.5 }
+		};
 	}
 
 	// Helper to convert world point to screen
@@ -21,6 +31,46 @@ export class Renderer
 		return stage.worldToScreenScale(worldValue);
 	}
 
+	// Apply pen style to context (handles selection override)
+	applyPenStyle(ctx, shape) {
+		if(shape.selected) {
+			ctx.strokeStyle = '#FF0000';
+			ctx.lineWidth = 0.5;
+			ctx.setLineDash([]);
+			return;
+		}
+
+		// Special handling for construction geometry type (infinite construction lines)
+		if(shape.type === Shape.CONSTRUCTION) {
+			const style = this.penStyles[PenStyle.CONSTRUCTION];
+			ctx.strokeStyle = style.color;
+			ctx.lineWidth = style.width;
+			ctx.setLineDash(style.dash);
+			return;
+		}
+
+		// Special handling for guide lines
+		if(shape.type === Shape.GUIDE && shape.active) {
+			ctx.strokeStyle = '#ff0000';
+			ctx.lineWidth = 0.5;
+			ctx.setLineDash([1, 4]);
+			return;
+		}
+
+		// Apply pen style
+		const penStyle = shape.penStyle || PenStyle.VISIBLE;
+		const style = this.penStyles[penStyle] || this.penStyles[PenStyle.VISIBLE];
+
+		ctx.strokeStyle = shape.stroke || style.color;
+		ctx.lineWidth = style.width;
+		ctx.setLineDash(style.dash);
+	}
+
+	// Reset context after drawing (clear dash pattern)
+	resetPenStyle(ctx) {
+		ctx.setLineDash([]);
+	}
+
 	draw()
 	{
 		let ctx = stage.ctx;
@@ -29,52 +79,40 @@ export class Renderer
 		for(const shape of data.getShapesToRender())
 		{
 			ctx.beginPath();
-			ctx.strokeStyle = shape.selected ? '#FF0000' : (shape.stroke || '#111');
-			ctx.lineWidth = 0.5;
+			this.applyPenStyle(ctx, shape);
 
 			if(shape.geometry === Shape.LINE){
 				const start = this.toScreen(shape.start.x, shape.start.y);
 				const end = this.toScreen(shape.end.x, shape.end.y);
 
-				if(shape.type === Shape.PLAIN){
-					ctx.moveTo(start.x, start.y);
-					ctx.lineTo(end.x, end.y);
-					ctx.stroke();
+				// Skip inactive guides
+				if(shape.type === Shape.GUIDE && !shape.active) continue;
 
-				}else if(shape.type === Shape.CONSTRUCTION){
-					ctx.setLineDash([1, 4]);
-					ctx.strokeStyle = "#B400F5";
-					ctx.moveTo(start.x, start.y);
-					ctx.lineTo(end.x, end.y);
-					ctx.stroke();
-					ctx.setLineDash([]);
-
-				} else if(shape.type === Shape.GUIDE && shape.active){
-					ctx.setLineDash([1, 4]);
-					ctx.strokeStyle = "#ff0000";
-					ctx.moveTo(start.x, start.y);
-					ctx.lineTo(end.x, end.y);
-					ctx.stroke();
-					ctx.setLineDash([]);
-				}
+				ctx.moveTo(start.x, start.y);
+				ctx.lineTo(end.x, end.y);
+				ctx.stroke();
+				this.resetPenStyle(ctx);
 
 			} else if(shape.geometry === Shape.CIRCLE){
 				const center = this.toScreen(shape.x, shape.y);
 				const radius = this.toScreenScale(shape.radius);
 				ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
 				ctx.stroke();
+				this.resetPenStyle(ctx);
 
 			} else if(shape.geometry === Shape.ARC){
 				const center = this.toScreen(shape.x, shape.y);
 				const radius = this.toScreenScale(shape.radius);
 				ctx.arc(center.x, center.y, radius, shape.startAngle, shape.endAngle);
 				ctx.stroke();
+				this.resetPenStyle(ctx);
 
 			} else if(shape.geometry === Shape.TANGENT_ARC){
 				const center = this.toScreen(shape.x, shape.y);
 				const radius = this.toScreenScale(shape.radius);
 				ctx.arc(center.x, center.y, radius, shape.startAngle, shape.endAngle);
 				ctx.stroke();
+				this.resetPenStyle(ctx);
 
 				// Draw tangent handle when control points are visible
 				if(shape.showControlPoints || shape.selected){
@@ -129,6 +167,7 @@ export class Renderer
 				const radiusY = this.toScreenScale(shape.radiusY);
 				ctx.ellipse(center.x, center.y, radiusX, radiusY, shape.rotation, 0, Math.PI * 2);
 				ctx.stroke();
+				this.resetPenStyle(ctx);
 
 			} else if(shape.geometry === Shape.ELLIPTICAL_ARC){
 				const center = this.toScreen(shape.x, shape.y);
@@ -136,6 +175,7 @@ export class Renderer
 				const radiusY = this.toScreenScale(shape.radiusY);
 				ctx.ellipse(center.x, center.y, radiusX, radiusY, shape.rotation, shape.startAngle, shape.endAngle);
 				ctx.stroke();
+				this.resetPenStyle(ctx);
 
 			} else if(shape.geometry === Shape.SPLINE){
 				const p0 = this.toScreen(shape.p0.x, shape.p0.y);
@@ -147,6 +187,7 @@ export class Renderer
 				ctx.moveTo(p0.x, p0.y);
 				ctx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
 				ctx.stroke();
+				this.resetPenStyle(ctx);
 
 				// Only draw control points if toggled on or selected
 				if(shape.showControlPoints || shape.selected){

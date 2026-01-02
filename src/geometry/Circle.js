@@ -162,6 +162,7 @@ export class Circle extends Geometry
 		return {
 			geometry: this.geometry,
 			type: this.type,
+			penStyle: this.penStyle,
 			x: this.x,
 			y: this.y,
 			radius: this.radius
@@ -171,6 +172,7 @@ export class Circle extends Geometry
 	static fromJSON(data) {
 		const circle = new Circle([data.x, data.y, data.radius]);
 		circle.type = data.type;
+		if(data.penStyle) circle.penStyle = data.penStyle;
 		return circle;
 	}
 }

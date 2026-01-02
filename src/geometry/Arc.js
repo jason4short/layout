@@ -286,6 +286,7 @@ export class Arc extends Circle
 		return {
 			geometry: this.geometry,
 			type: this.type,
+			penStyle: this.penStyle,
 			x: this.x,
 			y: this.y,
 			radius: this.radius,
@@ -297,6 +298,7 @@ export class Arc extends Circle
 	static fromJSON(data) {
 		const arc = new Arc([data.x, data.y, data.radius, data.startAngle, data.endAngle]);
 		arc.type = data.type;
+		if(data.penStyle) arc.penStyle = data.penStyle;
 		return arc;
 	}
 }

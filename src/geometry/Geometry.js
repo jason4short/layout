@@ -19,6 +19,16 @@ export const Shape = Object.freeze({
 	PLAIN: "plain"
 });
 
+// Pen styles control visual appearance (color, dash pattern, width)
+export const PenStyle = Object.freeze({
+	VISIBLE: "visible",         // Default solid line
+	CONSTRUCTION: "construction", // Light dashed (for construction geometry)
+	CENTERLINE: "centerline",   // Long-short-long dash pattern
+	HIDDEN: "hidden",           // Dashed line for hidden edges
+	PHANTOM: "phantom",         // Long-dash-dot-dot pattern
+	OUTLINE: "outline"          // Thicker solid line
+});
+
 export class Geometry
 {
 	constructor()
@@ -27,6 +37,7 @@ export class Geometry
 		this.showControlPoints 	= false;  // Toggle with Cmd+click
 		this.stroke 			= '#000';
 		this.bounds 			= new Rectangle();
+		this.penStyle 			= PenStyle.VISIBLE;  // Default pen style
 	}
 
 	/**

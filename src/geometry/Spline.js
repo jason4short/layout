@@ -293,6 +293,7 @@ export class Spline extends Geometry
 		return {
 			geometry: this.geometry,
 			type: this.type,
+			penStyle: this.penStyle,
 			p0: { x: this.p0.x, y: this.p0.y },
 			p1: { x: this.p1.x, y: this.p1.y },
 			p2: { x: this.p2.x, y: this.p2.y },
@@ -308,6 +309,7 @@ export class Spline extends Geometry
 			data.p3.x, data.p3.y
 		]);
 		spline.type = data.type;
+		if(data.penStyle) spline.penStyle = data.penStyle;
 		return spline;
 	}
 }

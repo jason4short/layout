@@ -256,6 +256,7 @@ export class Line extends Geometry
 		return {
 			geometry: this.geometry,
 			type: this.type,
+			penStyle: this.penStyle,
 			start: { x: this.start.x, y: this.start.y },
 			end: { x: this.end.x, y: this.end.y }
 		};
@@ -264,6 +265,7 @@ export class Line extends Geometry
 	static fromJSON(data) {
 		const line = new Line([data.start.x, data.start.y, data.end.x, data.end.y]);
 		line.type = data.type;
+		if(data.penStyle) line.penStyle = data.penStyle;
 		return line;
 	}
 }
