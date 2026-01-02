@@ -140,7 +140,7 @@ class Stage extends View
 	}
 
 	onKeyDown(e){	
-		
+		console.log(e.code);
 		this.shiftKey 		= e.shiftKey;
 		this.commandKey 	= e.metaKey;
 		this.controlKey 	= e.ctrlKey;

@@ -218,6 +218,46 @@ export class CompositeCommand extends Command {
 	}
 }
 
+// Chamfer command - creates chamfer line and trims two lines
+export class ChamferCommand extends Command {
+	constructor(chamferLine, line1, line2, line1Original, line2Original) {
+		super('Chamfer');
+		this.chamferLine = chamferLine;
+		this.line1 = line1;
+		this.line2 = line2;
+		// Store clones of original line states for undo
+		this.line1Original = line1Original;
+		this.line2Original = line2Original;
+		// Store trimmed states for redo (captured on first execute)
+		this.line1Trimmed = null;
+		this.line2Trimmed = null;
+		this.firstExecute = true;
+	}
+
+	execute() {
+		if (this.firstExecute) {
+			this.firstExecute = false;
+			// Capture trimmed states for later redo
+			this.line1Trimmed = this.line1.clone();
+			this.line2Trimmed = this.line2.clone();
+			return;
+		}
+
+		// Redo: add chamfer line and apply trimmed line states
+		data.addShape(this.chamferLine);
+		this.line1.copyFrom(this.line1Trimmed);
+		this.line2.copyFrom(this.line2Trimmed);
+	}
+
+	undo() {
+		// Remove the chamfer line
+		data.deleteShape(this.chamferLine);
+		// Restore lines to original state
+		this.line1.copyFrom(this.line1Original);
+		this.line2.copyFrom(this.line2Original);
+	}
+}
+
 // Fillet command - creates arc and trims two lines
 export class FilletCommand extends Command {
 	constructor(arc, line1, line2, line1Original, line2Original) {
