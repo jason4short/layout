@@ -2,7 +2,7 @@ import stage 					from '../core/Stage.js';
 import data 					from '../data/Data.js';
 import undoManager				from '../core/UndoManager.js';
 import fileManager				from '../core/FileManager.js';
-import { DeleteShapesCommand, AddShapesCommand }	from '../core/Commands.js';
+import { AddShapesCommand }	from '../core/Commands.js';
 
 import { EventDispatcher } 				from '../core/EventDispatcher.js';
 
@@ -70,27 +70,27 @@ class ToolManager extends EventDispatcher
 		// Tool palette configuration: [tool, displayName, shortcut]
 		this.toolPaletteConfig = [
 			{ category: 'Select' },
-			{ tool: this.pointerTool, name: 'Pointer', shortcut: 'V' },
-			{ tool: this.handTool, name: 'Hand', shortcut: 'H' },
-			{ category: 'Draw' },
-			{ tool: this.lineTool, name: 'Line', shortcut: 'L' },
-			{ tool: this.boxTool, name: 'Box', shortcut: 'B' },
-			{ tool: this.circleTool, name: 'Circle', shortcut: 'C' },
+			{ tool: this.pointerTool, 				name: 'Pointer', shortcut: 'V' },
+			{ tool: this.handTool, 					name: 'Hand', shortcut: 'H' },
+			{ category: 'Draw' },	
+			{ tool: this.lineTool, 					name: 'Line', shortcut: 'L' },
+			{ tool: this.boxTool, 					name: 'Box', shortcut: 'B' },
+			{ tool: this.circleTool,				name: 'Circle', shortcut: 'C' },
 			{ tool: this.oppositeCornerEllipseTool, name: 'Ellipse', shortcut: 'E' },
-			{ tool: this.centerPointEllipseTool, name: 'Ellipse (Center)', shortcut: '4' },
-			{ tool: this.splineTool, name: 'Spline', shortcut: 'S' },
-			{ category: 'Arcs' },
-			{ tool: this.threePointArcTool, name: '3-Point Arc', shortcut: 'A' },
-			{ tool: this.centerPointArcTool, name: 'Center Arc', shortcut: '1' },
-			{ tool: this.tangentPointArcTool, name: 'Tangent Arc', shortcut: '3' },
-			{ category: 'Modify' },
-			{ tool: this.trimTool, name: 'Trim', shortcut: 'T' },
-			{ tool: this.filletTool, name: 'Fillet', shortcut: 'F' },
-			{ tool: this.chamferTool, name: 'Chamfer', shortcut: 'K' },
-			{ tool: this.parallelLineTool, name: 'Parallel', shortcut: 'P' },
-			{ tool: this.scaleTool, name: 'Scale', shortcut: 'X' },
-			{ tool: this.mirrorTool, name: 'Mirror', shortcut: 'M' },
-			{ tool: this.rotateTool, name: 'Rotate', shortcut: 'R' },
+			{ tool: this.centerPointEllipseTool, 	name: 'Ellipse (Center)', shortcut: '4' },
+			{ tool: this.splineTool, 				name: 'Spline', shortcut: 'S' },
+			{ category: 'Arcs' },	
+			{ tool: this.threePointArcTool, 		name: '3-Point Arc', shortcut: 'A' },
+			{ tool: this.centerPointArcTool, 		name: 'Center Arc', shortcut: '1' },
+			{ tool: this.tangentPointArcTool, 		name: 'Tangent Arc', shortcut: '3' },
+			{ category: 'Modify' },	
+			{ tool: this.trimTool, 					name: 'Trim', shortcut: 'T' },
+			{ tool: this.filletTool, 				name: 'Fillet', shortcut: 'F' },
+			{ tool: this.chamferTool, 				name: 'Chamfer', shortcut: 'K' },
+			{ tool: this.parallelLineTool, 			name: 'Parallel', shortcut: 'P' },
+			{ tool: this.scaleTool, 				name: 'Scale', shortcut: 'X' },
+			{ tool: this.mirrorTool, 				name: 'Mirror', shortcut: 'M' },
+			{ tool: this.rotateTool, 				name: 'Rotate', shortcut: 'R' },
 		];
 
 		return ToolManager.instance;
@@ -152,9 +152,12 @@ class ToolManager extends EventDispatcher
 			//data.selectNone();
 			this.currentTool = tool;
 			this.currentTool.begin();
+			this.currentTool.updateCursor();
 		}
 
 		this.updateToolNameDisplay();
+		
+		
 		stage.render();
 	}
 
@@ -178,36 +181,6 @@ class ToolManager extends EventDispatcher
 	}
 	
 
-	setToolByName(toolName)
-	{
-		switch(tool){
-			case 'line':
-				this.setTool(this.lineTool);
-				break;
-
-			case 'circle':
-				this.setTool(this.circleTool);
-				break;
-
-			case 'hand':
-				this.setTool(this.handTool);
-				break;
-
-			case 'stroke':
-				this.setTool(this.strokeTool);
-				break;
-			
-			case 'pointer':
-				this.setTool(this.pointerTool);
-				break;
-			
-			default:
-				this.setTool(this.pointerTool);
-				break;
-	
-		}
-	}
-
 	generateGuides(){
 		if(stage.commandKey){
 			return false;
@@ -216,14 +189,6 @@ class ToolManager extends EventDispatcher
 		}
 	}
 	
-	deleteSelected()
-	{
-		const selected = data.getSelected();
-		if(selected.length > 0){
-			undoManager.execute(new DeleteShapesCommand([...selected]));
-			stage.render();
-		}
-	}
 
 	undo(){
 		console.log("undo")
@@ -272,7 +237,13 @@ class ToolManager extends EventDispatcher
 			this.currentTool.onMouseUp(e);
 		}
 	}
-	
+
+// Select All
+// fit
+// new open, close, group? 
+
+ 
+ 
 	onKeyDown(e)
 	{
 		if(stage.commandKey){
@@ -280,131 +251,44 @@ class ToolManager extends EventDispatcher
 			this.strokeTool.activate();
 			data.resetSnaps();
 
-		}else if(stage.shiftKey){
+		} else if(stage.shiftKey){
 			stage.setCursor('default');
 
-		}else{
+		} else {
 			this.currentTool.updateCursor();
 		}
-	}
-
-	onKeyUp(e)
-	{
-// 		if(this.strokeTool.active){
-// 			this.strokeTool.deactivate();
-// 			this.currentTool.updateCursor();
-// 			return;
-// 		}
-			console.log("stage.controlKey "+stage.controlKey)
-			console.log("stage.shiftKey "+stage.shiftKey)
-	
-		switch(e.key){
 		
-			case 'l':
-				this.setTool(this.lineTool);
-				break;
-			
-
-			case 'h':
-				this.setTool(this.handTool);
-				break;
-
-			case 'p':
-				this.setTool(this.parallelLineTool);
-				break;
-
-			case 't':
-				this.setTool(this.trimTool);
-				break;
-
-			case 'a':
-				this.setTool(this.threePointArcTool);
-				break;
-
-// 				case '1':
-// 				this.setTool(this.centerPointArcTool);
-// 				break;
-
-// 				case '2':
-// 				this.setTool(this.threePointArcTool);
-// 				break;
-
-// 				case '3':
-// 				this.setTool(this.tangentPointArcTool);
-// 				break;
-
-			case 'f':
-				this.setTool(this.filletTool);
-				break;
-
-			case 'k':
-				this.setTool(this.chamferTool);
-				break;
-
-			case 'b':
-				this.setTool(this.boxTool);
-				break;
-
-			case 'e':
-				this.setTool(this.oppositeCornerEllipseTool);
-				break;
-
-			// 's' handled below with Ctrl+S check
-
-			case 'x':
-				this.setTool(this.scaleTool);
-				break;
-
-			case 'm':
-				this.setTool(this.mirrorTool);
-				break;
-
-			case 'r':
-				this.setTool(this.rotateTool);
-				break;
-
-// 				case '4':
-// 				this.setTool(this.centerPointEllipseTool);
-// 				break;
-
-			case 'Escape':
-				this.currentTool.reset();
-				stage.render();
-				break;
-			
-			case 'Delete':
-			case 'Backspace':
-				this.deleteSelected();
-				break;
-
-			case '0':
-				stage.resetView();
-				break;
-
-			case 'z':
-			case 'Z':
-				if(stage.controlKey){
-					if(stage.shiftKey){						
-						this.redo();
-					} else {
-						this.undo();
+		if(stage.commandKey){
+			switch(e.key){
+				case 'a':
+					data.selectAll();
+					stage.render();
+					break;
+					
+				case '0':
+					stage.resetView();
+					break;
+	
+				case 'z':
+				case 'Z':
+					if(stage.commandKey){
+						if(stage.shiftKey){						
+							this.redo();
+						} else {
+							this.undo();
+						}
 					}
-				}
-				break;
-
-			case 'c':
-				if(stage.controlKey){
+					break;
+	
+				case 'c':
+				case 'C':
 					const copied = data.copy();
 					if(copied > 0){
 						console.log(`Copied ${copied} shape(s)`);
 					}
-				}else{
-					this.setTool(this.circleTool);
-				}
-				break;
-
-			case 'v':
-				if(stage.controlKey){
+					break;
+	
+				case 'v':
 					// Calculate view center in world coordinates
 					const centerX = stage.canvas.clientWidth / 2;
 					const centerY = stage.canvas.clientHeight / 2;
@@ -420,34 +304,60 @@ class ToolManager extends EventDispatcher
 						}
 						console.log(`Pasted ${shapesToPaste.length} shape(s)`);
 						stage.render();
-					}
-				}else{
-					this.setTool(this.pointerTool);
-				}
-				break;
-
-			case 's':
-				if(stage.controlKey){
+					}				
+					break;
+	
+				case 's':
 					fileManager.save();
-				}else{
-					this.setTool(this.splineTool);
-				}
-				break;
-
-			case 'o':
-				if(stage.controlKey){
+					break;
+	
+				case 'o':
 					fileManager.open();
-				}
-				break;
-
-			case 'n':
-				if(stage.controlKey){
+					break;
+	
+				case 'n':
 					fileManager.newDocument();
-				}
-				break;
-
-			default:
+					break;
+	
+				default:
+			}	
+			return;
 		}
+
+		// no modifier keys
+		switch(e.key){
+			case 'Escape':
+				this.currentTool.reset();
+				stage.render();
+				break;
+			
+			case 'Delete':
+			case 'Backspace':
+				data.deleteSelected();
+				stage.render();
+				break;
+		}
+	}
+	
+	
+	onKeyUp(e)
+	{
+		// Handle command key release - deactivate strokeTool and restore cursor
+		if(e.key == 'Meta'){
+			if(this.strokeTool.active){
+				this.strokeTool.deactivate();
+			}
+			this.currentTool.updateCursor();
+			return;
+		}
+
+		// Handle shift key release - restore cursor
+		if(stage.shiftKey){
+			this.currentTool.updateCursor();
+			return;
+		}
+
+
 	}
 }
 

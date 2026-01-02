@@ -1,23 +1,18 @@
 const MAX_SNAP = 4; // intersections only snap if within 12px on screen
 
-import {Shape} 				from '../geometry/Geometry.js';
-import {Point} 				from '../geometry/Point.js';
-import {Line} 				from '../geometry/Line.js';
-import {Guide} 				from '../geometry/Guide.js';
-import {Circle} 			from '../geometry/Circle.js';
-import {SnapPoint} 			from '../geometry/SnapPoint.js';
-import draftingAssistant 	from '../geometry/DraftingAssistant.js';
-import {Intersections} 		from './Intersections.js';
-import {Intersection}		from './Intersection.js';
+import {Shape} 					from '../geometry/Geometry.js';
+import {Point} 					from '../geometry/Point.js';
+import {Line} 					from '../geometry/Line.js';
+import {Guide} 					from '../geometry/Guide.js';
+import {Circle} 				from '../geometry/Circle.js';
+import {SnapPoint} 				from '../geometry/SnapPoint.js';
+import draftingAssistant 		from '../geometry/DraftingAssistant.js';
+import {Intersections} 			from './Intersections.js';
+import {Intersection}			from './Intersection.js';
+	
+import undoManager				from '../core/UndoManager.js';
+import { DeleteShapesCommand }	from '../core/Commands.js';
 
-
-
-//export const id = () => Math.random().toString(36).slice(2)
-
-
-// stores all shapes, intersections
-
-// getIntersections
 
 class Data
 {
@@ -352,10 +347,9 @@ class Data
 
 	deleteSelected(){
 		const selected = this.getSelected();
-		for(const shape of selected){
-			this.deleteShape(shape);
+		if(selected.length > 0){
+			undoManager.execute(new DeleteShapesCommand([...selected]));
 		}
-		return selected.length;
 	}
 
 	// Copy selected shapes to clipboard

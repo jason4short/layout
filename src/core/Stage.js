@@ -5,7 +5,16 @@ import toolManager			from '../tools/ToolManager.js';
 import { View } 			from "./View.js";
 import { Rectangle } 		from "../geometry/Rectangle.js";
 import { Renderer } 		from "./Renderer.js";
-import {InputHandler} 		from './InputHandler';
+import { InputHandler } 	from './InputHandler';
+
+// Lazy import to avoid circular dependency
+let inspector = null;
+const getInspector = () => {
+	if (!inspector) {
+		import('./Inspector.js').then(m => inspector = m.default);
+	}
+	return inspector;
+};
 
 //import Event from "./core/Events";
 //import flash.events.MouseEvent;
@@ -77,11 +86,18 @@ class Stage extends View
     }
 
 	/** Redraw everything. */
-	render(){this.renderer.draw();}
+	render(){
+		this.renderer.draw();
+		// Update inspector panel
+		const insp = getInspector();
+		if (insp) insp.update();
+	}
 
 	setCursor(name, hotspotX=16, hotspotY=16){	
 		if(name == 'default'){
 			this.canvas.style.cursor = 'default';
+		}if(name == 'crosshair'){
+			this.canvas.style.cursor = 'crosshair';
 		}else{
 			this.canvas.style.cursor = `url("src/assets/cursors/${name}.png") ${hotspotX} ${hotspotY}, crosshair`;
 		}
@@ -123,35 +139,43 @@ class Stage extends View
 		this.render();
 	}
 
-	onKeyDown(e)
-	{
-		if (e.key === 'Shift')			this.shiftKey 	= true;
-		else if (e.key === 'Meta')		this.commandKey = true;
-		else if (e.key === 'Control')	this.controlKey = true;
-		else if (e.key === 'Alt') 		this.optionKey 	= true;
-		else if (e.key === ' ') {
-			this.spaceKey = true;
+	onKeyDown(e){	
+		
+		this.shiftKey 		= e.shiftKey;
+		this.commandKey 	= e.metaKey;
+		this.controlKey 	= e.ctrlKey;
+		this.optionKey 		= e.altKey;
+		
+		if(e.code === 'Space') this.spaceKey = true;
+
+		if(this.commandKey || this.controlKey || this.optionKey)
 			e.preventDefault(); // Prevent page scroll
-		}
-
-		// Cmd+A: Select All
-		if((e.metaKey || e.ctrlKey) && e.key === 'a'){
-			e.preventDefault();
-			data.selectAll();
-			this.render();
-			return;
-		}
-
+		
+// 		console.log(this.shiftKey,this.commandKey, this.controlKey, this.optionKey, this.spaceKey);
+		
+// 		// Cmd+A: Select All
+// 		if((e.metaKey || e.ctrlKey) && e.key === 'a'){
+// 			//e.preventDefault();
+// 			data.selectAll();
+// 			this.render();
+// 			return;
+// 		}
+// 
 		this.dispatchEvent('keyDown', e);
 	}
 	
-	onKeyUp(e)
-	{
-		if (e.key === 'Shift')			this.shiftKey 	= false;
-		else if (e.key === 'Meta')		this.commandKey = false;
-		else if (e.key === 'Control')	this.controlKey = false;
-		else if (e.key === 'Alt') 		this.optionKey 	= false;
-		else if (e.key === ' ') 		this.spaceKey 	= false;
+	onKeyUp(e){
+
+		this.shiftKey 		= e.shiftKey;
+		this.commandKey 	= e.metaKey;
+		this.controlKey 	= e.ctrlKey;
+		this.optionKey 		= e.altKey;
+		if(e.code === 'Space') this.spaceKey = false;
+
+// 		if(this.commandKey || this.controlKey || this.optionKey)
+// 			e.preventDefault(); // Prevent page scroll
+
+// 		console.log(this.shiftKey,this.commandKey, this.controlKey, this.optionKey, this.spaceKey);
 
 		this.dispatchEvent('keyUp', e);
 	}

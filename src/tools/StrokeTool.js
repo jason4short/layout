@@ -98,8 +98,11 @@ export class StrokeTool extends Tool
 		// Track both screen and world coordinates
 		this.screenStart 	= { x: e.screenX, y: e.screenY };
 		this.screenCurrent 	= { x: e.screenX, y: e.screenY };
-		this.worldStart 	= { x: e.x, y: e.y };
-		this.worldCurrent 	= { x: e.x, y: e.y };
+
+		// Use snap point for world coordinates (for construction lines)
+		const snap = data.getCurrentSnapPoint();
+		this.worldStart 	= { x: snap.x, y: snap.y };
+		this.worldCurrent 	= { x: snap.x, y: snap.y };
 	}
 
 	onMouseMove(e){

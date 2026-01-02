@@ -3,6 +3,7 @@ import stage from './core/Stage.js';
 import data from './data/Data.js';
 import toolManager from './tools/ToolManager.js';
 import fileManager from './core/FileManager.js';
+import inspector from './core/Inspector.js';
 
 import {Shape} from './geometry/Geometry.js';
 import {Intersections} from './data/Intersections.js';
@@ -12,6 +13,7 @@ let intersections = new Intersections();
 
 stage.init();
 toolManager.init();
+inspector.init();
 
 // Wire up file operation buttons
 document.getElementById('btnNew').addEventListener('click', () => fileManager.newDocument());

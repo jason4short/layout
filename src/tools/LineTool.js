@@ -18,7 +18,6 @@ export class LineTool extends Tool
 
 		this.name 	= "Line";
 		this.usage 	= "Click to set start point, drag or click again to set end point. Press Escape to cancel.";
-		this.cursor = "cursor_crosshair";
 
 		this.line 				= false;
 		this.prevLine 			= false;
@@ -43,6 +42,10 @@ export class LineTool extends Tool
 		toolManager.removeEventListener('mouseDown', 	this.onMouseDown);
 	}
 	
+	updateCursor(){
+		stage.setCursor('crosshair');
+	}
+
 	reset(){
 		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		if(this.line)

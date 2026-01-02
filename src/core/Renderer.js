@@ -14,7 +14,7 @@ export class Renderer
 		this.penStyles = {
 			[PenStyle.VISIBLE]:      { color: '#111111', dash: [],           width: 0.5 },
 			[PenStyle.CONSTRUCTION]: { color: '#B400F5', dash: [1, 4],       width: 0.5 },
-			[PenStyle.CENTERLINE]:   { color: '#0066CC', dash: [12, 3, 3, 3], width: 0.5 },
+			[PenStyle.CENTERLINE]:   { color: '#00CC00', dash: [12, 3, 3, 3], width: 0.5 },
 			[PenStyle.HIDDEN]:       { color: '#666666', dash: [6, 3],       width: 0.5 },
 			[PenStyle.PHANTOM]:      { color: '#888888', dash: [12, 3, 2, 3, 2, 3], width: 0.5 },
 			[PenStyle.OUTLINE]:      { color: '#000000', dash: [],           width: 1.5 }
@@ -58,11 +58,11 @@ export class Renderer
 		}
 
 		// Apply pen style
-		const penStyle = shape.penStyle || PenStyle.VISIBLE;
-		const style = this.penStyles[penStyle] || this.penStyles[PenStyle.VISIBLE];
+		const penStyle 		= shape.penStyle || PenStyle.VISIBLE;
+		const style			= this.penStyles[penStyle] || this.penStyles[PenStyle.VISIBLE];
 
-		ctx.strokeStyle = shape.stroke || style.color;
-		ctx.lineWidth = style.width;
+		ctx.strokeStyle 	= style.color;
+		ctx.lineWidth 		= style.width;
 		ctx.setLineDash(style.dash);
 	}
 
@@ -82,8 +82,8 @@ export class Renderer
 			this.applyPenStyle(ctx, shape);
 
 			if(shape.geometry === Shape.LINE){
-				const start = this.toScreen(shape.start.x, shape.start.y);
-				const end = this.toScreen(shape.end.x, shape.end.y);
+				const start 	= this.toScreen(shape.start.x, shape.start.y);
+				const end 		= this.toScreen(shape.end.x, shape.end.y);
 
 				// Skip inactive guides
 				if(shape.type === Shape.GUIDE && !shape.active) continue;
@@ -94,31 +94,31 @@ export class Renderer
 				this.resetPenStyle(ctx);
 
 			} else if(shape.geometry === Shape.CIRCLE){
-				const center = this.toScreen(shape.x, shape.y);
-				const radius = this.toScreenScale(shape.radius);
+				const center 	= this.toScreen(shape.x, shape.y);
+				const radius 	= this.toScreenScale(shape.radius);
 				ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
 				ctx.stroke();
 				this.resetPenStyle(ctx);
 
 			} else if(shape.geometry === Shape.ARC){
-				const center = this.toScreen(shape.x, shape.y);
-				const radius = this.toScreenScale(shape.radius);
+				const center 	= this.toScreen(shape.x, shape.y);
+				const radius 	= this.toScreenScale(shape.radius);
 				ctx.arc(center.x, center.y, radius, shape.startAngle, shape.endAngle);
 				ctx.stroke();
 				this.resetPenStyle(ctx);
 
 			} else if(shape.geometry === Shape.TANGENT_ARC){
-				const center = this.toScreen(shape.x, shape.y);
-				const radius = this.toScreenScale(shape.radius);
+				const center 	= this.toScreen(shape.x, shape.y);
+				const radius 	= this.toScreenScale(shape.radius);
 				ctx.arc(center.x, center.y, radius, shape.startAngle, shape.endAngle);
 				ctx.stroke();
 				this.resetPenStyle(ctx);
 
 				// Draw tangent handle when control points are visible
 				if(shape.showControlPoints || shape.selected){
-					const startPt = this.toScreen(shape.startPoint.x, shape.startPoint.y);
+					const startPt	= this.toScreen(shape.startPoint.x, shape.startPoint.y);
 					const tangentPt = this.toScreen(shape.tangentPoint.x, shape.tangentPoint.y);
-					const endPt = this.toScreen(shape.endPoint.x, shape.endPoint.y);
+					const endPt 	= this.toScreen(shape.endPoint.x, shape.endPoint.y);
 
 					// Draw tangent line from start to tangent handle
 					ctx.beginPath();
