@@ -13,10 +13,16 @@ export class Tool extends InteractiveObject
 		// Tool metadata for UI
 		this.name 	= "Tool";
 		this.usage 	= "";
-		this.cursor = "default";
 	}
 	
 	onKeyDown(e){
+	}
+
+	updateCursor(){
+	
+	}
+	
+	reset(){
 	}
 	
 	/**

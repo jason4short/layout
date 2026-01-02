@@ -45,7 +45,7 @@ export class RotateTool extends Tool
 		toolManager.addEventListener('mouseDown', this.onMouseDown);
 		toolManager.addEventListener('mouseMove', this.onMouseMove);
 		toolManager.addEventListener('mouseUp', this.onMouseUp);
-
+		this.updateCursor()
 		const selected = data.getSelected();
 		if (selected.length === 0) {
 			this.usage = "No shapes selected. Select shapes first, then use Rotate tool.";
@@ -61,6 +61,11 @@ export class RotateTool extends Tool
 		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		this.resetState();
 	}
+	
+	updateCursor(){
+		stage.setCursor('rotate', 0, 0);
+	}
+	
 
 	reset() {
 		this.resetState();

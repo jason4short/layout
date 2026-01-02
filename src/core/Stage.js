@@ -76,7 +76,15 @@ class Stage extends View
 
 	/** Redraw everything. */
 	render(){this.renderer.draw();}
-	
+
+	setCursor(name, hotspotX=16, hotspotY=16){	
+		if(name == 'default'){
+			this.canvas.style.cursor = 'default';
+		}else{
+			this.canvas.style.cursor = `url("src/assets/cursors/${name}.png") ${hotspotX} ${hotspotY}, crosshair`;
+		}
+	}
+
 	/**
 	 * Ensure the canvas backing store matches CSS size * devicePixelRatio,
 	 * then scale the context so drawing uses 1:1 logical pixels.

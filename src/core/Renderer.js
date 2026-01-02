@@ -226,13 +226,13 @@ export class Renderer
 
 		// Orange dashed outline for zoom box
 		ctx.strokeStyle = '#FF6600';
-		ctx.lineWidth = 2;
+		ctx.lineWidth = .5;
 		ctx.setLineDash([6, 3]);
 		ctx.strokeRect(topLeft.x, topLeft.y, width, height);
 		ctx.setLineDash([]);
 
 		// Semi-transparent orange fill
-		ctx.fillStyle = 'rgba(255, 102, 0, 0.1)';
+		ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
 		ctx.fillRect(topLeft.x, topLeft.y, width, height);
 	}
 

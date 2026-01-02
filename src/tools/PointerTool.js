@@ -43,6 +43,7 @@ export class PointerTool extends Tool
 
 	begin(){
 		data.resetSnaps();
+		this.updateCursor();
 		toolManager.addEventListener('mouseUp', 		this.onMouseUp);
 		toolManager.addEventListener('mouseMove',		this.onMouseMove);
 		toolManager.addEventListener('mouseDown',		this.onMouseDown);
@@ -54,6 +55,11 @@ export class PointerTool extends Tool
 		toolManager.removeEventListener('mouseDown', 	this.onMouseDown);
 		this.resetDrag();
 	}
+	
+	updateCursor(){
+		stage.setCursor('default');
+	}
+	
 	reset(){
 	}
 

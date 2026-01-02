@@ -40,6 +40,8 @@ export class HandTool extends Tool
 		this.isPanning = false;
 	}
 
+	reset(){
+	}
 
 	onMouseDown(e)
 	{

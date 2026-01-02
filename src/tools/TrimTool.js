@@ -29,6 +29,7 @@ export class TrimTool extends Tool
 	begin(){
 		//console.log("begin Trim Tool");
 		toolManager.addEventListener('mouseDown',		this.onMouseDown);
+		this.updateCursor();
 	}
 
 	exit(){
@@ -36,6 +37,13 @@ export class TrimTool extends Tool
 		toolManager.removeEventListener('mouseDown', 	this.onMouseDown);
 	}
 
+	updateCursor(){
+		stage.setCursor('trim', 0, 0);
+	}
+	
+	reset(){
+
+	}
 
 	onMouseDown(e)
 	{
@@ -173,8 +181,10 @@ export class TrimTool extends Tool
 	}
 
 
-	// Extend/trim line to the two boundaries that bracket the click point
+	// Extend line to nearest boundary in the direction of click
 	extendLine(line, boundaries, clickPoint){
+		if(boundaries.length === 0) return;
+
 		// Create an extended line for intersection testing (both directions)
 		const direction = {
 			x: line.end.x - line.start.x,
@@ -198,14 +208,13 @@ export class TrimTool extends Tool
 		// Find intersections with boundaries using extended line
 		const intersections = data.findIntersectionsWithBoundaries(extendedLine, boundaries);
 
-		if(intersections.length < 2){
-			return;
-		}
+		if(intersections.length === 0) return;
 
-		// Get click point's t value on the line
+		// Get click point's t value on the original line
+		// t=0 is start, t=1 is end, t<0 is before start, t>1 is after end
 		const clickT = line.getParametricT(clickPoint);
 
-		// Convert intersections to t values and sort
+		// Convert intersections to t values
 		const tPoints = intersections
 			.map(p => ({
 				t: line.getParametricT(p),
@@ -213,26 +222,32 @@ export class TrimTool extends Tool
 			}))
 			.sort((a, b) => a.t - b.t);
 
-		// Find the two intersections that bracket the click point
-		let bracketBefore = null;
-		let bracketAfter = null;
+		// Determine which end to extend based on where click is
+		// Click closer to start (t < 0.5) → extend start
+		// Click closer to end (t >= 0.5) → extend end
+		const extendStart = clickT < 0.5;
 
-		for (const tp of tPoints) {
-			if (tp.t <= clickT) {
-				bracketBefore = tp;
+		if(extendStart){
+			// Find nearest intersection before t=0 (before line start)
+			const beforeStart = tPoints.filter(tp => tp.t < 0);
+			if(beforeStart.length > 0){
+				// Get the one closest to t=0 (last in sorted list of negatives)
+				const nearest = beforeStart[beforeStart.length - 1];
+				line.start.x = nearest.point.x;
+				line.start.y = nearest.point.y;
+				line.update();
 			}
-			if (tp.t >= clickT && bracketAfter === null) {
-				bracketAfter = tp;
+		} else {
+			// Find nearest intersection after t=1 (after line end)
+			const afterEnd = tPoints.filter(tp => tp.t > 1);
+			if(afterEnd.length > 0){
+				// Get the one closest to t=1 (first in sorted list)
+				const nearest = afterEnd[0];
+				line.end.x = nearest.point.x;
+				line.end.y = nearest.point.y;
+				line.update();
 			}
 		}
-
-		// Need both brackets to proceed
-		if (!bracketBefore || !bracketAfter) {
-			return;
-		}
-
-		// Trim/extend line to fit exactly between the two bracketing boundaries
-		line.trimToPoints(bracketBefore.point, bracketAfter.point);
 	}
 
 	// Trim ellipse or elliptical arc by removing the clicked segment

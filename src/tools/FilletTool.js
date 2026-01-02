@@ -24,7 +24,7 @@ export class FilletTool extends Tool
 		super();
 
 		this.name 	= "Fillet";
-		this.usage 	= "Click two lines to add a rounded corner. Option+click near intersection for quick fillet.";
+		this.usage 	= "Click two lines to add a rounded corner. Shift+click near intersection for quick fillet.";
 		this.cursor = "cursor_fillet";
 
 		this.generateGuides = false;
@@ -49,12 +49,17 @@ export class FilletTool extends Tool
 
 	begin() {
 		this.state = STATE.IDLE;
+		
+		stage.setCursor('fillet')
+		
 		toolManager.addEventListener('mouseDown', this.onMouseDown);
 		toolManager.addEventListener('mouseMove', this.onMouseMove);
 		toolManager.addEventListener('mouseUp', this.onMouseUp);
 	}
 
 	exit() {
+		stage.setCursor('crosshairs')
+
 		toolManager.removeEventListener('mouseDown', this.onMouseDown);
 		toolManager.removeEventListener('mouseMove', this.onMouseMove);
 		toolManager.removeEventListener('mouseUp', this.onMouseUp);
@@ -80,7 +85,7 @@ export class FilletTool extends Tool
 		const snapPt = data.getCurrentSnapPoint();
 
 		// Option+click: quick fillet at nearest intersection
-		if (stage.optionKey) {
+		if (stage.shiftKey) {
 			this.quickFillet(clickPt);
 			return;
 		}

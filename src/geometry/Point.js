@@ -11,6 +11,14 @@ export class Point
 		this.shape		= null;
 		this.distance	= null;
 	}
+	
+	clone(){
+		let p = new Point(this.x, this.y);
+		p.shape = this.shape;
+		p.distance = this.distance;
+		return p;
+	}
+	
 }
 
 
