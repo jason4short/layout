@@ -5,7 +5,7 @@ import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
 import undoManager		from '../core/UndoManager.js';
-import {AddShapesCommand} from '../core/Commands.js';
+import {AddShapesCommand, MoveCommand} from '../core/Commands.js';
 
 export class PointerTool extends Tool
 {
@@ -311,9 +311,25 @@ export class PointerTool extends Tool
 			// Move operation complete - rebuild POI cache
 			data.rebuildPOIs();
 
-			// Record clone command for undo (shapes already added)
 			if(this.isCloning && this.clonedShapes.length > 0){
+				// Record clone command for undo (shapes already added)
 				undoManager.record(new AddShapesCommand(this.clonedShapes));
+			} else if(this.originalPositions.length > 0){
+				// Record move command for undo
+				// Build moveData with old and new positions
+				const moveData = this.originalPositions.map(orig => {
+					const pois = orig.shape.getSnapPOIs();
+					const currentPos = pois[orig.index];
+					return {
+						shape: orig.shape,
+						index: orig.index,
+						oldX: orig.x,
+						oldY: orig.y,
+						newX: currentPos.x,
+						newY: currentPos.y
+					};
+				});
+				undoManager.record(new MoveCommand(moveData));
 			}
 		} else if(this.isDragging && this.marqueeRect){
 			// Finish marquee selection
