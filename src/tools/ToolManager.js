@@ -23,6 +23,7 @@ import { CenterPointEllipseTool } 		from "./CenterPointEllipseTool.js";
 import { SplineTool } 					from "./SplineTool.js";
 import { ScaleTool } 					from "./ScaleTool.js";
 import { MirrorTool } 					from "./MirrorTool.js";
+import { RotateTool } 					from "./RotateTool.js";
 
 
 
@@ -63,6 +64,7 @@ class ToolManager extends EventDispatcher
 		this.splineTool					= new SplineTool();
 		this.scaleTool					= new ScaleTool();
 		this.mirrorTool					= new MirrorTool();
+		this.rotateTool					= new RotateTool();
 
 		// Tool palette configuration: [tool, displayName, shortcut]
 		this.toolPaletteConfig = [
@@ -87,6 +89,7 @@ class ToolManager extends EventDispatcher
 			{ tool: this.parallelLineTool, name: 'Parallel', shortcut: 'P' },
 			{ tool: this.scaleTool, name: 'Scale', shortcut: 'X' },
 			{ tool: this.mirrorTool, name: 'Mirror', shortcut: 'M' },
+			{ tool: this.rotateTool, name: 'Rotate', shortcut: 'R' },
 		];
 
 		return ToolManager.instance;
@@ -270,15 +273,21 @@ class ToolManager extends EventDispatcher
 	onKeyDown(e)
 	{
 		if(stage.commandKey){
+			stage.setCursor('command', 8, 8);
 			this.strokeTool.activate();
 			data.resetSnaps();		
+		}else if(stage.shiftKey){
+			stage.setCursor('default');
+		}else{
+			this.currentTool.updateCursor();
 		}
 	}
-	
+
 	onKeyUp(e)
 	{
 		if(this.strokeTool.active){
 			this.strokeTool.deactivate();
+			this.currentTool.updateCursor();
 			return;
 		}
 	
@@ -349,6 +358,10 @@ class ToolManager extends EventDispatcher
 
 			case 'm':
 				this.setTool(this.mirrorTool);
+				break;
+
+			case 'r':
+				this.setTool(this.rotateTool);
 				break;
 
 // 				case '4':

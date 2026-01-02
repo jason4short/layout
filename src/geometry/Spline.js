@@ -201,6 +201,33 @@ export class Spline extends Geometry
 		this.update();
 	}
 
+	// Rotate the spline around an anchor point by angle (in radians)
+	rotate(anchorX, anchorY, angleRad) {
+		const cos = Math.cos(angleRad);
+		const sin = Math.sin(angleRad);
+
+		const rotatePoint = (px, py) => {
+			const dx = px - anchorX;
+			const dy = py - anchorY;
+			return {
+				x: anchorX + dx * cos - dy * sin,
+				y: anchorY + dx * sin + dy * cos
+			};
+		};
+
+		const r0 = rotatePoint(this.p0.x, this.p0.y);
+		const r1 = rotatePoint(this.p1.x, this.p1.y);
+		const r2 = rotatePoint(this.p2.x, this.p2.y);
+		const r3 = rotatePoint(this.p3.x, this.p3.y);
+
+		this.p0.x = r0.x; this.p0.y = r0.y;
+		this.p1.x = r1.x; this.p1.y = r1.y;
+		this.p2.x = r2.x; this.p2.y = r2.y;
+		this.p3.x = r3.x; this.p3.y = r3.y;
+
+		this.update();
+	}
+
 	// Mirror the spline across a line defined by two points
 	mirror(x1, y1, x2, y2){
 		const mirrorPoint = (px, py) => {

@@ -171,6 +171,32 @@ export class MirrorCommand extends Command {
 	}
 }
 
+// Rotate shapes around an anchor point
+export class RotateCommand extends Command {
+	constructor(shapes, anchorX, anchorY, angleRad) {
+		super('Rotate');
+		this.shapes = shapes;
+		this.anchorX = anchorX;
+		this.anchorY = anchorY;
+		this.angleRad = angleRad;
+	}
+
+	execute() {
+		for (const shape of this.shapes) {
+			shape.rotate(this.anchorX, this.anchorY, this.angleRad);
+		}
+		data.rebuildPOIs();
+	}
+
+	undo() {
+		// Rotate by negative angle
+		for (const shape of this.shapes) {
+			shape.rotate(this.anchorX, this.anchorY, -this.angleRad);
+		}
+		data.rebuildPOIs();
+	}
+}
+
 // Composite command for grouping multiple commands
 export class CompositeCommand extends Command {
 	constructor(commands, description = 'Multiple actions') {

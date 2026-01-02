@@ -174,6 +174,30 @@ export class Line extends Geometry
 		this.update();
 	}
 
+	// Rotate the line around an anchor point by angle (in radians)
+	rotate(anchorX, anchorY, angleRad) {
+		const cos = Math.cos(angleRad);
+		const sin = Math.sin(angleRad);
+
+		const rotatePoint = (px, py) => {
+			const dx = px - anchorX;
+			const dy = py - anchorY;
+			return {
+				x: anchorX + dx * cos - dy * sin,
+				y: anchorY + dx * sin + dy * cos
+			};
+		};
+
+		const newStart = rotatePoint(this.start.x, this.start.y);
+		const newEnd = rotatePoint(this.end.x, this.end.y);
+
+		this.start.x = newStart.x;
+		this.start.y = newStart.y;
+		this.end.x = newEnd.x;
+		this.end.y = newEnd.y;
+		this.update();
+	}
+
 	// Mirror the line across a line defined by two points
 	mirror(x1, y1, x2, y2){
 		const mirrorPoint = (px, py) => {

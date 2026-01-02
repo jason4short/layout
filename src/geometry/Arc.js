@@ -221,6 +221,20 @@ export class Arc extends Circle
 		this.update();
 	}
 
+	// Rotate the arc around an anchor point by angle (in radians)
+	rotate(anchorX, anchorY, angleRad) {
+		const cos = Math.cos(angleRad);
+		const sin = Math.sin(angleRad);
+		const dx = this.x - anchorX;
+		const dy = this.y - anchorY;
+		this.x = anchorX + dx * cos - dy * sin;
+		this.y = anchorY + dx * sin + dy * cos;
+		// Rotate the arc angles too
+		this.startAngle += angleRad;
+		this.endAngle += angleRad;
+		this.update();
+	}
+
 	// Mirror the arc across a line defined by two points
 	mirror(x1, y1, x2, y2){
 		// Mirror center
