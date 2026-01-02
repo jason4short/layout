@@ -292,4 +292,24 @@ export class TangentArc extends Geometry
 		}
 		this.recalculate();
 	}
+
+	toJSON() {
+		return {
+			geometry: this.geometry,
+			type: this.type,
+			startPoint: { x: this.startPoint.x, y: this.startPoint.y },
+			tangentPoint: { x: this.tangentPoint.x, y: this.tangentPoint.y },
+			endPoint: { x: this.endPoint.x, y: this.endPoint.y }
+		};
+	}
+
+	static fromJSON(data) {
+		const arc = new TangentArc([
+			data.startPoint.x, data.startPoint.y,
+			data.tangentPoint.x, data.tangentPoint.y,
+			data.endPoint.x, data.endPoint.y
+		]);
+		arc.type = data.type;
+		return arc;
+	}
 }

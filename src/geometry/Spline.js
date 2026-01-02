@@ -288,4 +288,26 @@ export class Spline extends Geometry
 		}
 		this.update();
 	}
+
+	toJSON() {
+		return {
+			geometry: this.geometry,
+			type: this.type,
+			p0: { x: this.p0.x, y: this.p0.y },
+			p1: { x: this.p1.x, y: this.p1.y },
+			p2: { x: this.p2.x, y: this.p2.y },
+			p3: { x: this.p3.x, y: this.p3.y }
+		};
+	}
+
+	static fromJSON(data) {
+		const spline = new Spline([
+			data.p0.x, data.p0.y,
+			data.p1.x, data.p1.y,
+			data.p2.x, data.p2.y,
+			data.p3.x, data.p3.y
+		]);
+		spline.type = data.type;
+		return spline;
+	}
 }

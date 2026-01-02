@@ -39,4 +39,18 @@ export class Construction extends Line
 	getAngleDeg(){
 		return this.angle;
 	}
+
+	toJSON() {
+		return {
+			geometry: this.geometry,
+			type: this.type,
+			x: this.mid.x,
+			y: this.mid.y,
+			angle: this.angle
+		};
+	}
+
+	static fromJSON(data) {
+		return new Construction([data.x, data.y, data.angle]);
+	}
 }

@@ -281,4 +281,22 @@ export class Arc extends Circle
 		}
 		this.update();
 	}
+
+	toJSON() {
+		return {
+			geometry: this.geometry,
+			type: this.type,
+			x: this.x,
+			y: this.y,
+			radius: this.radius,
+			startAngle: this.startAngle,
+			endAngle: this.endAngle
+		};
+	}
+
+	static fromJSON(data) {
+		const arc = new Arc([data.x, data.y, data.radius, data.startAngle, data.endAngle]);
+		arc.type = data.type;
+		return arc;
+	}
 }

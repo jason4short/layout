@@ -201,4 +201,22 @@ export class Ellipse extends Geometry
 		}
 		this.update();
 	}
+
+	toJSON() {
+		return {
+			geometry: this.geometry,
+			type: this.type,
+			x: this.x,
+			y: this.y,
+			radiusX: this.radiusX,
+			radiusY: this.radiusY,
+			rotation: this.rotation
+		};
+	}
+
+	static fromJSON(data) {
+		const ellipse = new Ellipse([data.x, data.y, data.radiusX, data.radiusY, data.rotation]);
+		ellipse.type = data.type;
+		return ellipse;
+	}
 }

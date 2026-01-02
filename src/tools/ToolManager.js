@@ -1,6 +1,7 @@
 import stage 					from '../core/Stage.js';
 import data 					from '../data/Data.js';
 import undoManager				from '../core/UndoManager.js';
+import fileManager				from '../core/FileManager.js';
 import { DeleteShapesCommand, AddShapesCommand }	from '../core/Commands.js';
 
 import { EventDispatcher } 				from '../core/EventDispatcher.js';
@@ -348,9 +349,7 @@ class ToolManager extends EventDispatcher
 				this.setTool(this.oppositeCornerEllipseTool);
 				break;
 
-			case 's':
-				this.setTool(this.splineTool);
-				break;
+			// 's' handled below with Ctrl+S check
 
 			case 'x':
 				this.setTool(this.scaleTool);
@@ -424,6 +423,26 @@ class ToolManager extends EventDispatcher
 					}
 				}else{
 					this.setTool(this.pointerTool);
+				}
+				break;
+
+			case 's':
+				if(stage.controlKey){
+					fileManager.save();
+				}else{
+					this.setTool(this.splineTool);
+				}
+				break;
+
+			case 'o':
+				if(stage.controlKey){
+					fileManager.open();
+				}
+				break;
+
+			case 'n':
+				if(stage.controlKey){
+					fileManager.newDocument();
 				}
 				break;
 

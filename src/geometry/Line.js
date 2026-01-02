@@ -251,5 +251,20 @@ export class Line extends Geometry
 		}
 		this.update();
 	}
+
+	toJSON() {
+		return {
+			geometry: this.geometry,
+			type: this.type,
+			start: { x: this.start.x, y: this.start.y },
+			end: { x: this.end.x, y: this.end.y }
+		};
+	}
+
+	static fromJSON(data) {
+		const line = new Line([data.start.x, data.start.y, data.end.x, data.end.y]);
+		line.type = data.type;
+		return line;
+	}
 }
 

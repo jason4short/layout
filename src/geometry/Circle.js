@@ -157,5 +157,21 @@ export class Circle extends Geometry
 		}
 		this.update();
 	}
+
+	toJSON() {
+		return {
+			geometry: this.geometry,
+			type: this.type,
+			x: this.x,
+			y: this.y,
+			radius: this.radius
+		};
+	}
+
+	static fromJSON(data) {
+		const circle = new Circle([data.x, data.y, data.radius]);
+		circle.type = data.type;
+		return circle;
+	}
 }
 

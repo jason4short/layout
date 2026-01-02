@@ -43,7 +43,11 @@
 	<body>
 		<div id="app">
 			<div class="toolbar" id="toolbar">
-				<input id="toolbarTextInput" type="text" placeholder="Type here…" />
+				<button class="btn" id="btnNew" title="New (Ctrl+N)">New</button>
+				<button class="btn" id="btnOpen" title="Open (Ctrl+O)">Open</button>
+				<button class="btn" id="btnSave" title="Save (Ctrl+S)">Save</button>
+				<span style="margin-left: .5rem; border-left:1px solid var(--border); height:20px;"></span>
+				<input id="toolbarTextInput" type="text" placeholder="Type here…" style="margin-left: .5rem;" />
 				<span id="currentToolName" class="label" style="margin-left: 1rem;"></span>
 			</div>
 			<div class="split">
@@ -52,7 +56,7 @@
 				</nav>
 				<div class="canvas-wrap">
 					<canvas id="stage" class="canvas"></canvas>
-					<div class="overlay" id="overlay">Wheel=Zoom · Space/Middle/Right=Pan · ⌫=Delete · ⌘A=Select All</div>
+					<div class="overlay" id="overlay">Wheel=Zoom · Space/Middle/Right=Pan · ⌫=Delete · Ctrl+S=Save · Ctrl+O=Open</div>
 				</div>
 				<aside class="sidebar" id="inspector"></aside>
 			</div>
