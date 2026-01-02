@@ -1,7 +1,7 @@
 import stage 					from '../core/Stage.js';
 import data 					from '../data/Data.js';
 import undoManager				from '../core/UndoManager.js';
-import { DeleteShapesCommand }	from '../core/Commands.js';
+import { DeleteShapesCommand, AddShapesCommand }	from '../core/Commands.js';
 
 import { EventDispatcher } 				from '../core/EventDispatcher.js';
 
@@ -275,9 +275,12 @@ class ToolManager extends EventDispatcher
 		if(stage.commandKey){
 			stage.setCursor('command', 8, 8);
 			this.strokeTool.activate();
-			data.resetSnaps();		
+			data.resetSnaps();
+
 		}else if(stage.shiftKey){
+			console.log("stage.shiftKey "+stage.shiftKey)
 			stage.setCursor('default');
+
 		}else{
 			this.currentTool.updateCursor();
 		}
@@ -292,17 +295,11 @@ class ToolManager extends EventDispatcher
 		}
 	
 		switch(e.key){
-			case 'c':
-				this.setTool(this.circleTool);
-				break;
 		
 			case 'l':
 				this.setTool(this.lineTool);
 				break;
 			
-			case 'v':
-				this.setTool(this.pointerTool);
-				break;
 
 			case 'h':
 				this.setTool(this.handTool);
@@ -389,6 +386,40 @@ class ToolManager extends EventDispatcher
 					} else {
 						this.undo();
 					}
+				}
+				break;
+
+			case 'c':
+				if(stage.controlKey){
+					const copied = data.copy();
+					if(copied > 0){
+						console.log(`Copied ${copied} shape(s)`);
+					}
+				}else{
+					this.setTool(this.circleTool);
+				}
+				break;
+
+			case 'v':
+				if(stage.controlKey){
+					// Calculate view center in world coordinates
+					const centerX = stage.canvas.clientWidth / 2;
+					const centerY = stage.canvas.clientHeight / 2;
+					const worldCenter = stage.screenToWorld(centerX, centerY);
+
+					const shapesToPaste = data.preparePaste(worldCenter.x, worldCenter.y);
+					if(shapesToPaste.length > 0){
+						undoManager.execute(new AddShapesCommand(shapesToPaste));
+						// Select pasted shapes
+						data.selectNone();
+						for(const shape of shapesToPaste){
+							shape.selected = true;
+						}
+						console.log(`Pasted ${shapesToPaste.length} shape(s)`);
+						stage.render();
+					}
+				}else{
+					this.setTool(this.pointerTool);
 				}
 				break;
 

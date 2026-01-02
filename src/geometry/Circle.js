@@ -96,6 +96,13 @@ export class Circle extends Geometry
 		return tangentAngle * (180 / Math.PI);
 	}
 
+	// Translate the circle by offset
+	translate(dx, dy){
+		this.x += dx;
+		this.y += dy;
+		this.update();
+	}
+
 	// Scale the circle relative to an anchor point
 	scale(anchorX, anchorY, factor){
 		this.x = anchorX + (this.x - anchorX) * factor;

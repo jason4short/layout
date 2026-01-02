@@ -58,6 +58,9 @@ class Data
 		// geometry solver class
 		this.intersections			= new Intersections();
 
+		// Clipboard for copy/paste
+		this.clipboard				= [];
+
 		// This is a singleton class
         return Data.instance;
 	}
@@ -351,6 +354,50 @@ class Data
 			this.deleteShape(shape);
 		}
 		return selected.length;
+	}
+
+	// Copy selected shapes to clipboard
+	copy(){
+		const selected = this.getSelected();
+		if(selected.length === 0) return 0;
+
+		// Clone shapes and store in clipboard
+		this.clipboard = selected.map(shape => shape.clone());
+
+		// Calculate centroid of copied shapes for offset calculation
+		let sumX = 0, sumY = 0, count = 0;
+		for(const shape of this.clipboard){
+			const pois = shape.getSnapPOIs();
+			for(const p of pois){
+				sumX += p.x;
+				sumY += p.y;
+				count++;
+			}
+		}
+		this.clipboardCentroid = count > 0
+			? { x: sumX / count, y: sumY / count }
+			: { x: 0, y: 0 };
+
+		return selected.length;
+	}
+
+	// Prepare pasted shapes (returns clones without adding them)
+	preparePaste(viewCenterX, viewCenterY){
+		if(this.clipboard.length === 0) return [];
+
+		// Calculate offset from clipboard centroid to view center
+		const offsetX = viewCenterX - this.clipboardCentroid.x;
+		const offsetY = viewCenterY - this.clipboardCentroid.y;
+
+		// Clone and offset each shape
+		const pastedShapes = [];
+		for(const shape of this.clipboard){
+			const clone = shape.clone();
+			clone.translate(offsetX, offsetY);
+			pastedShapes.push(clone);
+		}
+
+		return pastedShapes;
 	}
 
 	/* 	generates a shape from params 

@@ -1,4 +1,3 @@
-import {Shape} 			from '../geometry/Geometry.js';
 import {Tool} 			from "./Tool.js";
 import {Line} 			from '../geometry/Line.js';
 import {Circle} 		from '../geometry/Circle.js';
@@ -25,9 +24,15 @@ export class StrokeTool extends Tool
 
 		this.generateGuides 	= false;
 		this.active 			= false;
-		this.drawing 			= false;
-		this.line 				= null;
 		this.gestures			= [];
+
+		// Screen-space tracking for gesture detection
+		this.screenStart 		= null;
+		this.screenCurrent		= null;
+
+		// World-space points for actions
+		this.worldStart			= null;
+		this.worldCurrent		= null;
 
 		// Tunable thresholds
 		this.segmentThreshold	= 100;  // pixels before registering a gesture segment
@@ -81,79 +86,78 @@ export class StrokeTool extends Tool
 // 		toolManager.removeEventListener('mouseDown', 	this.onMouseDown);
 	}
 	reset(){
-		this.gestures = [];
+		this.gestures 		= [];
+		this.screenStart 	= null;
+		this.screenCurrent 	= null;
+		this.worldStart 	= null;
+		this.worldCurrent 	= null;
 	}
-
 
 	onMouseDown(e)
 	{
-		this.line = new Line([data.snapPoint.x, data.snapPoint.y, data.snapPoint.x, data.snapPoint.y]);
-		// Store original start point for gesture actions
-		this.originalStartPt = {x: data.snapPoint.x, y: data.snapPoint.y};
+		// Track both screen and world coordinates
+		this.screenStart 	= { x: e.screenX, y: e.screenY };
+		this.screenCurrent 	= { x: e.screenX, y: e.screenY };
+		this.worldStart 	= { x: e.x, y: e.y };
+		this.worldCurrent 	= { x: e.x, y: e.y };
 	}
-	
-	
+
 	onMouseMove(e){
-		if(this.line){
-			this.line.end.x = e.x;
-			this.line.end.y = e.y;
+		if(!this.screenStart) return;
 
-			if(this.line.length() > this.segmentThreshold)
-			{
-				const angleDeg = this.line.getAngleDeg();
-				const newDirection = this.determineGestureFromAngle(angleDeg);
-				const lastDirection = this.gestures[this.gestures.length - 1];
+		this.screenCurrent 	= { x: e.screenX, y: e.screenY };
+		this.worldCurrent 	= { x: e.x, y: e.y };
 
-				// Hysteresis: only register change if direction differs significantly
-				if(lastDirection === undefined){
-					// First gesture segment
+		// Calculate screen-space distance and angle
+		const dx = this.screenCurrent.x - this.screenStart.x;
+		const dy = this.screenCurrent.y - this.screenStart.y;
+		const screenLength = Math.sqrt(dx * dx + dy * dy);
+
+		if(screenLength > this.segmentThreshold)
+		{
+			const angleDeg = Math.atan2(-dy, dx) * (180 / Math.PI);
+			const newDirection = this.determineGestureFromAngle(angleDeg);
+			const lastDirection = this.gestures[this.gestures.length - 1];
+
+			// Hysteresis: only register change if direction differs significantly
+			if(lastDirection === undefined){
+				this.gestures.push(newDirection);
+				console.log("gesture: " + this.gestures.join(''));
+			} else {
+				const diff = Math.abs(newDirection - lastDirection);
+				const sectorDiff = Math.min(diff, 8 - diff);
+
+				if(sectorDiff >= this.directionTolerance){
 					this.gestures.push(newDirection);
 					console.log("gesture: " + this.gestures.join(''));
-				} else {
-					// Check sector distance (with wrap-around for 0-7)
-					const diff = Math.abs(newDirection - lastDirection);
-					const sectorDiff = Math.min(diff, 8 - diff);
-
-					if(sectorDiff >= this.directionTolerance){
-						this.gestures.push(newDirection);
-						console.log("gesture: " + this.gestures.join(''));
-					}
 				}
-
-				// Reset line start to current position for next segment
-				this.line.start.x = e.x;
-				this.line.start.y = e.y;
 			}
 
-			// Show zoom box preview (from original start to current position)
-			const x 		= Math.min(this.originalStartPt.x, this.line.end.x);
-			const y 		= Math.min(this.originalStartPt.y, this.line.end.y);
-			const width 	= Math.abs(this.line.end.x - this.originalStartPt.x);
-			const height 	= Math.abs(this.line.end.y - this.originalStartPt.y);
-
-			stage.renderer.zoomRect = new Rectangle(x, y, width, height);
-			stage.render();
+			// Reset segment start to current position
+			this.screenStart = { x: e.screenX, y: e.screenY };
 		}
+
+		// Show zoom box preview (world coordinates)
+		const x 		= Math.min(this.worldStart.x, this.worldCurrent.x);
+		const y 		= Math.min(this.worldStart.y, this.worldCurrent.y);
+		const width 	= Math.abs(this.worldCurrent.x - this.worldStart.x);
+		const height 	= Math.abs(this.worldCurrent.y - this.worldStart.y);
+
+		stage.renderer.zoomRect = new Rectangle(x, y, width, height);
+		stage.render();
 	}
 
 	onMouseUp(e){
-		if(this.line){
-			this.line.end.x = e.x;
-			this.line.end.y = e.y;
+		if(!this.screenStart) return;
 
-			// Store line endpoints for gesture actions that need them
-			this.gestureStartPt = {x: this.line.start.x, y: this.line.start.y};
-			this.gestureEndPt = {x: this.line.end.x, y: this.line.end.y};
+		this.worldCurrent = { x: e.x, y: e.y };
 
-			const gesture = this.gestures.join('');
-			console.log("final gesture: " + gesture);
+		const gesture = this.gestures.join('');
+		console.log("final gesture: " + gesture);
 
-			// Execute gesture using registry (longest match first)
-			this.executeGesture(gesture);
+		this.executeGesture(gesture);
 
-			this.line = false;
-			stage.renderer.zoomRect = null;
-		}
+		stage.renderer.zoomRect = null;
 		stage.render();
 		this.reset();
 	}
@@ -178,14 +182,14 @@ export class StrokeTool extends Tool
 	// ---- Gesture Action Methods ----
 
 	createConstruction(angle){
-		data.addConstruction(new Construction([this.originalStartPt.x, this.originalStartPt.y, angle]));
+		data.addConstruction(new Construction([this.worldStart.x, this.worldStart.y, angle]));
 	}
 
 	zoomToBox(){
-		const x = Math.min(this.originalStartPt.x, this.gestureEndPt.x);
-		const y = Math.min(this.originalStartPt.y, this.gestureEndPt.y);
-		const width = Math.abs(this.gestureEndPt.x - this.originalStartPt.x);
-		const height = Math.abs(this.gestureEndPt.y - this.originalStartPt.y);
+		const x = Math.min(this.worldStart.x, this.worldCurrent.x);
+		const y = Math.min(this.worldStart.y, this.worldCurrent.y);
+		const width = Math.abs(this.worldCurrent.x - this.worldStart.x);
+		const height = Math.abs(this.worldCurrent.y - this.worldStart.y);
 
 		// Only zoom if box has meaningful size
 		if(width > 10 && height > 10){
@@ -194,33 +198,28 @@ export class StrokeTool extends Tool
 	}
 
 	createVerticalLine(){
-		// Create a vertical line through the start point
 		const lineData = new Line([
-			this.originalStartPt.x, this.originalStartPt.y - 500,
-			this.originalStartPt.x, this.originalStartPt.y + 500
+			this.worldStart.x, this.worldStart.y - 500,
+			this.worldStart.x, this.worldStart.y + 500
 		]);
 		data.addShape(lineData);
 	}
 
 	createHorizontalLine(){
-		// Create a horizontal line through the start point
 		const lineData = new Line([
-			this.originalStartPt.x - 500, this.originalStartPt.y,
-			this.originalStartPt.x + 500, this.originalStartPt.y
+			this.worldStart.x - 500, this.worldStart.y,
+			this.worldStart.x + 500, this.worldStart.y
 		]);
 		data.addShape(lineData);
 	}
 
 	createCircleAtStart(){
-		// Create a circle centered at start with radius to end point
-		const dx = this.gestureEndPt.x - this.originalStartPt.x;
-		const dy = this.gestureEndPt.y - this.originalStartPt.y;
+		const dx = this.worldCurrent.x - this.worldStart.x;
+		const dy = this.worldCurrent.y - this.worldStart.y;
 		const radius = Math.sqrt(dx * dx + dy * dy);
-
-		// Use a reasonable default radius if gesture was too short
 		const r = radius > 10 ? radius : 50;
 
-		const circle = new Circle([this.originalStartPt.x, this.originalStartPt.y, r]);
+		const circle = new Circle([this.worldStart.x, this.worldStart.y, r]);
 		data.addShape(circle);
 	}
 

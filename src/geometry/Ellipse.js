@@ -133,6 +133,13 @@ export class Ellipse extends Geometry
 		return tangentAngle * (180 / Math.PI);
 	}
 
+	// Translate the ellipse by offset
+	translate(dx, dy){
+		this.x += dx;
+		this.y += dy;
+		this.update();
+	}
+
 	// Scale the ellipse relative to an anchor point
 	scale(anchorX, anchorY, factor){
 		this.x = anchorX + (this.x - anchorX) * factor;

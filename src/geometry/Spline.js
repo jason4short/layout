@@ -188,6 +188,19 @@ export class Spline extends Geometry
 		return s;
 	}
 
+	// Translate the spline by offset
+	translate(dx, dy){
+		this.p0.x += dx;
+		this.p0.y += dy;
+		this.p1.x += dx;
+		this.p1.y += dy;
+		this.p2.x += dx;
+		this.p2.y += dy;
+		this.p3.x += dx;
+		this.p3.y += dy;
+		this.update();
+	}
+
 	// Scale the spline relative to an anchor point
 	scale(anchorX, anchorY, factor){
 		this.p0.x = anchorX + (this.p0.x - anchorX) * factor;

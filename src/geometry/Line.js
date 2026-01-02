@@ -165,6 +165,15 @@ export class Line extends Geometry
 		this.update();
 	}
 
+	// Translate the line by offset
+	translate(dx, dy){
+		this.start.x += dx;
+		this.start.y += dy;
+		this.end.x += dx;
+		this.end.y += dy;
+		this.update();
+	}
+
 	// Scale the line relative to an anchor point
 	scale(anchorX, anchorY, factor){
 		this.start.x = anchorX + (this.start.x - anchorX) * factor;
