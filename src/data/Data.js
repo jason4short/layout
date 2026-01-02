@@ -282,6 +282,8 @@ class Data
 				return [0]; // center only (not quadrants at 1-4)
 			case Shape.ARC:
 				return [0, 1, 2]; // center, start, end (not midpoint at index 3)
+			case Shape.TANGENT_ARC:
+				return [0, 1, 2]; // start, tangent handle, end
 			case Shape.ELLIPSE:
 				return [0]; // center only (not quadrants at 1-4)
 			case Shape.ELLIPTICAL_ARC:

@@ -70,6 +70,59 @@ export class Renderer
 				ctx.arc(center.x, center.y, radius, shape.startAngle, shape.endAngle);
 				ctx.stroke();
 
+			} else if(shape.geometry === Shape.TANGENT_ARC){
+				const center = this.toScreen(shape.x, shape.y);
+				const radius = this.toScreenScale(shape.radius);
+				ctx.arc(center.x, center.y, radius, shape.startAngle, shape.endAngle);
+				ctx.stroke();
+
+				// Draw tangent handle when control points are visible
+				if(shape.showControlPoints || shape.selected){
+					const startPt = this.toScreen(shape.startPoint.x, shape.startPoint.y);
+					const tangentPt = this.toScreen(shape.tangentPoint.x, shape.tangentPoint.y);
+					const endPt = this.toScreen(shape.endPoint.x, shape.endPoint.y);
+
+					// Draw tangent line from start to tangent handle
+					ctx.beginPath();
+					ctx.strokeStyle = '#AAAAAA';
+					ctx.lineWidth = 0.5;
+					ctx.setLineDash([2, 2]);
+					ctx.moveTo(startPt.x, startPt.y);
+					ctx.lineTo(tangentPt.x, tangentPt.y);
+					ctx.stroke();
+					ctx.setLineDash([]);
+
+					// Draw control point handles
+					ctx.lineWidth = 0.5;
+					ctx.strokeStyle = '#666666';
+					ctx.fillStyle = '#FFFFFF';
+					const handleRadius = 4;
+
+					// Start point
+					ctx.beginPath();
+					ctx.arc(startPt.x, startPt.y, handleRadius, 0, Math.PI * 2);
+					ctx.fill();
+					ctx.stroke();
+
+					// Tangent handle (diamond shape to differentiate)
+					ctx.beginPath();
+					ctx.fillStyle = '#FFCC00';
+					ctx.moveTo(tangentPt.x, tangentPt.y - handleRadius);
+					ctx.lineTo(tangentPt.x + handleRadius, tangentPt.y);
+					ctx.lineTo(tangentPt.x, tangentPt.y + handleRadius);
+					ctx.lineTo(tangentPt.x - handleRadius, tangentPt.y);
+					ctx.closePath();
+					ctx.fill();
+					ctx.stroke();
+
+					// End point
+					ctx.beginPath();
+					ctx.fillStyle = '#FFFFFF';
+					ctx.arc(endPt.x, endPt.y, handleRadius, 0, Math.PI * 2);
+					ctx.fill();
+					ctx.stroke();
+				}
+
 			} else if(shape.geometry === Shape.ELLIPSE){
 				const center = this.toScreen(shape.x, shape.y);
 				const radiusX = this.toScreenScale(shape.radiusX);

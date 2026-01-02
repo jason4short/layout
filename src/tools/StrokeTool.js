@@ -47,11 +47,11 @@ export class StrokeTool extends Tool
 			'4':   () => this.createConstruction(0),       // left = horizontal
 			'3':   () => stage.popView(),                  // upLeft = zoom out
 			'7':   () => this.zoomToBox(),                 // downRight = zoom box
-			'1':   () => data.deleteConstructions(),       // upRight = clear constructions
-			'5':   () => toolManager.setTool(toolManager.pointerTool), // downLeft = pointer
+			'1':   () => toolManager.setTool(toolManager.pointerTool),       // upRight = clear constructions
+//			'5':   () =>  									, // downLeft = pointer
 
 			// Compound gestures (add more as needed)
-			'26':  () => this.createVerticalLine(),        // up-down = vertical line
+			'15':  () => data.deleteConstructions(),        // upright-downleft = vertical line
 			'62':  () => this.createVerticalLine(),        // down-up = vertical line
 			'04':  () => this.createHorizontalLine(),      // right-left = horizontal line
 			'40':  () => this.createHorizontalLine(),      // left-right = horizontal line

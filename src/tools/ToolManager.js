@@ -225,12 +225,14 @@ class ToolManager extends EventDispatcher
 	}
 
 	undo(){
+		console.log("undo")
 		if(undoManager.undo()){
 			stage.render();
 		}
 	}
 
 	redo(){
+		console.log("redo")
 		if(undoManager.redo()){
 			stage.render();
 		}
@@ -278,7 +280,6 @@ class ToolManager extends EventDispatcher
 			data.resetSnaps();
 
 		}else if(stage.shiftKey){
-			console.log("stage.shiftKey "+stage.shiftKey)
 			stage.setCursor('default');
 
 		}else{
@@ -288,11 +289,13 @@ class ToolManager extends EventDispatcher
 
 	onKeyUp(e)
 	{
-		if(this.strokeTool.active){
-			this.strokeTool.deactivate();
-			this.currentTool.updateCursor();
-			return;
-		}
+// 		if(this.strokeTool.active){
+// 			this.strokeTool.deactivate();
+// 			this.currentTool.updateCursor();
+// 			return;
+// 		}
+			console.log("stage.controlKey "+stage.controlKey)
+			console.log("stage.shiftKey "+stage.shiftKey)
 	
 		switch(e.key){
 		
@@ -380,8 +383,9 @@ class ToolManager extends EventDispatcher
 				break;
 
 			case 'z':
-				if(stage.commandKey){
-					if(stage.shiftKey){
+			case 'Z':
+				if(stage.controlKey){
+					if(stage.shiftKey){						
 						this.redo();
 					} else {
 						this.undo();
