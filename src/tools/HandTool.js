@@ -40,6 +40,10 @@ export class HandTool extends Tool
 		this.isPanning = false;
 	}
 
+	updateCursor(){
+		stage.setCursor('crosshair');
+	}
+
 	reset(){
 	}
 

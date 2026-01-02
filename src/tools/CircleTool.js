@@ -48,6 +48,10 @@ export class CircleTool extends Tool
 		toolManager.removeEventListener('mouseDown', this.onMouseDown);
 	}
 	
+	updateCursor(){
+		stage.setCursor('crosshair');
+	}
+
 	reset(){
 		if(this.circle)
 			this.circle = false

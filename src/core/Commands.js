@@ -218,6 +218,46 @@ export class CompositeCommand extends Command {
 	}
 }
 
+// Fillet command - creates arc and trims two lines
+export class FilletCommand extends Command {
+	constructor(arc, line1, line2, line1Original, line2Original) {
+		super('Fillet');
+		this.arc = arc;
+		this.line1 = line1;
+		this.line2 = line2;
+		// Store clones of original line states for undo
+		this.line1Original = line1Original;
+		this.line2Original = line2Original;
+		// Store trimmed states for redo (captured on first execute)
+		this.line1Trimmed = null;
+		this.line2Trimmed = null;
+		this.firstExecute = true;
+	}
+
+	execute() {
+		if (this.firstExecute) {
+			this.firstExecute = false;
+			// Capture trimmed states for later redo
+			this.line1Trimmed = this.line1.clone();
+			this.line2Trimmed = this.line2.clone();
+			return;
+		}
+
+		// Redo: add arc and apply trimmed line states
+		data.addShape(this.arc);
+		this.line1.copyFrom(this.line1Trimmed);
+		this.line2.copyFrom(this.line2Trimmed);
+	}
+
+	undo() {
+		// Remove the arc
+		data.deleteShape(this.arc);
+		// Restore lines to original state
+		this.line1.copyFrom(this.line1Original);
+		this.line2.copyFrom(this.line2Original);
+	}
+}
+
 // Trim command - removes shapes and adds new ones
 // The trim operation is already performed before this command is created,
 // so execute() is a no-op on first call. Subsequent calls (redo) do the work.

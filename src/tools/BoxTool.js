@@ -39,6 +39,10 @@ export class BoxTool extends Tool
 		this.reset();
 	}
 
+	updateCursor(){
+		stage.setCursor('crosshair');
+	}
+
 	reset(){
 		toolManager.removeEventListener('mouseMove', this.onMouseMove);
 		toolManager.removeEventListener('mouseUp', this.onMouseUp);

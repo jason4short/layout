@@ -43,6 +43,9 @@ export class ChamferTool extends Tool
 		toolManager.removeEventListener('mouseDown', this.onMouseDown);
 		this.reset();
 	}
+	updateCursor(){
+		stage.setCursor('crosshair');
+	}
 
 	reset() {
 		if (this.firstLine) {

@@ -40,6 +40,9 @@ export class CenterPointEllipseTool extends Tool
 		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		this.reset();
 	}
+	updateCursor(){
+		stage.setCursor('crosshair');
+	}
 
 	reset(){
 		toolManager.removeEventListener('mouseMove', this.onMouseMove);

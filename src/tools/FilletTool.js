@@ -8,7 +8,7 @@ import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
 import undoManager		from '../core/UndoManager.js';
-import {AddShapeCommand} from '../core/Commands.js';
+import { FilletCommand } from '../core/Commands.js';
 
 // Explicit states for the fillet tool
 const STATE = {
@@ -64,6 +64,10 @@ export class FilletTool extends Tool
 		toolManager.removeEventListener('mouseMove', this.onMouseMove);
 		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		this.reset();
+	}
+
+	updateCursor(){
+		stage.setCursor('fillet');
 	}
 
 	reset() {
@@ -223,6 +227,10 @@ export class FilletTool extends Tool
 			return null;
 		}
 
+		// Clone original line states BEFORE any modifications
+		const line1Original = line1.clone();
+		const line2Original = line2.clone();
+
 		// Save original state for radius adjustment
 		this.lastFillet = {
 			arc: null,
@@ -289,15 +297,18 @@ export class FilletTool extends Tool
 			arcEndAngle = angle1;
 		}
 
-		// Create fillet arc
+		// Create fillet arc and add directly (command will track it)
 		const arc = new Arc([center.x, center.y, radius, arcStartAngle, arcEndAngle]);
-		undoManager.execute(new AddShapeCommand(arc));
+		data.addShape(arc);
 
 		this.lastFillet.arc = arc;
 
 		// Trim lines
 		GeometryUtils.trimLineAtPoint(line1, tangent1, dir1);
 		GeometryUtils.trimLineAtPoint(line2, tangent2, dir2);
+
+		// Execute FilletCommand to track everything for undo
+		undoManager.execute(new FilletCommand(arc, line1, line2, line1Original, line2Original));
 
 		return arc;
 	}

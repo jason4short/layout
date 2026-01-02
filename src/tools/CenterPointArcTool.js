@@ -44,6 +44,9 @@ export class CenterPointArcTool extends Tool
 		this.reset();
 	}
 
+	updateCursor(){
+		stage.setCursor('crosshair');
+	}
 	reset(){
 		this.arc = null;
 		this.radiusLine = null;
