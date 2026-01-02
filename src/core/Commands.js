@@ -217,3 +217,71 @@ export class CompositeCommand extends Command {
 		}
 	}
 }
+
+// Trim command - removes shapes and adds new ones
+// The trim operation is already performed before this command is created,
+// so execute() is a no-op on first call. Subsequent calls (redo) do the work.
+export class TrimCommand extends Command {
+	constructor(shapesRemoved, shapesAdded, originalStates = null) {
+		super('Trim');
+		this.shapesRemoved = shapesRemoved;
+		this.shapesAdded = shapesAdded;
+		// originalStates: clones of shapes before modification (for undo)
+		this.originalStates = originalStates;
+		// trimmedStates: clones of shapes after modification (for redo)
+		// Built on first execute from current state of modified shapes
+		this.trimmedStates = null;
+		// Track if this is the first execute (already done by tool)
+		this.firstExecute = true;
+	}
+
+	execute() {
+		// On first execute, capture the trimmed states for later redo
+		if (this.firstExecute) {
+			this.firstExecute = false;
+			// Capture trimmed states for shapes that were modified in place
+			this.trimmedStates = [];
+			for (let i = 0; i < this.shapesRemoved.length; i++) {
+				const shape = this.shapesRemoved[i];
+				// If shape is also in added, it was modified - save its current (trimmed) state
+				if (this.shapesAdded.includes(shape) && shape.clone) {
+					this.trimmedStates[i] = shape.clone();
+				} else {
+					this.trimmedStates[i] = null;
+				}
+			}
+			return;
+		}
+
+		// Redo: Remove original shapes
+		for (const shape of this.shapesRemoved) {
+			data.deleteShape(shape);
+		}
+		// Redo: Add new shapes, applying trimmed state if needed
+		for (let i = 0; i < this.shapesAdded.length; i++) {
+			const shape = this.shapesAdded[i];
+			// If shape was modified in place, restore to trimmed state
+			const removedIndex = this.shapesRemoved.indexOf(shape);
+			if (removedIndex >= 0 && this.trimmedStates && this.trimmedStates[removedIndex]) {
+				shape.copyFrom(this.trimmedStates[removedIndex]);
+			}
+			data.addShape(shape);
+		}
+	}
+
+	undo() {
+		// Remove added shapes
+		for (const shape of this.shapesAdded) {
+			data.deleteShape(shape);
+		}
+		// Restore removed shapes to original state
+		for (let i = 0; i < this.shapesRemoved.length; i++) {
+			const shape = this.shapesRemoved[i];
+			// If we have original state, restore it
+			if (this.originalStates && this.originalStates[i]) {
+				shape.copyFrom(this.originalStates[i]);
+			}
+			data.addShape(shape);
+		}
+	}
+}

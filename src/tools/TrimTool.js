@@ -7,7 +7,8 @@ import {EllipticalArc} 		from '../geometry/EllipticalArc.js';
 import stage 				from '../core/Stage.js';
 import toolManager			from './ToolManager.js';
 import data 				from '../data/Data.js';
-import draftingAssistant 	from '../geometry/DraftingAssistant.js';
+import undoManager			from '../core/UndoManager.js';
+import { TrimCommand }		from '../core/Commands.js';
 
 export class TrimTool extends Tool
 {
@@ -20,6 +21,11 @@ export class TrimTool extends Tool
 		this.cursor = "cursor_trim";
 
 		this.generateGuides		= false;
+
+		// Track changes for undo
+		this.shapesRemoved		= [];
+		this.shapesAdded		= [];
+		this.originalStates		= [];
 
 		this.onMouseDown 		= this.onMouseDown.bind(this);
 		this.onMouseMove 		= this.onMouseMove.bind(this);
@@ -59,10 +65,13 @@ export class TrimTool extends Tool
 				return;
 			}
 
+			// Reset tracking for this operation
+			this.shapesRemoved = [];
+			this.shapesAdded = [];
+			this.originalStates = [];
+
 			// Filter out the clicked shape from boundaries (can't trim a shape against itself)
 			const boundaries = data.getSelected().filter(s => s !== clickedShape);
-
-//			const clickPoint = {x: e.x, y: e.y};
 
 			if(stage.optionKey){
 				this.extendLine(clickedShape, boundaries, e);
@@ -70,7 +79,7 @@ export class TrimTool extends Tool
 				// Handle different shape types
 				if(clickedShape.geometry === Shape.LINE){
 					this.trimLine(clickedShape, boundaries, e);
-					
+
 				}else if(clickedShape.geometry === Shape.CIRCLE){
 					this.trimCircle(clickedShape, boundaries, e);
 
@@ -80,6 +89,15 @@ export class TrimTool extends Tool
 				}else if(clickedShape.geometry === Shape.ELLIPSE || clickedShape.geometry === Shape.ELLIPTICAL_ARC){
 					this.trimEllipse(clickedShape, boundaries, e);
 				}
+			}
+
+			// Execute command if changes were made
+			if(this.shapesRemoved.length > 0 || this.shapesAdded.length > 0){
+				undoManager.execute(new TrimCommand(
+					this.shapesRemoved,
+					this.shapesAdded,
+					this.originalStates
+				));
 			}
 		}
 		stage.render();
@@ -114,7 +132,6 @@ export class TrimTool extends Tool
 
 		// XXX make is so we need to shift click or something - not sure yet
 		if(intersections.length === 0){
-			//data.deleteShape(line);
 			return;
 		}
 
@@ -123,13 +140,14 @@ export class TrimTool extends Tool
 
 		// Convert all intersections to t values and pair with points
 		// Filter to only intersections actually on the line segment (t between 0 and 1)
-		const tPoints = intersections.map(p => ({ 
+		const tPoints = intersections.map(p => ({
 			t: line.getParametricT(p),
 			point: p }))
 				.filter(tp => tp.t >= 0 && tp.t <= 1);
 
-		// do I need?
 		if(tPoints.length === 0){
+			// Track removal
+			this.shapesRemoved.push(line);
 			data.deleteShape(line);
 			return;
 		}
@@ -156,18 +174,31 @@ export class TrimTool extends Tool
 
 		if (clickT < firstIntersection.t) {
 			// Clicked before first intersection - trim start to first intersection
+			// Save original state before modifying
+			this.originalStates.push(line.clone());
+			this.shapesRemoved.push(line);
 			line.trimToPoints(firstIntersection.point, null);
+			this.shapesAdded.push(line);
 
 		} else if (clickT > lastIntersection.t) {
 			// Clicked after last intersection - trim end to last intersection
+			// Save original state before modifying
+			this.originalStates.push(line.clone());
+			this.shapesRemoved.push(line);
 			line.trimToPoints(null, lastIntersection.point);
+			this.shapesAdded.push(line);
 
 		} else if (bracketBefore && bracketAfter) {
 			// Clicked a middle segment - delete this segment, keep both sides
 			const originalEnd = {x: line.end.x, y: line.end.y};
 
+			// Save original state before modifying
+			this.originalStates.push(line.clone());
+			this.shapesRemoved.push(line);
+
 			// Trim existing line to: start → bracketBefore
 			line.trimToPoints(null, bracketBefore.point);
+			this.shapesAdded.push(line);
 
 			// Create new line from: bracketAfter → originalEnd
 			const newLine = new Line([
@@ -176,6 +207,7 @@ export class TrimTool extends Tool
 				originalEnd.x,
 				originalEnd.y
 			]);
+			this.shapesAdded.push(newLine);
 			data.addShape(newLine);
 		}
 	}
@@ -227,10 +259,18 @@ export class TrimTool extends Tool
 		// Click closer to end (t >= 0.5) → extend end
 		const extendStart = clickT < 0.5;
 
+		// Save original state before any modification
+		let modified = false;
+
 		if(extendStart){
 			// Find nearest intersection before t=0 (before line start)
 			const beforeStart = tPoints.filter(tp => tp.t < 0);
 			if(beforeStart.length > 0){
+				if(!modified){
+					this.originalStates.push(line.clone());
+					this.shapesRemoved.push(line);
+					modified = true;
+				}
 				// Get the one closest to t=0 (last in sorted list of negatives)
 				const nearest = beforeStart[beforeStart.length - 1];
 				line.start.x = nearest.point.x;
@@ -241,12 +281,21 @@ export class TrimTool extends Tool
 			// Find nearest intersection after t=1 (after line end)
 			const afterEnd = tPoints.filter(tp => tp.t > 1);
 			if(afterEnd.length > 0){
+				if(!modified){
+					this.originalStates.push(line.clone());
+					this.shapesRemoved.push(line);
+					modified = true;
+				}
 				// Get the one closest to t=1 (first in sorted list)
 				const nearest = afterEnd[0];
 				line.end.x = nearest.point.x;
 				line.end.y = nearest.point.y;
 				line.update();
 			}
+		}
+
+		if(modified){
+			this.shapesAdded.push(line);
 		}
 	}
 
@@ -329,7 +378,8 @@ export class TrimTool extends Tool
 			return;
 		}
 
-		// Delete the original ellipse
+		// Track removal and delete the original ellipse
+		this.shapesRemoved.push(ellipse);
 		data.deleteShape(ellipse);
 
 		// Create elliptical arc for the portion NOT clicked
@@ -342,6 +392,7 @@ export class TrimTool extends Tool
 			bracketAfter.normAngle,
 			bracketBefore.normAngle
 		]);
+		this.shapesAdded.push(arc);
 		data.addShape(arc);
 	}
 
@@ -399,7 +450,8 @@ export class TrimTool extends Tool
 			return;
 		}
 
-		// Delete original arc
+		// Track removal and delete original arc
+		this.shapesRemoved.push(arc);
 		data.deleteShape(arc);
 
 		// Create arcs for segments we're NOT removing
@@ -415,6 +467,7 @@ export class TrimTool extends Tool
 				boundaries[i],
 				boundaries[i + 1]
 			]);
+			this.shapesAdded.push(newArc);
 			data.addShape(newArc);
 		}
 	}
@@ -495,7 +548,8 @@ export class TrimTool extends Tool
 			return;
 		}
 
-		// Delete original arc
+		// Track removal and delete original arc
+		this.shapesRemoved.push(arc);
 		data.deleteShape(arc);
 
 		// Create arcs for segments we're NOT removing
@@ -509,6 +563,7 @@ export class TrimTool extends Tool
 				segmentBoundaries[i],
 				segmentBoundaries[i + 1]
 			]);
+			this.shapesAdded.push(newArc);
 			data.addShape(newArc);
 		}
 	}
@@ -571,7 +626,8 @@ export class TrimTool extends Tool
 			return;
 		}
 
-		// Delete the original circle
+		// Track removal and delete the original circle
+		this.shapesRemoved.push(circle);
 		data.deleteShape(circle);
 
 		// Create arcs for all segments EXCEPT the clicked one
@@ -588,6 +644,7 @@ export class TrimTool extends Tool
 				startAngle,
 				endAngle
 			]);
+			this.shapesAdded.push(arc);
 			data.addShape(arc);
 		}
 	}

@@ -93,10 +93,10 @@ class Stage extends View
 		if (insp) insp.update();
 	}
 
-	setCursor(name, hotspotX=16, hotspotY=16){	
+	setCursor(name, hotspotX=16, hotspotY=16){
 		if(name == 'default'){
 			this.canvas.style.cursor = 'default';
-		}if(name == 'crosshair'){
+		}else if(name == 'crosshair'){
 			this.canvas.style.cursor = 'crosshair';
 		}else{
 			this.canvas.style.cursor = `url("src/assets/cursors/${name}.png") ${hotspotX} ${hotspotY}, crosshair`;

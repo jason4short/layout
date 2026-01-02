@@ -68,9 +68,21 @@ export class Line extends Geometry
 	
 	clone(){
 		let l = new Line([this.start.x, this.start.y, this.end.x, this.end.y]);
-		l.type 		= this.type;	
+		l.type 		= this.type;
 		l.geometry	= this.geometry;
+		l.penStyle	= this.penStyle;
 		return l;
+	}
+
+	copyFrom(other){
+		this.start.x = other.start.x;
+		this.start.y = other.start.y;
+		this.end.x = other.end.x;
+		this.end.y = other.end.y;
+		this.type = other.type;
+		this.geometry = other.geometry;
+		this.penStyle = other.penStyle;
+		this.update();
 	}
 
 	getAngleDeg(){
