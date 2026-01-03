@@ -166,7 +166,7 @@ class Data
 		}
 	}
 
-	//
+	// 
 	storeShapePOIs(shape){
 		const points = shape.getSnapPOIs();
 		// Add shape reference to each POI for exclusion checking
@@ -579,9 +579,23 @@ class Data
 	}
 
 	// Array of all points we could snap to
-	getPOICandidates(){
+	getPOICandidates2(){
 		return [...this.shapePOIs];
 	}
+	
+	getPOICandidates(){
+		const shapePOIs = [];
+		for(const shape of this.shapes){
+			const points = shape.getSnapPOIs(); // generic objects right now
+			for(const p of points){
+				p.shape = shape;
+			}
+			shapePOIs.push(...points);
+		}
+		
+		return shapePOIs;
+	}
+	
 	
 	getGuides(){
 		return this.guides;
@@ -619,7 +633,6 @@ class Data
 	
 	// when creating geometry include the start point as a snap guide
 	addSnapPoint(p){
-
 		// no dupes
 		for(const snapPoint of this.snapPoints){
 			if(snapPoint.x == p.x && snapPoint.y == p.y)
