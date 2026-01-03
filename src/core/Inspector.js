@@ -489,30 +489,40 @@ class Inspector {
 		this.attachListener('prop-length', 'input', (value) => {
 			shape.scaleToDim(parseFloat(value));
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-startX', 'input', (value) => {
 			shape.start.x = parseFloat(value);
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-startY', 'input', (value) => {
 			shape.start.y = parseFloat(value);
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-endX', 'input', (value) => {
 			shape.end.x = parseFloat(value);
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-endY', 'input', (value) => {
 			shape.end.y = parseFloat(value);
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 	}
@@ -521,24 +531,32 @@ class Inspector {
 		this.attachListener('prop-radius', 'input', (value) => {
 			shape.radius = Math.max(0.1, parseFloat(value));
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-diameter', 'input', (value) => {
 			shape.radius = Math.max(0.1, parseFloat(value) / 2);
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-centerX', 'input', (value) => {
 			shape.x = parseFloat(value);
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-centerY', 'input', (value) => {
 			shape.y = parseFloat(value);
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 	}
@@ -547,30 +565,40 @@ class Inspector {
 		this.attachListener('prop-radius', 'input', (value) => {
 			shape.radius = Math.max(0.1, parseFloat(value));
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-startAngle', 'input', (value) => {
 			shape.startAngle = parseFloat(value) * Math.PI / 180;
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-endAngle', 'input', (value) => {
 			shape.endAngle = parseFloat(value) * Math.PI / 180;
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-centerX', 'input', (value) => {
 			shape.x = parseFloat(value);
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-centerY', 'input', (value) => {
 			shape.y = parseFloat(value);
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 	}
@@ -579,36 +607,48 @@ class Inspector {
 		this.attachListener('prop-startX', 'input', (value) => {
 			shape.startPoint.x = parseFloat(value);
 			shape.recalculate();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-startY', 'input', (value) => {
 			shape.startPoint.y = parseFloat(value);
 			shape.recalculate();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-tangentX', 'input', (value) => {
 			shape.tangentPoint.x = parseFloat(value);
 			shape.recalculate();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-tangentY', 'input', (value) => {
 			shape.tangentPoint.y = parseFloat(value);
 			shape.recalculate();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-endX', 'input', (value) => {
 			shape.endPoint.x = parseFloat(value);
 			shape.recalculate();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-endY', 'input', (value) => {
 			shape.endPoint.y = parseFloat(value);
 			shape.recalculate();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 	}
@@ -617,30 +657,40 @@ class Inspector {
 		this.attachListener('prop-radiusX', 'input', (value) => {
 			shape.radiusX = Math.max(0.1, parseFloat(value));
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-radiusY', 'input', (value) => {
 			shape.radiusY = Math.max(0.1, parseFloat(value));
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-rotation', 'input', (value) => {
 			shape.rotation = parseFloat(value) * Math.PI / 180;
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-centerX', 'input', (value) => {
 			shape.x = parseFloat(value);
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 
 		this.attachListener('prop-centerY', 'input', (value) => {
 			shape.y = parseFloat(value);
 			shape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(shape);
 			stage.render();
 		});
 	}
@@ -650,12 +700,16 @@ class Inspector {
 			this.attachListener(`prop-${pt}x`, 'input', (value) => {
 				shape[pt].x = parseFloat(value);
 				shape.update();
+				data.rebuildPOIs();
+				data.recalculateIntersectionsForShape(shape);
 				stage.render();
 			});
 
 			this.attachListener(`prop-${pt}y`, 'input', (value) => {
 				shape[pt].y = parseFloat(value);
 				shape.update();
+				data.rebuildPOIs();
+				data.recalculateIntersectionsForShape(shape);
 				stage.render();
 			});
 		});

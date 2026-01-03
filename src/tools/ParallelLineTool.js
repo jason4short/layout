@@ -93,7 +93,9 @@ export class ParallelLineTool extends Tool
 		this.previewLine = this.originalLine.clone();
 		data.addTempShape(this.previewLine);
 
-		this.dragStartPt = { x: e.x, y: e.y };
+		//this.dragStartPt = { x: e.x, y: e.y };
+		this.dragStartPt = { x: data.snapPoint.x, y: data.snapPoint.y };
+		
 		this.lineStartOrig = { x: this.originalLine.start.x, y: this.originalLine.start.y };
 		this.lineEndOrig = { x: this.originalLine.end.x, y: this.originalLine.end.y };
 
@@ -118,7 +120,7 @@ export class ParallelLineTool extends Tool
 		if (this.state !== STATE.DRAGGING) return;
 		if (!this.previewLine || !this.dragStartPt) return;
 
-		const currentPt = { x: e.x, y: e.y };
+		const currentPt = { x: data.snapPoint.x, y: data.snapPoint.y };
 
 		// Project mouse delta onto line normal to get perpendicular offset
 		const mouseDx = currentPt.x - this.dragStartPt.x;
