@@ -232,17 +232,30 @@ export class Renderer
 			}
 		}
 
+/*
+	debugging
+	
 		// Draw snap point indicators
 		for(const intersection of data.getIntersectionCandidates())
 		{
 			const pt = this.toScreen(intersection.x, intersection.y);
 			ctx.beginPath();
-			ctx.strokeStyle = '#2b6cb0';
+			ctx.strokeStyle = '#FF0000';
 			ctx.lineWidth = 0.5;
 			ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
 			ctx.stroke();
 		}
-
+		// Draw snap point indicators
+		for(const intersection of data.getPOICandidates())
+		{
+			const pt = this.toScreen(intersection.x, intersection.y);
+			ctx.beginPath();
+			ctx.strokeStyle = '#00FF00';
+			ctx.lineWidth = 0.5;
+			ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
+			ctx.stroke();
+		}
+*/
 		// Draw snap point indicators
 		for(const intersection of data.snapPoints)
 		{
@@ -253,6 +266,7 @@ export class Renderer
 			ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
 			ctx.stroke();
 		}
+
 
 		// Draw snap point crosshair
 		const s = this.toScreen(data.snapPoint.x, data.snapPoint.y);
