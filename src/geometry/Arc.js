@@ -15,8 +15,20 @@ export class Arc extends Circle
 
 	clone(){
 		const a 	= new Arc([this.x, this.y, this.radius, this.startAngle, this.endAngle]);
-		a.type 		= this.type;	
+		a.type 		= this.type;
 		return a;
+	}
+
+	copyFrom(other) {
+		this.x = other.x;
+		this.y = other.y;
+		this.radius = other.radius;
+		this.startAngle = other.startAngle;
+		this.endAngle = other.endAngle;
+		this.type = other.type;
+		this.geometry = other.geometry;
+		this.penStyle = other.penStyle;
+		this.update();
 	}
 
 	// Normalize angle in radians to [0, 2*PI);
