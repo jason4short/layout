@@ -246,6 +246,7 @@ class ToolManager extends EventDispatcher
  
 	onKeyDown(e)
 	{
+		console.log(e.key)
 		if(stage.commandKey){
 			stage.setCursor('command', 8, 8);
 			this.strokeTool.activate();
@@ -264,6 +265,14 @@ class ToolManager extends EventDispatcher
 		
 		if(stage.commandKey){
 			switch(e.key){
+				case '-':
+					stage.zoomOut();
+					break;
+
+				case '=':
+					stage.zoomIn();
+					break;
+
 				case 'a':
 					data.selectAll();
 					stage.render();
