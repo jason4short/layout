@@ -35,10 +35,20 @@ export class Circle extends Geometry
 
 	clone(){
 		const c 	= new Circle([this.x, this.y, this.radius]);
-		c.type 		= this.type;	
+		c.type 		= this.type;
 		return c;
 	}
-	
+
+	copyFrom(other) {
+		this.x = other.x;
+		this.y = other.y;
+		this.radius = other.radius;
+		this.type = other.type;
+		this.geometry = other.geometry;
+		this.penStyle = other.penStyle;
+		this.update();
+	}
+
 	getSnapPOIs() {
 		return [
 			{ x: this.x, y: this.y },
