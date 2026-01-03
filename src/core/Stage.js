@@ -82,6 +82,7 @@ class Stage extends View
 		this.canvas.addEventListener('mousemove',	this.onMouseMove);
 		this.canvas.addEventListener('mouseup',		this.onMouseUp);
 		this.canvas.addEventListener('wheel',		this.onWheel, { passive: false });
+
 		this.render();
     }
 
@@ -327,15 +328,26 @@ class Stage extends View
 	onMouseMove(e)
 	{
 		this.mouse = this.normalizeMouseEvent(e);
-		//if(this.toolSnaps)
-		draftingAssistant.snap(this.mouse, toolManager.generateGuides());
-		this.dispatchEvent('mouseMove', this.mouse);
-		this.render();
+		if(e.which == 3){
+			console.log("hi")
+			toolManager.handTool.onMouseMove(this.mouse);
+		}else{		
+			draftingAssistant.snap(this.mouse, toolManager.generateGuides());
+			this.dispatchEvent('mouseMove', this.mouse);
+			this.render();
+		}
 	}
 
 	onMouseDown(e)
 	{
-		this.dispatchEvent('mouseDown', this.normalizeMouseEvent(e));
+		this.mouse = this.normalizeMouseEvent(e);
+		
+		if(e.which == 3){
+			console.log("hi")
+			toolManager.handTool.onMouseDown(this.mouse);
+		}else{
+			this.dispatchEvent('mouseDown', this.mouse);
+		}
 	}
 
 	onMouseUp(e)

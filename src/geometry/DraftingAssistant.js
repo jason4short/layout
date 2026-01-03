@@ -68,7 +68,7 @@ class DraftingAssistant
 		}
 
 		// no snap, just return the mouse
-		data.setCurrentSnapPoint(new SnapPoint(mouse.x, mouse.y));
+		data.setCurrentSnapPoint(new SnapPoint(Math.floor(mouse.x), Math.floor(mouse.y)));
 	}
 	
 	findNearestSnapPoint_Geometry(mouse, candidates){

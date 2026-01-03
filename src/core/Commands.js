@@ -80,7 +80,7 @@ export class DeleteConstructionsCommand extends Command {
 	execute() {
 		// Store constructions before deleting for undo
 		this.constructions = [...data.constructions];
-		data.deleteConstructions();
+		data._deleteConstructions();
 	}
 
 	undo() {

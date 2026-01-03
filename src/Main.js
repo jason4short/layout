@@ -20,3 +20,8 @@ document.getElementById('btnNew').addEventListener('click', () => fileManager.ne
 document.getElementById('btnOpen').addEventListener('click', () => fileManager.open());
 document.getElementById('btnSave').addEventListener('click', () => fileManager.save());
 
+document.addEventListener('contextmenu', (e) => {
+//	if(e.target === canvas){
+		e.preventDefault();
+//	}
+});		

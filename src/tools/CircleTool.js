@@ -100,6 +100,10 @@ export class CircleTool extends Tool
 		data.resetSnaps();
 		if(!this.circle) return;
 
+		// Update radius from current snap point before checking (like LineTool updates end point)
+		const currentPoint = data.getCurrentSnapPoint();
+		this.circle.radius = this.distanceBetweenPoints(this.circle, currentPoint);
+
 		if(this.circle.radius < MIN_RAD){
 			// do nothing, we're still defining the circle
 

@@ -8,7 +8,7 @@ import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
 import undoManager		from '../core/UndoManager.js';
-import {AddConstructionCommand, DeleteConstructionsCommand, AddShapeCommand} from '../core/Commands.js';
+import {AddConstructionCommand, AddShapeCommand} from '../core/Commands.js';
 
 // Direction encoding:
 // 0 = right (E), 1 = upRight (NE), 2 = up (N), 3 = upLeft (NW)
@@ -53,7 +53,7 @@ export class StrokeTool extends Tool
 //			'5':   () =>  									, // downLeft = pointer
 
 			// Compound gestures (add more as needed)
-			'15':  () => this.deleteAllConstructions(),    // upright-downleft = delete constructions
+			'15':  () => data.deleteConstructions(),    // upright-downleft = delete constructions
 			'62':  () => this.createVerticalLine(),        // down-up = vertical line
 			'04':  () => this.createHorizontalLine(),      // right-left = horizontal line
 			'40':  () => this.createHorizontalLine(),      // left-right = horizontal line
@@ -127,14 +127,12 @@ export class StrokeTool extends Tool
 			// Hysteresis: only register change if direction differs significantly
 			if(lastDirection === undefined){
 				this.gestures.push(newDirection);
-				console.log("gesture: " + this.gestures.join(''));
 			} else {
 				const diff = Math.abs(newDirection - lastDirection);
 				const sectorDiff = Math.min(diff, 8 - diff);
 
 				if(sectorDiff >= this.directionTolerance){
 					this.gestures.push(newDirection);
-					console.log("gesture: " + this.gestures.join(''));
 				}
 			}
 
@@ -158,7 +156,6 @@ export class StrokeTool extends Tool
 		this.worldCurrent = { x: e.x, y: e.y };
 
 		const gesture = this.gestures.join('');
-		console.log("final gesture: " + gesture);
 
 		this.executeGesture(gesture);
 
@@ -174,13 +171,11 @@ export class StrokeTool extends Tool
 		// Try longest matches first
 		for(const key of this.sortedGestureKeys){
 			if(gesture === key || gesture.endsWith(key)){
-				console.log("matched gesture: " + key);
 				this.gestureActions[key]();
 				return true;
 			}
 		}
 
-		console.log("no gesture match for: " + gesture);
 		return false;
 	}
 
@@ -191,11 +186,6 @@ export class StrokeTool extends Tool
 		undoManager.execute(new AddConstructionCommand(construction));
 	}
 
-	deleteAllConstructions(){
-		if(data.constructions.length > 0){
-			undoManager.execute(new DeleteConstructionsCommand());
-		}
-	}
 
 	zoomToBox(){
 		const x = Math.min(this.worldStart.x, this.worldCurrent.x);

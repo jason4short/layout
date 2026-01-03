@@ -11,7 +11,12 @@ import {Intersections} 			from './Intersections.js';
 import {Intersection}			from './Intersection.js';
 	
 import undoManager				from '../core/UndoManager.js';
-import { DeleteShapesCommand }	from '../core/Commands.js';
+
+import {	AddConstructionCommand,
+			DeleteShapesCommand,
+			DeleteConstructionsCommand, 
+			AddShapeCommand
+		} from '../core/Commands.js';
 
 
 class Data
@@ -439,12 +444,18 @@ class Data
 		return newShape;
 	}
 
-	deleteConstructions(){
+	_deleteConstructions(){
 		// Remove all intersections for each construction
 		for(const construction of this.constructions){
 			this.removeIntersectionsForShape(construction);
 		}
 		this.constructions = [];
+	}
+
+	deleteConstructions(){
+		if(this.constructions.length > 0){
+			undoManager.execute(new DeleteConstructionsCommand());
+		}
 	}
 
 	deleteShape(shape){
@@ -585,7 +596,7 @@ class Data
 			return new Circle([this.snapPoint.x, this.snapPoint.y, 0]);
 		}
 	}
-	
+		
 	// --------------------------------------------------------------------------------
 	// DA Guides
 	// --------------------------------------------------------------------------------
@@ -593,9 +604,9 @@ class Data
 
 	// tracks the current snapped point
 	setCurrentSnapPoint(p, store){ 
-		//console.log(p, store)
+// 		console.log(p, store)
 		this.snapPoint = p;
-
+	
 		if(store){
 			this.addSnapPoint(p)
 		}
