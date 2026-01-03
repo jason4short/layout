@@ -49,7 +49,7 @@ export class CircleTool extends Tool
 	}
 	
 	updateCursor(){
-		stage.setCursor('crosshair');
+		stage.setCursor('circle_center');
 	}
 
 	reset(){

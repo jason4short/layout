@@ -7,6 +7,8 @@ import {Rectangle} 		from '../geometry/Rectangle.js';
 import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
+import undoManager		from '../core/UndoManager.js';
+import {AddConstructionCommand, DeleteConstructionsCommand, AddShapeCommand} from '../core/Commands.js';
 
 // Direction encoding:
 // 0 = right (E), 1 = upRight (NE), 2 = up (N), 3 = upLeft (NW)
@@ -51,7 +53,7 @@ export class StrokeTool extends Tool
 //			'5':   () =>  									, // downLeft = pointer
 
 			// Compound gestures (add more as needed)
-			'15':  () => data.deleteConstructions(),        // upright-downleft = vertical line
+			'15':  () => this.deleteAllConstructions(),    // upright-downleft = delete constructions
 			'62':  () => this.createVerticalLine(),        // down-up = vertical line
 			'04':  () => this.createHorizontalLine(),      // right-left = horizontal line
 			'40':  () => this.createHorizontalLine(),      // left-right = horizontal line
@@ -185,7 +187,14 @@ export class StrokeTool extends Tool
 	// ---- Gesture Action Methods ----
 
 	createConstruction(angle){
-		data.addConstruction(new Construction([this.worldStart.x, this.worldStart.y, angle]));
+		const construction = new Construction([this.worldStart.x, this.worldStart.y, angle]);
+		undoManager.execute(new AddConstructionCommand(construction));
+	}
+
+	deleteAllConstructions(){
+		if(data.constructions.length > 0){
+			undoManager.execute(new DeleteConstructionsCommand());
+		}
 	}
 
 	zoomToBox(){
@@ -205,7 +214,7 @@ export class StrokeTool extends Tool
 			this.worldStart.x, this.worldStart.y - 500,
 			this.worldStart.x, this.worldStart.y + 500
 		]);
-		data.addShape(lineData);
+		undoManager.execute(new AddShapeCommand(lineData));
 	}
 
 	createHorizontalLine(){
@@ -213,7 +222,7 @@ export class StrokeTool extends Tool
 			this.worldStart.x - 500, this.worldStart.y,
 			this.worldStart.x + 500, this.worldStart.y
 		]);
-		data.addShape(lineData);
+		undoManager.execute(new AddShapeCommand(lineData));
 	}
 
 	createCircleAtStart(){
@@ -223,7 +232,7 @@ export class StrokeTool extends Tool
 		const r = radius > 10 ? radius : 50;
 
 		const circle = new Circle([this.worldStart.x, this.worldStart.y, r]);
-		data.addShape(circle);
+		undoManager.execute(new AddShapeCommand(circle));
 	}
 
 	determineGestureFromAngle(angleDeg){

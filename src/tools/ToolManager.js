@@ -208,7 +208,7 @@ class ToolManager extends EventDispatcher
 	onMouseDown(e)
 	{
 		if(stage.spaceKey){
-			this.handTool.onMouseDown(e);
+			this.handTool.onMouseDown(e);				
 		}else if(stage.commandKey){
 			this.strokeTool.onMouseDown(e);
 		}else{
@@ -250,6 +250,10 @@ class ToolManager extends EventDispatcher
 			stage.setCursor('command', 8, 8);
 			this.strokeTool.activate();
 			data.resetSnaps();
+
+
+		} else if(stage.spaceKey){
+			stage.setCursor('hand');
 
 		} else if(stage.shiftKey){
 			stage.setCursor('default');
@@ -371,16 +375,17 @@ class ToolManager extends EventDispatcher
 			if(this.strokeTool.active){
 				this.strokeTool.deactivate();
 			}
-			this.currentTool.updateCursor();
 			return;
 		}
-
-		// Handle shift key release - restore cursor
-		if(stage.shiftKey){
 			this.currentTool.updateCursor();
-			return;
-		}
-
+// 
+// 		// Handle shift key release - restore cursor
+// 		if(stage.shiftKey){
+// 			this.currentTool.updateCursor();
+// 			return;
+// 		} else if(stage.spaceKey){
+// 			this.currentTool.updateCursor();
+// 		}
 
 	}
 }

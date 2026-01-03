@@ -67,6 +67,10 @@ export class ScaleTool extends Tool
 		stage.render();
 	}
 
+	updateCursor(){
+		stage.setCursor('scale', 0, 0);
+	}
+
 	resetState(){
 		this.state 		= 0;
 		this.anchor 	= null;

@@ -54,6 +54,11 @@ export class ParallelLineTool extends Tool
 		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		this.reset();
 	}
+	
+	updateCursor(){
+		stage.setCursor('parallel');
+	}
+
 
 	reset() {
 		if (this.previewLine) {

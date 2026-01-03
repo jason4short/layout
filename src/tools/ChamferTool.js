@@ -49,8 +49,6 @@ export class ChamferTool extends Tool
 	begin() {
 		this.state = STATE.IDLE;
 
-		stage.setCursor('chamfer');
-
 		toolManager.addEventListener('mouseDown', this.onMouseDown);
 		toolManager.addEventListener('mouseMove', this.onMouseMove);
 		toolManager.addEventListener('mouseUp', this.onMouseUp);

@@ -41,7 +41,7 @@ export class HandTool extends Tool
 	}
 
 	updateCursor(){
-		stage.setCursor('crosshair');
+		stage.setCursor('hand');
 	}
 
 	reset(){

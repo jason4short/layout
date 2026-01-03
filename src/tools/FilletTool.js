@@ -49,17 +49,12 @@ export class FilletTool extends Tool
 
 	begin() {
 		this.state = STATE.IDLE;
-		
-		stage.setCursor('fillet')
-		
 		toolManager.addEventListener('mouseDown', this.onMouseDown);
 		toolManager.addEventListener('mouseMove', this.onMouseMove);
 		toolManager.addEventListener('mouseUp', this.onMouseUp);
 	}
 
 	exit() {
-		stage.setCursor('crosshairs')
-
 		toolManager.removeEventListener('mouseDown', this.onMouseDown);
 		toolManager.removeEventListener('mouseMove', this.onMouseMove);
 		toolManager.removeEventListener('mouseUp', this.onMouseUp);

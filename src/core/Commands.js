@@ -54,6 +54,43 @@ export class AddShapesCommand extends Command {
 	}
 }
 
+// Add a construction line
+export class AddConstructionCommand extends Command {
+	constructor(construction) {
+		super('Add construction');
+		this.construction = construction;
+	}
+
+	execute() {
+		data.addConstruction(this.construction);
+	}
+
+	undo() {
+		data.deleteShape(this.construction);
+	}
+}
+
+// Delete all construction lines
+export class DeleteConstructionsCommand extends Command {
+	constructor() {
+		super('Delete constructions');
+		this.constructions = [];
+	}
+
+	execute() {
+		// Store constructions before deleting for undo
+		this.constructions = [...data.constructions];
+		data.deleteConstructions();
+	}
+
+	undo() {
+		// Restore all constructions
+		for (const construction of this.constructions) {
+			data.addConstruction(construction);
+		}
+	}
+}
+
 // Delete a single shape
 export class DeleteShapeCommand extends Command {
 	constructor(shape) {

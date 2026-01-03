@@ -56,6 +56,11 @@ export class MirrorTool extends Tool
 		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		this.resetState();
 	}
+	
+	updateCursor(){
+		stage.setCursor('mirror', 0,0);
+	}
+
 
 	reset(){
 		this.resetState();
