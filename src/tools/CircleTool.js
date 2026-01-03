@@ -104,7 +104,9 @@ export class CircleTool extends Tool
 		const currentPoint = data.getCurrentSnapPoint();
 		this.circle.radius = this.distanceBetweenPoints(this.circle, currentPoint);
 
-		if(this.circle.radius < MIN_RAD){
+		// Check minimum radius in screen space for consistent UX at any zoom level
+		const screenRadius = stage.worldToScreenScale(this.circle.radius);
+		if(screenRadius < MIN_RAD){
 			// do nothing, we're still defining the circle
 
 		}else{
