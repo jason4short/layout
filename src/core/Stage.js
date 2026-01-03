@@ -111,26 +111,20 @@ class Stage extends View
 	configureCanvasForHighDPI() {
 		const devicePixelRatioClamped = Math.max(1, window.devicePixelRatio || 1);
 
-		// CSS size (layout size). If not styled, fallback to current attribute size.
+		// CSS size (layout size) - let CSS handle sizing via width:100%; height:100%
 		const cssWidth = this.canvas.clientWidth || this.canvas.width;
 		const cssHeight = this.canvas.clientHeight || this.canvas.height;
 
-		// Backing store (actual pixel buffer)
+		// Backing store (actual pixel buffer) - set canvas resolution
 		this.canvas.width = Math.max(1, Math.floor(cssWidth * devicePixelRatioClamped));
 		this.canvas.height = Math.max(1, Math.floor(cssHeight * devicePixelRatioClamped));
 
-		// Keep CSS size equal to logical coordinate system
-		this.canvas.style.width = cssWidth + "px";
-		this.canvas.style.height = cssHeight + "px";
+		// Don't set style.width/height - let CSS rules (width:100%; height:100%) control sizing
+		// This allows the canvas to resize with its container
 
 		// Reset and scale the transform so 1 unit == 1 CSS pixel
 		this.ctx.setTransform(1, 0, 0, 1, 0, 0);
 		this.ctx.scale(devicePixelRatioClamped, devicePixelRatioClamped);
-
-		// Optional: align 1px strokes crisply on whole pixels
-		// this.ctx.translate(0.5, 0.5);
-
-		// Trigger a redraw after resizing/scaling
 	}
 	
 	
