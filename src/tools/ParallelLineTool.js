@@ -5,7 +5,7 @@ import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
 import undoManager		from '../core/UndoManager.js';
-import {AddShapeCommand} from '../core/Commands.js';
+import {AddShapeCommand, MoveCommand} from '../core/Commands.js';
 
 const STATE = {
 	IDLE: 0,		// Waiting for click on a line
@@ -177,11 +177,34 @@ export class ParallelLineTool extends Tool
 		const tx = this.unitNormal.x * signedDim;
 		const ty = this.unitNormal.y * signedDim;
 
-		this.createdLine.start.x = this.lineStartOrig.x + tx;
-		this.createdLine.start.y = this.lineStartOrig.y + ty;
-		this.createdLine.end.x = this.lineEndOrig.x + tx;
-		this.createdLine.end.y = this.lineEndOrig.y + ty;
-		this.createdLine.update();
+		// Calculate new positions
+		const newStartX = this.lineStartOrig.x + tx;
+		const newStartY = this.lineStartOrig.y + ty;
+		const newEndX = this.lineEndOrig.x + tx;
+		const newEndY = this.lineEndOrig.y + ty;
+
+		// Build move data for undo (indices: 0=start, 1=end)
+		const moveData = [
+			{
+				shape: this.createdLine,
+				index: 0,
+				oldX: this.createdLine.start.x,
+				oldY: this.createdLine.start.y,
+				newX: newStartX,
+				newY: newStartY
+			},
+			{
+				shape: this.createdLine,
+				index: 1,
+				oldX: this.createdLine.end.x,
+				oldY: this.createdLine.end.y,
+				newX: newEndX,
+				newY: newEndY
+			}
+		];
+
+		// Execute move command (handles undo and intersection recalculation)
+		undoManager.execute(new MoveCommand(moveData));
 
 		this.signedOffset = signedDim;
 
