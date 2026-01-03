@@ -19,6 +19,7 @@ const getInspector = () => {
 //import Event from "./core/Events";
 //import flash.events.MouseEvent;
 
+const scaleFactor = window.devicePixelRatio * 2;
 
 class Stage extends View
 {
@@ -214,25 +215,44 @@ class Stage extends View
 		};
 	}
 
+	zoomIn() {
+		const screenX = this.canvas.width/scaleFactor;
+		const screenY = this.canvas.height/scaleFactor;
+		this.zoomStage(this.zoom * 1.5, screenX, screenY);
+	}
+
+	zoomOut() {
+		const screenX = this.canvas.width/scaleFactor;
+		const screenY = this.canvas.height/scaleFactor;
+		this.zoomStage(this.zoom / 1.5, screenX, screenY);
+	}
+
 	// Zoom centered on cursor position
 	onWheel(e) {
 		e.preventDefault();
-
 		const zoomFactor = 1.1;
 		const screenX = e.offsetX;
 		const screenY = e.offsetY;
+		console.log(screenX, screenY)
+		
+		//let newZoom;
+		if(e.deltaY < 0){
+			//newZoom = Math.min(this.maxZoom, this.zoom * zoomFactor);
+			this.zoomStage(this.zoom * zoomFactor, screenX, screenY);
+		} else {
+			//newZoom = Math.max(this.minZoom, this.zoom / zoomFactor);
+			this.zoomStage(this.zoom / zoomFactor, screenX, screenY);
+		}
+	}
 
+	zoomStage(newZoom, screenX, screenY) {		
 		// World position under cursor before zoom
 		const worldX = (screenX - this.panX) / this.zoom;
 		const worldY = (screenY - this.panY) / this.zoom;
-
-		// Apply zoom
-		if(e.deltaY < 0){
-			this.zoom = Math.min(this.maxZoom, this.zoom * zoomFactor);
-		} else {
-			this.zoom = Math.max(this.minZoom, this.zoom / zoomFactor);
-		}
-
+		
+		// apply new zoom setting
+		this.zoom = newZoom;
+		
 		// Adjust pan so the world point stays under cursor
 		this.panX = screenX - worldX * this.zoom;
 		this.panY = screenY - worldY * this.zoom;
