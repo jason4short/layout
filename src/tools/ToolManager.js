@@ -336,6 +336,30 @@ class ToolManager extends EventDispatcher
 				data.deleteSelected();
 				stage.render();
 				break;
+				
+			case 'F1':
+				this.setTool(this.pointerTool);
+				break;
+				
+			case 'F3':
+				this.setTool(this.parallelLineTool);
+				break;
+
+			case 'F4':
+				this.setTool(this.parallelLineTool);
+				break;
+
+			case 'F5':
+				this.setTool(this.lineTool);
+				break;
+
+			case 'F6':
+				this.setTool(this.filletTool);
+				break;
+
+			case 'F7':
+				this.setTool(this.trimTool);
+				break;
 		}
 	}
 	

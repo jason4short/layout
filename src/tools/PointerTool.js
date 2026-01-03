@@ -311,6 +311,10 @@ export class PointerTool extends Tool
 			// Move operation complete - rebuild POI cache
 			data.rebuildPOIs();
 
+			// Recalculate intersections for moved shapes
+			const movedShapes = new Set(this.originalPositions.map(p => p.shape));
+			data.recalculateIntersectionsForShapes([...movedShapes]);
+
 			if(this.isCloning && this.clonedShapes.length > 0){
 				// Record clone command for undo (shapes already added)
 				undoManager.record(new AddShapesCommand(this.clonedShapes));

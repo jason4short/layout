@@ -120,6 +120,31 @@ class Data
 		this.intersectionsByShape.delete(shape);
 	}
 
+	// Recalculate intersections for a shape (after transform like rotate/scale/mirror)
+	recalculateIntersectionsForShape(shape){
+		// Remove old intersections
+		this.removeIntersectionsForShape(shape);
+
+		// Find new intersections with all other shapes
+		for(const other of this.shapes){
+			if(other !== shape){
+				this.findAndRegisterIntersections(shape, other);
+			}
+		}
+
+		// Find new intersections with constructions
+		for(const construction of this.constructions){
+			this.findAndRegisterIntersections(shape, construction);
+		}
+	}
+
+	// Recalculate intersections for multiple shapes
+	recalculateIntersectionsForShapes(shapes){
+		for(const shape of shapes){
+			this.recalculateIntersectionsForShape(shape);
+		}
+	}
+
 	// --------------------------------------------------------------------------------
 	// POI Management
 	// --------------------------------------------------------------------------------

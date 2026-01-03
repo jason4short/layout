@@ -139,43 +139,51 @@ class Stage extends View
 		this.render();
 	}
 
-	onKeyDown(e){	
-		console.log(e.code);
+	// Check if an input field has focus (typing should not trigger shortcuts)
+	isInputFocused() {
+		const tag = document.activeElement?.tagName;
+		return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+	}
+
+	onKeyDown(e){
+		// Always track modifier state
 		this.shiftKey 		= e.shiftKey;
 		this.commandKey 	= e.metaKey;
 		this.controlKey 	= e.ctrlKey;
 		this.optionKey 		= e.altKey;
-		
+
 		if(e.code === 'Space') this.spaceKey = true;
 
-		if(this.commandKey || this.controlKey || this.optionKey)
-			e.preventDefault(); // Prevent page scroll
-		
-// 		console.log(this.shiftKey,this.commandKey, this.controlKey, this.optionKey, this.spaceKey);
-		
-// 		// Cmd+A: Select All
-// 		if((e.metaKey || e.ctrlKey) && e.key === 'a'){
-// 			//e.preventDefault();
-// 			data.selectAll();
-// 			this.render();
-// 			return;
-// 		}
-// 
+		// If typing in an input, don't intercept keys (except global shortcuts)
+		if (this.isInputFocused()) {
+			// Allow Escape to blur the input and return to canvas
+			if (e.key === 'Escape') {
+				document.activeElement.blur();
+				e.preventDefault();
+			}
+			return;
+		}
+
+		// Prevent browser defaults for modifier combos and space
+		if (this.commandKey || this.controlKey || this.optionKey || e.code === 'Space') {
+			e.preventDefault();
+		}
+
 		this.dispatchEvent('keyDown', e);
 	}
-	
-	onKeyUp(e){
 
+	onKeyUp(e){
+		// Always track modifier state
 		this.shiftKey 		= e.shiftKey;
 		this.commandKey 	= e.metaKey;
 		this.controlKey 	= e.ctrlKey;
 		this.optionKey 		= e.altKey;
 		if(e.code === 'Space') this.spaceKey = false;
 
-// 		if(this.commandKey || this.controlKey || this.optionKey)
-// 			e.preventDefault(); // Prevent page scroll
-
-// 		console.log(this.shiftKey,this.commandKey, this.controlKey, this.optionKey, this.spaceKey);
+		// If typing in an input, don't process shortcuts
+		if (this.isInputFocused()) {
+			return;
+		}
 
 		this.dispatchEvent('keyUp', e);
 	}

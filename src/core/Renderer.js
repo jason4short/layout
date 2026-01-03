@@ -233,6 +233,17 @@ export class Renderer
 		}
 
 		// Draw snap point indicators
+		for(const intersection of data.getIntersectionCandidates())
+		{
+			const pt = this.toScreen(intersection.x, intersection.y);
+			ctx.beginPath();
+			ctx.strokeStyle = '#2b6cb0';
+			ctx.lineWidth = 0.5;
+			ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
+			ctx.stroke();
+		}
+
+		// Draw snap point indicators
 		for(const intersection of data.snapPoints)
 		{
 			const pt = this.toScreen(intersection.x, intersection.y);

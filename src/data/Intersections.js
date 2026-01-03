@@ -9,69 +9,100 @@ export class Intersections {
 	{
 	}
 
+	// Helper to check if a shape is arc-like (ARC or TANGENT_ARC)
+	isArcType(geometry) {
+		return geometry === Shape.ARC || geometry === Shape.TANGENT_ARC;
+	}
+
 	intersect_shapes(shape0, shape1){
 
 		const shapes = this.normalizeShapePair(shape0, shape1);
+		const geo0 = shapes[0].geometry;
+		const geo1 = shapes[1].geometry;
 
-		if(shapes[0].geometry == Shape.LINE && shapes[1].geometry == Shape.LINE){
+		if(geo0 == Shape.LINE && geo1 == Shape.LINE){
 			// call line line
 			return this.intersect_lines(shapes[0], shapes[1]);
 
-		}else if(shapes[0].geometry == Shape.LINE && shapes[1].geometry == Shape.ARC){
+		}else if(geo0 == Shape.LINE && this.isArcType(geo1)){
 			// line-arc: use line-circle, filter by arc angle
 			return this.intersect_line_arc(shapes[0], shapes[1]);
 
-		}else if(shapes[0].geometry == Shape.LINE && shapes[1].geometry == Shape.CIRCLE){
+		}else if(geo0 == Shape.LINE && geo1 == Shape.CIRCLE){
 			// call line circle
 			return this.intersect_line_cirlce(shapes[0], shapes[1]);
 
-		}else if(shapes[0].geometry == Shape.ARC && shapes[1].geometry == Shape.ARC){
+		}else if(this.isArcType(geo0) && this.isArcType(geo1)){
 			// arc-arc: use circle-circle, filter both arcs
 			return this.intersect_arc_arc(shapes[0], shapes[1]);
 
-		}else if(shapes[0].geometry == Shape.ARC && shapes[1].geometry == Shape.CIRCLE){
+		}else if(this.isArcType(geo0) && geo1 == Shape.CIRCLE){
 			// arc-circle: use circle-circle, filter by arc angle
 			return this.intersect_arc_circle(shapes[0], shapes[1]);
 
-		}else if(shapes[0].geometry == Shape.CIRCLE && shapes[1].geometry == Shape.CIRCLE){
+		}else if(geo0 == Shape.CIRCLE && geo1 == Shape.CIRCLE){
 			// call circle circle
 			return this.intersect_circle_circle(shapes[0], shapes[1]);
 
-		}else if(shapes[0].geometry == Shape.LINE && shapes[1].geometry == Shape.ELLIPSE){
+		}else if(geo0 == Shape.LINE && geo1 == Shape.ELLIPSE){
 			// line-ellipse
 			return this.intersect_line_ellipse(shapes[0], shapes[1]);
 
-		}else if(shapes[0].geometry == Shape.CIRCLE && shapes[1].geometry == Shape.ELLIPSE){
+		}else if(geo0 == Shape.CIRCLE && geo1 == Shape.ELLIPSE){
 			// circle-ellipse
 			return this.intersect_circle_ellipse(shapes[0], shapes[1]);
 
-		}else if(shapes[0].geometry == Shape.ARC && shapes[1].geometry == Shape.ELLIPSE){
+		}else if(this.isArcType(geo0) && geo1 == Shape.ELLIPSE){
 			// arc-ellipse
 			return this.intersect_arc_ellipse(shapes[0], shapes[1]);
 
-		}else if(shapes[0].geometry == Shape.LINE && shapes[1].geometry == Shape.ELLIPTICAL_ARC){
+		}else if(geo0 == Shape.LINE && geo1 == Shape.ELLIPTICAL_ARC){
 			// line-elliptical arc
 			return this.intersect_line_elliptical_arc(shapes[0], shapes[1]);
 
-		}else if(shapes[0].geometry == Shape.CIRCLE && shapes[1].geometry == Shape.ELLIPTICAL_ARC){
+		}else if(geo0 == Shape.CIRCLE && geo1 == Shape.ELLIPTICAL_ARC){
 			// circle-elliptical arc
 			return this.intersect_circle_elliptical_arc(shapes[0], shapes[1]);
 
-		}else if(shapes[0].geometry == Shape.ARC && shapes[1].geometry == Shape.ELLIPTICAL_ARC){
+		}else if(this.isArcType(geo0) && geo1 == Shape.ELLIPTICAL_ARC){
 			// arc-elliptical arc
 			return this.intersect_arc_elliptical_arc(shapes[0], shapes[1]);
 
-		}else if(shapes[0].geometry == Shape.ELLIPSE && shapes[1].geometry == Shape.ELLIPSE){
+		}else if(geo0 == Shape.ELLIPSE && geo1 == Shape.ELLIPSE){
 			// ellipse-ellipse
 			return this.intersect_ellipse_ellipse(shapes[0], shapes[1]);
 
-		}else if(shapes[0].geometry == Shape.ELLIPSE && shapes[1].geometry == Shape.ELLIPTICAL_ARC){
+		}else if(geo0 == Shape.ELLIPSE && geo1 == Shape.ELLIPTICAL_ARC){
 			// ellipse-elliptical arc
 			return this.intersect_ellipse_elliptical_arc(shapes[0], shapes[1]);
 
-		}else if(shapes[0].geometry == Shape.ELLIPTICAL_ARC && shapes[1].geometry == Shape.ELLIPTICAL_ARC){
+		}else if(geo0 == Shape.ELLIPTICAL_ARC && geo1 == Shape.ELLIPTICAL_ARC){
 			// elliptical arc-elliptical arc
 			return this.intersect_elliptical_arc_elliptical_arc(shapes[0], shapes[1]);
+
+		}else if(geo0 == Shape.LINE && geo1 == Shape.SPLINE){
+			// line-spline
+			return this.intersect_line_spline(shapes[0], shapes[1]);
+
+		}else if(this.isArcType(geo0) && geo1 == Shape.SPLINE){
+			// arc-spline
+			return this.intersect_arc_spline(shapes[0], shapes[1]);
+
+		}else if(geo0 == Shape.CIRCLE && geo1 == Shape.SPLINE){
+			// circle-spline
+			return this.intersect_circle_spline(shapes[0], shapes[1]);
+
+		}else if(geo0 == Shape.ELLIPSE && geo1 == Shape.SPLINE){
+			// ellipse-spline
+			return this.intersect_ellipse_spline(shapes[0], shapes[1]);
+
+		}else if(geo0 == Shape.ELLIPTICAL_ARC && geo1 == Shape.SPLINE){
+			// elliptical arc-spline
+			return this.intersect_elliptical_arc_spline(shapes[0], shapes[1]);
+
+		}else if(geo0 == Shape.SPLINE && geo1 == Shape.SPLINE){
+			// spline-spline
+			return this.intersect_spline_spline(shapes[0], shapes[1]);
 		}
 	}
 
@@ -91,9 +122,11 @@ export class Intersections {
 			case Shape.GUIDE:			return 20;
 			case Shape.LINE: 			return 20;
 			case Shape.ARC:				return 25;
+			case Shape.TANGENT_ARC:		return 25;  // Same priority as ARC
 			case Shape.CIRCLE: 			return 30;
 			case Shape.ELLIPSE:			return 35;
 			case Shape.ELLIPTICAL_ARC:	return 36;
+			case Shape.SPLINE:			return 37;
 			case Shape.RECTANGLE: 		return 40;
 			default: 					return 1000;
 		}
@@ -649,5 +682,296 @@ export class Intersections {
 		return ellipseIntersections.filter(p =>
 			this.isPointOnEllipticalArc(p, arc0) && this.isPointOnEllipticalArc(p, arc1)
 		);
+	}
+
+	// ==================== SPLINE INTERSECTIONS ====================
+
+	// Line-Spline intersection using numerical sampling
+	intersect_line_spline(line, spline) {
+		const intersections = [];
+		const samples = 100;
+
+		// Signed distance from point to line (positive on one side, negative on other)
+		const signedDistToLine = (p) => {
+			const dx = line.end.x - line.start.x;
+			const dy = line.end.y - line.start.y;
+			const len = Math.sqrt(dx * dx + dy * dy);
+			if (len < 1e-10) return Infinity;
+			// Cross product gives signed distance
+			return ((p.x - line.start.x) * dy - (p.y - line.start.y) * dx) / len;
+		};
+
+		// Check if point is within line segment bounds
+		const isOnSegment = (p) => {
+			const t = this.getLineParameter(line, p);
+			return t >= -0.001 && t <= 1.001;
+		};
+
+		let prevT = 0;
+		let prevPt = spline.evaluate(0);
+		let prevDist = signedDistToLine(prevPt);
+
+		for (let i = 1; i <= samples; i++) {
+			const t = i / samples;
+			const pt = spline.evaluate(t);
+			const dist = signedDistToLine(pt);
+
+			// Sign change means crossing
+			if (prevDist * dist < 0) {
+				// Binary search to refine
+				let lo = prevT, hi = t;
+				let loDist = prevDist;
+
+				for (let j = 0; j < 20; j++) {
+					const mid = (lo + hi) / 2;
+					const midPt = spline.evaluate(mid);
+					const midDist = signedDistToLine(midPt);
+
+					if (Math.abs(midDist) < 0.01) {
+						lo = hi = mid;
+						break;
+					}
+
+					if (loDist * midDist < 0) {
+						hi = mid;
+					} else {
+						lo = mid;
+						loDist = midDist;
+					}
+				}
+
+				const intersection = spline.evaluate((lo + hi) / 2);
+
+				// Check if intersection is within line segment
+				if (isOnSegment(intersection)) {
+					// Check for duplicates
+					let isDupe = false;
+					for (const existing of intersections) {
+						if (Math.hypot(intersection.x - existing.x, intersection.y - existing.y) < 1) {
+							isDupe = true;
+							break;
+						}
+					}
+					if (!isDupe) {
+						intersections.push(intersection);
+					}
+				}
+			}
+
+			prevT = t;
+			prevPt = pt;
+			prevDist = dist;
+		}
+
+		return intersections;
+	}
+
+	// Helper: get parameter t for point projected onto line
+	getLineParameter(line, p) {
+		const dx = line.end.x - line.start.x;
+		const dy = line.end.y - line.start.y;
+		const len2 = dx * dx + dy * dy;
+		if (len2 < 1e-10) return 0;
+		return ((p.x - line.start.x) * dx + (p.y - line.start.y) * dy) / len2;
+	}
+
+	// Circle-Spline intersection
+	intersect_circle_spline(circle, spline) {
+		const intersections = [];
+		const samples = 100;
+
+		// Signed distance: negative inside circle, positive outside
+		const signedDist = (p) => {
+			const d = Math.hypot(p.x - circle.x, p.y - circle.y);
+			return d - circle.radius;
+		};
+
+		let prevT = 0;
+		let prevDist = signedDist(spline.evaluate(0));
+
+		for (let i = 1; i <= samples; i++) {
+			const t = i / samples;
+			const pt = spline.evaluate(t);
+			const dist = signedDist(pt);
+
+			if (prevDist * dist < 0) {
+				// Binary search
+				let lo = prevT, hi = t;
+				let loDist = prevDist;
+
+				for (let j = 0; j < 20; j++) {
+					const mid = (lo + hi) / 2;
+					const midDist = signedDist(spline.evaluate(mid));
+
+					if (Math.abs(midDist) < 0.01) {
+						lo = hi = mid;
+						break;
+					}
+
+					if (loDist * midDist < 0) {
+						hi = mid;
+					} else {
+						lo = mid;
+						loDist = midDist;
+					}
+				}
+
+				const intersection = spline.evaluate((lo + hi) / 2);
+
+				let isDupe = false;
+				for (const existing of intersections) {
+					if (Math.hypot(intersection.x - existing.x, intersection.y - existing.y) < 1) {
+						isDupe = true;
+						break;
+					}
+				}
+				if (!isDupe) {
+					intersections.push(intersection);
+				}
+			}
+
+			prevT = t;
+			prevDist = dist;
+		}
+
+		return intersections;
+	}
+
+	// Arc-Spline intersection: use circle-spline, filter by arc angle
+	intersect_arc_spline(arc, spline) {
+		const circleIntersections = this.intersect_circle_spline(arc, spline);
+		if (!circleIntersections || circleIntersections.length === 0) {
+			return [];
+		}
+		return circleIntersections.filter(p => this.isPointOnArc(p, arc));
+	}
+
+	// Ellipse-Spline intersection
+	intersect_ellipse_spline(ellipse, spline) {
+		const intersections = [];
+		const samples = 100;
+
+		// Signed distance to ellipse boundary
+		const signedDist = (p) => {
+			const dx = p.x - ellipse.x;
+			const dy = p.y - ellipse.y;
+			return (dx * dx) / (ellipse.radiusX * ellipse.radiusX) +
+			       (dy * dy) / (ellipse.radiusY * ellipse.radiusY) - 1;
+		};
+
+		let prevT = 0;
+		let prevDist = signedDist(spline.evaluate(0));
+
+		for (let i = 1; i <= samples; i++) {
+			const t = i / samples;
+			const pt = spline.evaluate(t);
+			const dist = signedDist(pt);
+
+			if (prevDist * dist < 0) {
+				let lo = prevT, hi = t;
+				let loDist = prevDist;
+
+				for (let j = 0; j < 20; j++) {
+					const mid = (lo + hi) / 2;
+					const midDist = signedDist(spline.evaluate(mid));
+
+					if (Math.abs(midDist) < 0.001) {
+						lo = hi = mid;
+						break;
+					}
+
+					if (loDist * midDist < 0) {
+						hi = mid;
+					} else {
+						lo = mid;
+						loDist = midDist;
+					}
+				}
+
+				const intersection = spline.evaluate((lo + hi) / 2);
+
+				let isDupe = false;
+				for (const existing of intersections) {
+					if (Math.hypot(intersection.x - existing.x, intersection.y - existing.y) < 1) {
+						isDupe = true;
+						break;
+					}
+				}
+				if (!isDupe) {
+					intersections.push(intersection);
+				}
+			}
+
+			prevT = t;
+			prevDist = dist;
+		}
+
+		return intersections;
+	}
+
+	// EllipticalArc-Spline intersection
+	intersect_elliptical_arc_spline(arc, spline) {
+		const ellipseIntersections = this.intersect_ellipse_spline(arc, spline);
+		if (!ellipseIntersections || ellipseIntersections.length === 0) {
+			return [];
+		}
+		return ellipseIntersections.filter(p => this.isPointOnEllipticalArc(p, arc));
+	}
+
+	// Spline-Spline intersection
+	intersect_spline_spline(spline0, spline1) {
+		const intersections = [];
+		const samples = 50;
+
+		// For each sample point on spline0, find closest point on spline1
+		// and detect when they cross
+		for (let i = 0; i < samples; i++) {
+			const t0a = i / samples;
+			const t0b = (i + 1) / samples;
+			const p0a = spline0.evaluate(t0a);
+			const p0b = spline0.evaluate(t0b);
+
+			for (let j = 0; j < samples; j++) {
+				const t1a = j / samples;
+				const t1b = (j + 1) / samples;
+				const p1a = spline1.evaluate(t1a);
+				const p1b = spline1.evaluate(t1b);
+
+				// Check if line segments p0a-p0b and p1a-p1b intersect
+				const intersection = this.lineSegmentIntersection(p0a, p0b, p1a, p1b);
+				if (intersection) {
+					let isDupe = false;
+					for (const existing of intersections) {
+						if (Math.hypot(intersection.x - existing.x, intersection.y - existing.y) < 2) {
+							isDupe = true;
+							break;
+						}
+					}
+					if (!isDupe) {
+						intersections.push(intersection);
+					}
+				}
+			}
+		}
+
+		return intersections;
+	}
+
+	// Helper: line segment intersection
+	lineSegmentIntersection(p1, p2, p3, p4) {
+		const d = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
+		if (Math.abs(d) < 1e-10) return null;
+
+		const ua = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / d;
+		const ub = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / d;
+
+		if (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1) {
+			return {
+				x: p1.x + ua * (p2.x - p1.x),
+				y: p1.y + ua * (p2.y - p1.y)
+			};
+		}
+
+		return null;
 	}
 }

@@ -103,17 +103,23 @@ export class MoveCommand extends Command {
 	}
 
 	execute() {
+		const affectedShapes = new Set();
 		for (const item of this.moveData) {
 			item.shape.updateControlPoint(item.index, item.newX, item.newY);
+			affectedShapes.add(item.shape);
 		}
 		data.rebuildPOIs();
+		data.recalculateIntersectionsForShapes([...affectedShapes]);
 	}
 
 	undo() {
+		const affectedShapes = new Set();
 		for (const item of this.moveData) {
 			item.shape.updateControlPoint(item.index, item.oldX, item.oldY);
+			affectedShapes.add(item.shape);
 		}
 		data.rebuildPOIs();
+		data.recalculateIntersectionsForShapes([...affectedShapes]);
 	}
 }
 
@@ -132,6 +138,7 @@ export class ScaleCommand extends Command {
 			shape.scale(this.anchorX, this.anchorY, this.scaleFactor);
 		}
 		data.rebuildPOIs();
+		data.recalculateIntersectionsForShapes(this.shapes);
 	}
 
 	undo() {
@@ -141,6 +148,7 @@ export class ScaleCommand extends Command {
 			shape.scale(this.anchorX, this.anchorY, inverseFactor);
 		}
 		data.rebuildPOIs();
+		data.recalculateIntersectionsForShapes(this.shapes);
 	}
 }
 
@@ -160,6 +168,7 @@ export class MirrorCommand extends Command {
 			shape.mirror(this.x1, this.y1, this.x2, this.y2);
 		}
 		data.rebuildPOIs();
+		data.recalculateIntersectionsForShapes(this.shapes);
 	}
 
 	undo() {
@@ -168,6 +177,7 @@ export class MirrorCommand extends Command {
 			shape.mirror(this.x1, this.y1, this.x2, this.y2);
 		}
 		data.rebuildPOIs();
+		data.recalculateIntersectionsForShapes(this.shapes);
 	}
 }
 
@@ -186,6 +196,7 @@ export class RotateCommand extends Command {
 			shape.rotate(this.anchorX, this.anchorY, this.angleRad);
 		}
 		data.rebuildPOIs();
+		data.recalculateIntersectionsForShapes(this.shapes);
 	}
 
 	undo() {
@@ -194,6 +205,7 @@ export class RotateCommand extends Command {
 			shape.rotate(this.anchorX, this.anchorY, -this.angleRad);
 		}
 		data.rebuildPOIs();
+		data.recalculateIntersectionsForShapes(this.shapes);
 	}
 }
 

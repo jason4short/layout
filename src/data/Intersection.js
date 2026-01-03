@@ -16,4 +16,9 @@ export class Intersection {
 	get shapes() {
 		return [this.shapeA, this.shapeB];
 	}
+	
+	dump()
+	{
+		console.log(this.x, this.y, this.shapeA, this.shapeB);	
+	}
 }
