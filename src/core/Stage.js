@@ -89,9 +89,11 @@ class Stage extends View
 		window.addEventListener('keyup', 			this.onKeyUp, 		{ capture: true });
 		window.addEventListener('blur', 			this.onBlur);
 		this.canvas.addEventListener('mousedown', 	this.onMouseDown);
-		this.canvas.addEventListener('mousemove',	this.onMouseMove);
-		this.canvas.addEventListener('mouseup',		this.onMouseUp);
 		this.canvas.addEventListener('wheel',		this.onWheel, { passive: false });
+
+		// Mouse move/up on window to capture events outside canvas
+		window.addEventListener('mousemove',	this.onMouseMove);
+		window.addEventListener('mouseup',		this.onMouseUp);
 
 		this.render();
     }
@@ -247,9 +249,18 @@ class Stage extends View
 	// Normalize mouse event to canvas-relative coordinates
 	// Converts screen coords to world coords (accounting for pan/zoom)
 	normalizeMouseEvent(e) {
-		// Screen coords (relative to canvas element)
-		const screenX = e.offsetX;
-		const screenY = e.offsetY;
+		let screenX, screenY;
+
+		// Handle events from window (during drag outside canvas)
+		if (e.target !== this.canvas) {
+			const rect = this.canvas.getBoundingClientRect();
+			screenX = e.clientX - rect.left;
+			screenY = e.clientY - rect.top;
+		} else {
+			// Screen coords (relative to canvas element)
+			screenX = e.offsetX;
+			screenY = e.offsetY;
+		}
 
 		// Convert to world coords
 		const worldX = (screenX - this.panX) / this.zoom;
@@ -390,6 +401,7 @@ class Stage extends View
 
 	onMouseMove(e)
 	{
+		console.log("e")
 		this.mouse = this.normalizeMouseEvent(e);
 		if(e.which == 3){
 			console.log("hi")
@@ -409,7 +421,7 @@ class Stage extends View
 	onMouseDown(e)
 	{
 		this.mouse = this.normalizeMouseEvent(e);
-		
+
 		if(e.which == 3){
 			console.log("hi")
 			toolManager.handTool.onMouseDown(this.mouse);
