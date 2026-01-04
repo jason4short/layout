@@ -91,7 +91,7 @@ export class ChamferTool extends Tool
 			return;
 		}
 
-		const clickedShape = data.getTargetShape(e);
+		const clickedShape = snapPt.shape; //data.getTargetShape(e);
 		const isLine = clickedShape && clickedShape.geometry === Shape.LINE;
 
 		switch (this.state) {
@@ -100,7 +100,7 @@ export class ChamferTool extends Tool
 
 				// Select first line, start potential drag
 				this.firstLine 			= clickedShape;
-				this.firstClickPt 		= clickPt;
+				this.firstClickPt 		= snapPt;
 				this.firstLine.selected = true;
 				this.state 				= STATE.DRAGGING;
 
@@ -144,9 +144,11 @@ export class ChamferTool extends Tool
 	onMouseUp(e) {
 		if (this.state !== STATE.DRAGGING) return;
 
-		const releasePt = { x: e.x, y: e.y };
+//		const releasePt = { x: e.x, y: e.y };
+		const releasePt = data.getCurrentSnapPoint();
+		
 		const dragDist = GeometryUtils.distance(this.firstClickPt, releasePt);
-		const secondLine = data.getTargetShape(e);
+		const secondLine = releasePt.shape;// data.getTargetShape(e);
 		const isValidSecond = secondLine &&
 							  secondLine.geometry === Shape.LINE &&
 							  secondLine !== this.firstLine;
@@ -218,6 +220,7 @@ export class ChamferTool extends Tool
 	}
 
 	createChamfer(line1, clickPt1, line2, clickPt2, distance) {
+	
 		const intersection = GeometryUtils.lineIntersection(line1, line2);
 		if (!intersection) {
 			console.log("Lines are parallel, cannot chamfer");
@@ -269,8 +272,11 @@ export class ChamferTool extends Tool
 		this.lastChamfer.chamferLine = chamferLine;
 
 		// Trim lines
-		GeometryUtils.trimLineAtPoint(line1, chamferPt1, dir1);
-		GeometryUtils.trimLineAtPoint(line2, chamferPt2, dir2);
+		//GeometryUtils.trimLineAtPoint(line1, chamferPt1, dir1);
+		//GeometryUtils.trimLineAtPoint(line2, chamferPt2, dir2);
+
+		GeometryUtils.trimLineKeepClickSide(line1, chamferPt1, clickPt1);
+		GeometryUtils.trimLineKeepClickSide(line2, chamferPt2, clickPt2);
 
 		// Execute ChamferCommand to track everything for undo
 		undoManager.execute(new ChamferCommand(chamferLine, line1, line2, line1Original, line2Original));
