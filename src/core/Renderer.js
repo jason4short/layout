@@ -282,6 +282,18 @@ export class Renderer
 				const topLeft = this.toScreen(shape.x, shape.y);
 				const width = this.toScreenScale(shape.width);
 				const height = this.toScreenScale(shape.height);
+				const centerX = topLeft.x + width / 2;
+				const centerY = topLeft.y + height / 2;
+
+				// Save context for rotation
+				ctx.save();
+
+				// Rotate around center
+				if(shape.rotation !== 0){
+					ctx.translate(centerX, centerY);
+					ctx.rotate(shape.rotation);
+					ctx.translate(-centerX, -centerY);
+				}
 
 				// Draw the image if loaded
 				if(shape.loaded && shape.imageElement){
@@ -313,19 +325,20 @@ export class Renderer
 				ctx.strokeRect(topLeft.x, topLeft.y, width, height);
 				ctx.setLineDash([]);
 
+				// Restore context after rotation (before drawing handles)
+				ctx.restore();
+
 				// Draw corner handles when selected (and not locked)
+				// These are drawn in screen space at the rotated corner positions
 				if(shape.selected && !shape.locked){
 					const handleRadius = 4;
 					ctx.lineWidth = 0.5;
 					ctx.strokeStyle = '#666666';
 					ctx.fillStyle = '#FFFFFF';
 
-					const corners = [
-						{ x: topLeft.x, y: topLeft.y },
-						{ x: topLeft.x + width, y: topLeft.y },
-						{ x: topLeft.x + width, y: topLeft.y + height },
-						{ x: topLeft.x, y: topLeft.y + height }
-					];
+					// Get rotated corners in world coords and convert to screen
+					const pois = shape.getSnapPOIs();
+					const corners = pois.slice(0, 4).map(p => this.toScreen(p.x, p.y));
 
 					for(const corner of corners){
 						ctx.beginPath();

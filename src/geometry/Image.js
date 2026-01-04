@@ -20,6 +20,7 @@ export class Image extends Geometry
 		this.imageElement 	= null;  // HTMLImageElement (runtime only)
 		this.loaded 		= false;
 		this.error 			= false;
+		this.rotation 		= 0;     // rotation in radians
 
 		// Images default to locked for tracing
 		this.locked 		= true;
@@ -33,10 +34,26 @@ export class Image extends Geometry
 
 	updateBoundingBox()
 	{
-		this.bounds.x 		= this.x;
-		this.bounds.y 		= this.y;
-		this.bounds.width 	= this.width;
-		this.bounds.height 	= this.height;
+		if(this.rotation === 0){
+			this.bounds.x 		= this.x;
+			this.bounds.y 		= this.y;
+			this.bounds.width 	= this.width;
+			this.bounds.height 	= this.height;
+		} else {
+			// Compute axis-aligned bounding box of rotated rectangle
+			const corners = this.getRotatedCorners();
+			const xs = corners.map(c => c.x);
+			const ys = corners.map(c => c.y);
+			const minX = Math.min(...xs);
+			const maxX = Math.max(...xs);
+			const minY = Math.min(...ys);
+			const maxY = Math.max(...ys);
+
+			this.bounds.x 		= minX;
+			this.bounds.y 		= minY;
+			this.bounds.width 	= maxX - minX;
+			this.bounds.height 	= maxY - minY;
+		}
 	}
 
 	// Load image from a file path or data URL
@@ -73,6 +90,7 @@ export class Image extends Geometry
 		img.imageElement = this.imageElement;
 		img.loaded 		= this.loaded;
 		img.locked 		= this.locked;
+		img.rotation 	= this.rotation;
 		return img;
 	}
 
@@ -88,17 +106,44 @@ export class Image extends Geometry
 		this.imageElement = other.imageElement;
 		this.loaded = other.loaded;
 		this.locked = other.locked;
+		this.rotation = other.rotation;
 		this.update();
+	}
+
+	// Get rotated corners for internal use
+	getRotatedCorners() {
+		const centerX = this.x + this.width / 2;
+		const centerY = this.y + this.height / 2;
+		const cos = Math.cos(this.rotation);
+		const sin = Math.sin(this.rotation);
+
+		// Unrotated corners relative to center
+		const corners = [
+			{ x: -this.width / 2, y: -this.height / 2 },  // top-left
+			{ x: this.width / 2, y: -this.height / 2 },   // top-right
+			{ x: this.width / 2, y: this.height / 2 },    // bottom-right
+			{ x: -this.width / 2, y: this.height / 2 }    // bottom-left
+		];
+
+		// Rotate each corner around center
+		return corners.map(c => ({
+			x: centerX + c.x * cos - c.y * sin,
+			y: centerY + c.x * sin + c.y * cos
+		}));
 	}
 
 	// POIs: 0=top-left, 1=top-right, 2=bottom-right, 3=bottom-left, 4=center
 	getSnapPOIs() {
+		const corners = this.getRotatedCorners();
+		const centerX = this.x + this.width / 2;
+		const centerY = this.y + this.height / 2;
+
 		return [
-			{ x: this.x, y: this.y },
-			{ x: this.x + this.width, y: this.y },
-			{ x: this.x + this.width, y: this.y + this.height },
-			{ x: this.x, y: this.y + this.height },
-			{ x: this.x + this.width / 2, y: this.y + this.height / 2 }
+			corners[0],
+			corners[1],
+			corners[2],
+			corners[3],
+			{ x: centerX, y: centerY }
 		];
 	}
 
@@ -109,27 +154,22 @@ export class Image extends Geometry
 			return null;
 		}
 
-		// Find closest point on rectangle edges
+		// Get rotated corners
+		const corners = this.getRotatedCorners();
+
+		// Find closest point on rotated rectangle edges
 		const edges = [
-			// top edge
-			{ x1: this.x, y1: this.y, x2: this.x + this.width, y2: this.y },
-			// right edge
-			{ x1: this.x + this.width, y1: this.y, x2: this.x + this.width, y2: this.y + this.height },
-			// bottom edge
-			{ x1: this.x + this.width, y1: this.y + this.height, x2: this.x, y2: this.y + this.height },
-			// left edge
-			{ x1: this.x, y1: this.y + this.height, x2: this.x, y2: this.y }
+			{ start: corners[0], end: corners[1] },  // top edge
+			{ start: corners[1], end: corners[2] },  // right edge
+			{ start: corners[2], end: corners[3] },  // bottom edge
+			{ start: corners[3], end: corners[0] }   // left edge
 		];
 
 		let closestPoint = null;
 		let closestDist = Infinity;
 
 		for(const edge of edges){
-			const closest = VectorUtils.closestPointOnSegment(
-				mouse,
-				{ x: edge.x1, y: edge.y1 },
-				{ x: edge.x2, y: edge.y2 }
-			);
+			const closest = VectorUtils.closestPointOnSegment(mouse, edge.start, edge.end);
 			const dist = VectorUtils.distance(mouse, closest);
 			if(dist < closestDist){
 				closestDist = dist;
@@ -167,11 +207,18 @@ export class Image extends Geometry
 	}
 
 	// Rotate the image around an anchor point by angle (in radians)
-	// Note: Images don't visually rotate, only their position moves
 	rotate(anchorX, anchorY, angleRad) {
-		const rotated = TransformUtils.rotatePoint(this.x, this.y, anchorX, anchorY, angleRad);
-		this.x = rotated.x;
-		this.y = rotated.y;
+		// Rotate the center position around the anchor
+		const centerX = this.x + this.width / 2;
+		const centerY = this.y + this.height / 2;
+		const rotated = TransformUtils.rotatePoint(centerX, centerY, anchorX, anchorY, angleRad);
+
+		// Update position (keeping center at rotated location)
+		this.x = rotated.x - this.width / 2;
+		this.y = rotated.y - this.height / 2;
+
+		// Accumulate the rotation angle
+		this.rotation += angleRad;
 		this.update();
 	}
 
@@ -238,6 +285,7 @@ export class Image extends Geometry
 			y: this.y,
 			width: this.width,
 			height: this.height,
+			rotation: this.rotation,
 			src: this.src
 		};
 	}
@@ -247,6 +295,7 @@ export class Image extends Geometry
 		img.type = data.type;
 		if(data.penStyle) img.penStyle = data.penStyle;
 		if(data.locked !== undefined) img.locked = data.locked;
+		if(data.rotation !== undefined) img.rotation = data.rotation;
 
 		// Load the image from path
 		if(data.src){
