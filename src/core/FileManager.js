@@ -10,6 +10,7 @@ import {TangentArc} 		from '../geometry/TangentArc.js';
 import {Ellipse} 			from '../geometry/Ellipse.js';
 import {EllipticalArc} 		from '../geometry/EllipticalArc.js';
 import {Spline} 			from '../geometry/Spline.js';
+import {Image} 				from '../geometry/Image.js';
 
 
 import {Construction} from '../geometry/Construction.js';
@@ -109,6 +110,8 @@ class FileManager
 				return Spline.fromJSON(shapeData);
 			case Shape.ELLIPTICAL_ARC:
 				return EllipticalArc.fromJSON(shapeData);
+			case Shape.IMAGE:
+				return Image.fromJSON(shapeData);
 			default:
 				console.warn('Unknown geometry type:', shapeData.geometry);
 				return null;

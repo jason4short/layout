@@ -256,7 +256,9 @@ class Data
 		// clear selection unless shift is held
 		if(shiftKey == false){this.selectNone();}
 
-		let snap = draftingAssistant.findNearestSnapPoint_OnShape(mouse, this.shapes);
+		// Filter out locked shapes from selection
+		const selectableShapes = this.shapes.filter(s => !s.locked);
+		let snap = draftingAssistant.findNearestSnapPoint_OnShape(mouse, selectableShapes);
 		if(snap){
 			// Toggle selection if shift is held, otherwise select
 			if(shiftKey){
@@ -287,7 +289,10 @@ class Data
 
 	selectAll(){
 		for(let i = 0; i < this.shapes.length; i++){
-			this.shapes[i].selected = true;
+			// Skip locked shapes
+			if(!this.shapes[i].locked){
+				this.shapes[i].selected = true;
+			}
 		}
 		this.selectedPoints.clear(); // Clear partial selections when selecting all
 	}
@@ -326,6 +331,8 @@ class Data
 				return [0, 1, 2]; // center, start, end (not midpoint at index 3)
 			case Shape.SPLINE:
 				return [0, 1, 2, 3]; // all 4 control points are selectable
+			case Shape.IMAGE:
+				return [4]; // center only - corners are for resizing
 			default:
 				return [];
 		}
@@ -338,6 +345,9 @@ class Data
 		}
 
 		for(const shape of this.shapes){
+			// Skip locked shapes
+			if(shape.locked) continue;
+
 			const pois = shape.getSnapPOIs();
 			const selectableIndices = this.getSelectableIndices(shape);
 
@@ -578,8 +588,11 @@ class Data
 	}
 
 	// Array of all geometry to render
+	// Images render first (behind everything else)
 	getShapesToRender(){
-		return [...this.shapes, ...this.constructions, ...this.guides, ...this.shapePreviews, this.shapePreview].filter(Boolean);
+		const images = this.shapes.filter(s => s.geometry === Shape.IMAGE);
+		const nonImages = this.shapes.filter(s => s.geometry !== Shape.IMAGE);
+		return [...images, ...nonImages, ...this.constructions, ...this.guides, ...this.shapePreviews, this.shapePreview].filter(Boolean);
 	}
 
 	// Array of all intersection points we could snap to

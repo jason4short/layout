@@ -12,6 +12,7 @@ export const Shape = Object.freeze({
 	ELLIPSE: "ellipse",
 	ELLIPTICAL_ARC: "elliptical_arc",
 	SPLINE: "spline",
+	IMAGE: "image",
 
 	/*types*/
 	CONSTRUCTION: "construction",
@@ -36,6 +37,7 @@ export class Geometry
 	{
 		this.selected 			= false;
 		this.showControlPoints 	= false;  // Toggle with Cmd+click
+		this.locked 			= false;  // Locked shapes cannot be selected
 		this.stroke 			= '#000';
 		this.bounds 			= new Rectangle();
 		this.penStyle 			= PenStyle.VISIBLE;  // Default pen style

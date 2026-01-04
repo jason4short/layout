@@ -277,6 +277,63 @@ export class Renderer
 					ctx.fill();
 					ctx.stroke();
 				}
+
+			} else if(shape.geometry === Shape.IMAGE){
+				const topLeft = this.toScreen(shape.x, shape.y);
+				const width = this.toScreenScale(shape.width);
+				const height = this.toScreenScale(shape.height);
+
+				// Draw the image if loaded
+				if(shape.loaded && shape.imageElement){
+					ctx.drawImage(shape.imageElement, topLeft.x, topLeft.y, width, height);
+				} else {
+					// Draw placeholder rectangle
+					ctx.fillStyle = shape.error ? '#FFEEEE' : '#F0F0F0';
+					ctx.fillRect(topLeft.x, topLeft.y, width, height);
+
+					// Draw X pattern for missing image
+					if(shape.error){
+						ctx.strokeStyle = '#CC0000';
+						ctx.lineWidth = 1;
+						ctx.beginPath();
+						ctx.moveTo(topLeft.x, topLeft.y);
+						ctx.lineTo(topLeft.x + width, topLeft.y + height);
+						ctx.moveTo(topLeft.x + width, topLeft.y);
+						ctx.lineTo(topLeft.x, topLeft.y + height);
+						ctx.stroke();
+					}
+				}
+
+				// Draw border (dashed if locked)
+				ctx.strokeStyle = shape.selected ? '#FF0000' : (shape.locked ? '#999999' : '#666666');
+				ctx.lineWidth = 0.5;
+				if(shape.locked && !shape.selected){
+					ctx.setLineDash([4, 4]);
+				}
+				ctx.strokeRect(topLeft.x, topLeft.y, width, height);
+				ctx.setLineDash([]);
+
+				// Draw corner handles when selected (and not locked)
+				if(shape.selected && !shape.locked){
+					const handleRadius = 4;
+					ctx.lineWidth = 0.5;
+					ctx.strokeStyle = '#666666';
+					ctx.fillStyle = '#FFFFFF';
+
+					const corners = [
+						{ x: topLeft.x, y: topLeft.y },
+						{ x: topLeft.x + width, y: topLeft.y },
+						{ x: topLeft.x + width, y: topLeft.y + height },
+						{ x: topLeft.x, y: topLeft.y + height }
+					];
+
+					for(const corner of corners){
+						ctx.beginPath();
+						ctx.arc(corner.x, corner.y, handleRadius, 0, Math.PI * 2);
+						ctx.fill();
+						ctx.stroke();
+					}
+				}
 			}
 		}
 

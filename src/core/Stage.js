@@ -391,6 +391,11 @@ class Stage extends View
 		return worldValue * this.zoom;
 	}
 
+	// Convert a screen-space distance to world units
+	screenToWorldScale(screenValue) {
+		return screenValue / this.zoom;
+	}
+
 	// Convert screen coordinates to world coordinates
 	screenToWorld(screenX, screenY) {
 		return {
@@ -401,10 +406,8 @@ class Stage extends View
 
 	onMouseMove(e)
 	{
-		console.log("e")
 		this.mouse = this.normalizeMouseEvent(e);
 		if(e.which == 3){
-			console.log("hi")
 			toolManager.handTool.onMouseMove(this.mouse);
 		}else{
 			// Throttle snap calculations to prevent excessive computation
@@ -423,7 +426,6 @@ class Stage extends View
 		this.mouse = this.normalizeMouseEvent(e);
 
 		if(e.which == 3){
-			console.log("hi")
 			toolManager.handTool.onMouseDown(this.mouse);
 		}else{
 			this.dispatchEvent('mouseDown', this.mouse);

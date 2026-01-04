@@ -25,6 +25,7 @@ import { SplineTool } 					from "./SplineTool.js";
 import { ScaleTool } 					from "./ScaleTool.js";
 import { MirrorTool } 					from "./MirrorTool.js";
 import { RotateTool } 					from "./RotateTool.js";
+import { ImageTool } 					from "./ImageTool.js";
 
 
 
@@ -66,15 +67,17 @@ class ToolManager extends EventDispatcher
 		this.scaleTool					= new ScaleTool();
 		this.mirrorTool					= new MirrorTool();
 		this.rotateTool					= new RotateTool();
+		this.imageTool					= new ImageTool();
 
 		// Tool palette configuration: [tool, displayName, shortcut]
 		this.toolPaletteConfig = [
 			{ category: 'Select' },
 			{ tool: this.pointerTool, 				name: 'Pointer', shortcut: 'V' },
 			{ tool: this.handTool, 					name: 'Hand', shortcut: 'H' },
-			{ category: 'Draw' },	
+			{ category: 'Draw' },
 			{ tool: this.lineTool, 					name: 'Line', shortcut: 'L' },
 			{ tool: this.boxTool, 					name: 'Box', shortcut: 'B' },
+			{ tool: this.imageTool, 				name: 'Image', shortcut: 'I' },
 			{ tool: this.circleTool,				name: 'Circle', shortcut: 'C' },
 			{ tool: this.oppositeCornerEllipseTool, name: 'Ellipse', shortcut: 'E' },
 			{ tool: this.centerPointEllipseTool, 	name: 'Ellipse (Center)', shortcut: '4' },
@@ -335,9 +338,38 @@ class ToolManager extends EventDispatcher
 				case 'n':
 					fileManager.newDocument();
 					break;
-	
+
+				case 'l':
+				case 'L':
+					if(stage.shiftKey){
+						// Shift+Cmd+L = Unlock all shapes
+						let unlockCount = 0;
+						for(const shape of data.shapes){
+							if(shape.locked){
+								shape.locked = false;
+								unlockCount++;
+							}
+						}
+						if(unlockCount > 0){
+							console.log(`Unlocked ${unlockCount} shape(s)`);
+							stage.render();
+						}
+					} else {
+						// Cmd+L = Lock selection
+						const selected = data.getSelected();
+						if(selected.length > 0){
+							for(const shape of selected){
+								shape.locked = true;
+								shape.selected = false; // Deselect when locking
+							}
+							console.log(`Locked ${selected.length} shape(s)`);
+							stage.render();
+						}
+					}
+					break;
+
 				default:
-			}	
+			}
 			return;
 		}
 
