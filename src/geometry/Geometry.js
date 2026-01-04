@@ -1,5 +1,6 @@
 import {Point} from './Point.js';
 import {Rectangle} from './Rectangle.js';
+import * as VectorUtils from './utils/VectorUtils.js';
 
 export const Shape = Object.freeze({
 	/*geometry*/
@@ -45,28 +46,23 @@ export class Geometry
 	 */
 	vectorBetweenPoints(startPoint, endPoint)
 	{
-		return {
-			x: endPoint.x - startPoint.x,
-			y: endPoint.y - startPoint.y
-		};
+		return VectorUtils.vectorBetweenPoints(startPoint, endPoint);
 	}
 
 	/**
 	 * Return the dot product of two vectors.
-	 * This measures how strongly vectorA points in the direction of vectorB.
 	 */
 	dotProduct(vectorA, vectorB)
 	{
-		return (vectorA.x * vectorB.x) + (vectorA.y * vectorB.y);
+		return VectorUtils.dotProduct(vectorA, vectorB);
 	}
 
 	/**
 	 * Return the squared length of a vector.
-	 * This avoids a sqrt and is preferred for comparisons and projections.
 	 */
 	vectorLengthSquared(vector)
 	{
-		return this.dotProduct(vector, vector);
+		return VectorUtils.lengthSquared(vector);
 	}
 
 	/**
@@ -74,19 +70,15 @@ export class Geometry
 	 */
 	vectorLength(vector)
 	{
-		return Math.sqrt(this.vectorLengthSquared(vector));
+		return VectorUtils.length(vector);
 	}
 
 	/**
 	 * Return the squared distance between two points.
-	 * This avoids a sqrt and is preferred for comparisons.
 	 */
 	squaredDistanceBetweenPoints(firstPoint, secondPoint)
 	{
-		const deltaX = firstPoint.x - secondPoint.x;
-		const deltaY = firstPoint.y - secondPoint.y;
-
-		return (deltaX * deltaX) + (deltaY * deltaY);
+		return VectorUtils.distanceSquared(firstPoint, secondPoint);
 	}
 
 	/**
@@ -94,7 +86,7 @@ export class Geometry
 	 */
 	distanceBetweenPoints(firstPoint, secondPoint)
 	{
-		return Math.sqrt(this.squaredDistanceBetweenPoints(firstPoint, secondPoint));
+		return VectorUtils.distance(firstPoint, secondPoint);
 	}
 
 	/**
@@ -102,77 +94,41 @@ export class Geometry
 	 */
 	clampNumber(value, minimumValue, maximumValue)
 	{
-		if(value < minimumValue){
-			return minimumValue;
-		}
-
-		if(value > maximumValue){
-			return maximumValue;
-		}
-
-		return value;
+		return VectorUtils.clamp(value, minimumValue, maximumValue);
 	}
 
 	/**
 	 * Return a normalized version of the input vector.
-	 * If the vector is too small to normalize, returns {x: 0, y: 0}.
 	 */
 	normalizeVector(vector)
 	{
-		const lengthSquared = this.vectorLengthSquared(vector);
-
-		if(lengthSquared === 0){
-			return {x: 0, y: 0};
-		}
-
-		const inverseLength = 1 / Math.sqrt(lengthSquared);
-
-		return {
-			x: vector.x * inverseLength,
-			y: vector.y * inverseLength
-		};
+		return VectorUtils.normalize(vector);
 	}
 
 	/**
 	 * Return the scalar projection of vectorToProject onto directionVector.
-	 * This returns "t" in the sense of "how far along directionVector".
-	 *
-	 * If directionVector is degenerate, returns 0.
 	 */
 	projectScalarOntoVector(vectorToProject, directionVector)
 	{
-		const directionLengthSquared = this.vectorLengthSquared(directionVector);
-
-		if(directionLengthSquared === 0){
-			return 0;
-		}
-
-		return this.dotProduct(vectorToProject, directionVector) / directionLengthSquared;
+		return VectorUtils.projectScalar(vectorToProject, directionVector);
 	}
 
 	/**
 	 * Return the closest point on the segment [segmentStart, segmentEnd] to a point.
-	 * By default this returns a Point, matching your existing behavior.
-	 *
 	 * If returnParametricT is true, returns { point, t } where t is clamped to [0, 1].
 	 */
 	closestPointOnSegment(point, segmentStart, segmentEnd, returnParametricT = false)
 	{
-		const segmentVector = this.vectorBetweenPoints(segmentStart, segmentEnd);
-		const pointFromStartVector = this.vectorBetweenPoints(segmentStart, point);
+		const result = VectorUtils.closestPointOnSegment(point, segmentStart, segmentEnd, returnParametricT);
 
-		let t = this.projectScalarOntoVector(pointFromStartVector, segmentVector);
-		t = this.clampNumber(t, 0, 1);
-
-		const closestPoint = new Point(
-			segmentStart.x + (t * segmentVector.x),
-			segmentStart.y + (t * segmentVector.y)
-		);
-
-		if(returnParametricT){
-			return {point: closestPoint, t};
+		if (returnParametricT) {
+			// Convert plain object to Point for backward compatibility
+			return {
+				point: new Point(result.point.x, result.point.y),
+				t: result.t
+			};
 		}
 
-		return closestPoint;
+		return new Point(result.x, result.y);
 	}
 }

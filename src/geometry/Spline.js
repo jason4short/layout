@@ -1,5 +1,8 @@
 import {Shape, Geometry} from './Geometry.js';
 import {Point} from './Point.js';
+import * as VectorUtils from './utils/VectorUtils.js';
+import * as TransformUtils from './utils/TransformUtils.js';
+import * as AngleUtils from './utils/AngleUtils.js';
 
 // Cubic Bezier Spline with 4 control points
 export class Spline extends Geometry
@@ -69,7 +72,6 @@ export class Spline extends Geometry
 		// Return all 4 control points
 		// POI indices: 0=p0(start), 1=p1(handle1), 2=p2(handle2), 3=p3(end)
 		return [this.p0, this.p1, this.p2, this.p3];
-		//return [this.p0, this.p3];
 	}
 
 	getGeoSnap(mouse, mouseRect, pixelTolerance)
@@ -87,7 +89,7 @@ export class Spline extends Geometry
 		for(let i = 0; i <= samples; i++){
 			const t = i / samples;
 			const pt = this.evaluate(t);
-			const dist = this.distanceBetweenPoints(mouse, pt);
+			const dist = VectorUtils.distance(mouse, pt);
 
 			if(dist < closestDist){
 				closestDist = dist;
@@ -104,7 +106,7 @@ export class Spline extends Geometry
 			for(let i = 0; i <= samples; i++){
 				const t = i / samples;
 				const pt = this.evaluate(t);
-				const dist = this.distanceBetweenPoints(mouse, pt);
+				const dist = VectorUtils.distance(mouse, pt);
 				if(dist < bestDist){
 					bestDist = dist;
 					bestT = t;
@@ -125,12 +127,12 @@ export class Spline extends Geometry
 				if(Math.abs(denominator) < 0.0001) break;
 
 				bestT -= numerator / denominator;
-				bestT = Math.max(0, Math.min(1, bestT));
+				bestT = VectorUtils.clamp(bestT, 0, 1);
 			}
 
 			const refined = this.evaluate(bestT);
 			closestPoint = new Point(refined.x, refined.y);
-			closestDist = this.distanceBetweenPoints(mouse, closestPoint);
+			closestDist = VectorUtils.distance(mouse, closestPoint);
 		}
 
 		if(closestPoint && closestDist < pixelTolerance){
@@ -151,7 +153,7 @@ export class Spline extends Geometry
 		for(let i = 0; i <= samples; i++){
 			const t = i / samples;
 			const pt = this.evaluate(t);
-			const dist = this.distanceBetweenPoints(point, pt);
+			const dist = VectorUtils.distance(point, pt);
 			if(dist < bestDist){
 				bestDist = dist;
 				bestT = t;
@@ -159,7 +161,7 @@ export class Spline extends Geometry
 		}
 
 		const d = this.evaluateDerivative(bestT);
-		return Math.atan2(-d.y, d.x) * (180 / Math.PI);
+		return AngleUtils.toDegrees(Math.atan2(-d.y, d.x));
 	}
 
 	// Approximate arc length
@@ -171,7 +173,7 @@ export class Spline extends Geometry
 		for(let i = 1; i <= samples; i++){
 			const t = i / samples;
 			const curr = this.evaluate(t);
-			len += this.distanceBetweenPoints(prev, curr);
+			len += VectorUtils.distance(prev, curr);
 			prev = curr;
 		}
 
@@ -191,78 +193,37 @@ export class Spline extends Geometry
 
 	// Translate the spline by offset
 	translate(dx, dy){
-		this.p0.x += dx;
-		this.p0.y += dy;
-		this.p1.x += dx;
-		this.p1.y += dy;
-		this.p2.x += dx;
-		this.p2.y += dy;
-		this.p3.x += dx;
-		this.p3.y += dy;
+		TransformUtils.translatePointInPlace(this.p0, dx, dy);
+		TransformUtils.translatePointInPlace(this.p1, dx, dy);
+		TransformUtils.translatePointInPlace(this.p2, dx, dy);
+		TransformUtils.translatePointInPlace(this.p3, dx, dy);
 		this.update();
 	}
 
 	// Scale the spline relative to an anchor point
 	scale(anchorX, anchorY, factor){
-		this.p0.x = anchorX + (this.p0.x - anchorX) * factor;
-		this.p0.y = anchorY + (this.p0.y - anchorY) * factor;
-		this.p1.x = anchorX + (this.p1.x - anchorX) * factor;
-		this.p1.y = anchorY + (this.p1.y - anchorY) * factor;
-		this.p2.x = anchorX + (this.p2.x - anchorX) * factor;
-		this.p2.y = anchorY + (this.p2.y - anchorY) * factor;
-		this.p3.x = anchorX + (this.p3.x - anchorX) * factor;
-		this.p3.y = anchorY + (this.p3.y - anchorY) * factor;
+		TransformUtils.scalePointInPlace(this.p0, anchorX, anchorY, factor);
+		TransformUtils.scalePointInPlace(this.p1, anchorX, anchorY, factor);
+		TransformUtils.scalePointInPlace(this.p2, anchorX, anchorY, factor);
+		TransformUtils.scalePointInPlace(this.p3, anchorX, anchorY, factor);
 		this.update();
 	}
 
 	// Rotate the spline around an anchor point by angle (in radians)
 	rotate(anchorX, anchorY, angleRad) {
-		const cos = Math.cos(angleRad);
-		const sin = Math.sin(angleRad);
-
-		const rotatePoint = (px, py) => {
-			const dx = px - anchorX;
-			const dy = py - anchorY;
-			return {
-				x: anchorX + dx * cos - dy * sin,
-				y: anchorY + dx * sin + dy * cos
-			};
-		};
-
-		const r0 = rotatePoint(this.p0.x, this.p0.y);
-		const r1 = rotatePoint(this.p1.x, this.p1.y);
-		const r2 = rotatePoint(this.p2.x, this.p2.y);
-		const r3 = rotatePoint(this.p3.x, this.p3.y);
-
-		this.p0.x = r0.x; this.p0.y = r0.y;
-		this.p1.x = r1.x; this.p1.y = r1.y;
-		this.p2.x = r2.x; this.p2.y = r2.y;
-		this.p3.x = r3.x; this.p3.y = r3.y;
-
+		TransformUtils.rotatePointInPlace(this.p0, anchorX, anchorY, angleRad);
+		TransformUtils.rotatePointInPlace(this.p1, anchorX, anchorY, angleRad);
+		TransformUtils.rotatePointInPlace(this.p2, anchorX, anchorY, angleRad);
+		TransformUtils.rotatePointInPlace(this.p3, anchorX, anchorY, angleRad);
 		this.update();
 	}
 
 	// Mirror the spline across a line defined by two points
 	mirror(x1, y1, x2, y2){
-		const mirrorPoint = (px, py) => {
-			const dx = x2 - x1;
-			const dy = y2 - y1;
-			const t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
-			const cx = x1 + t * dx;
-			const cy = y1 + t * dy;
-			return { x: 2 * cx - px, y: 2 * cy - py };
-		};
-
-		const m0 = mirrorPoint(this.p0.x, this.p0.y);
-		const m1 = mirrorPoint(this.p1.x, this.p1.y);
-		const m2 = mirrorPoint(this.p2.x, this.p2.y);
-		const m3 = mirrorPoint(this.p3.x, this.p3.y);
-
-		this.p0.x = m0.x; this.p0.y = m0.y;
-		this.p1.x = m1.x; this.p1.y = m1.y;
-		this.p2.x = m2.x; this.p2.y = m2.y;
-		this.p3.x = m3.x; this.p3.y = m3.y;
-
+		TransformUtils.mirrorPointInPlace(this.p0, x1, y1, x2, y2);
+		TransformUtils.mirrorPointInPlace(this.p1, x1, y1, x2, y2);
+		TransformUtils.mirrorPointInPlace(this.p2, x1, y1, x2, y2);
+		TransformUtils.mirrorPointInPlace(this.p3, x1, y1, x2, y2);
 		this.update();
 	}
 

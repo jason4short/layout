@@ -1,6 +1,7 @@
 import {Shape, Geometry} from './Geometry.js';
 import {Ellipse} from './Ellipse.js';
 import {Point} from './Point.js';
+import * as AngleUtils from './utils/AngleUtils.js';
 
 export class EllipticalArc extends Ellipse
 {
@@ -13,26 +14,9 @@ export class EllipticalArc extends Ellipse
 		this.endAngle 		= params[6];  // radians
 	}
 
-	// Normalize angle to [0, 2*PI)
-	normalizeAngle(angle) {
-		const TWO_PI = Math.PI * 2;
-		angle = angle % TWO_PI;
-		if (angle < 0) angle += TWO_PI;
-		return angle;
-	}
-
 	// Check if an angle is within the arc's range (counterclockwise from start to end)
 	containsAngle(angle) {
-		const normAngle = this.normalizeAngle(angle);
-		const normStart = this.normalizeAngle(this.startAngle);
-		const normEnd = this.normalizeAngle(this.endAngle);
-
-		if (normStart <= normEnd) {
-			return normAngle >= normStart && normAngle <= normEnd;
-		} else {
-			// Wrap-around case
-			return normAngle >= normStart || normAngle <= normEnd;
-		}
+		return AngleUtils.isAngleInRange(angle, this.startAngle, this.endAngle);
 	}
 
 	// Get point on ellipse at given angle
@@ -54,16 +38,7 @@ export class EllipticalArc extends Ellipse
 
 	// Get the midpoint angle of the arc
 	getMidAngle() {
-		const normStart = this.normalizeAngle(this.startAngle);
-		const normEnd = this.normalizeAngle(this.endAngle);
-
-		if (normStart <= normEnd) {
-			return (normStart + normEnd) / 2;
-		} else {
-			let mid = (normStart + normEnd + Math.PI * 2) / 2;
-			if (mid >= Math.PI * 2) mid -= Math.PI * 2;
-			return mid;
-		}
+		return AngleUtils.getMidAngle(this.startAngle, this.endAngle);
 	}
 
 	getSnapPOIs() {
@@ -127,9 +102,9 @@ export class EllipticalArc extends Ellipse
 	// Get parametric t value (0-1) for a point based on angle
 	getParametricT(point) {
 		const angle = this.getAngleForPoint(point.x, point.y);
-		const normAngle = this.normalizeAngle(angle);
-		const normStart = this.normalizeAngle(this.startAngle);
-		const normEnd = this.normalizeAngle(this.endAngle);
+		const normAngle = AngleUtils.normalizeAngle(angle);
+		const normStart = AngleUtils.normalizeAngle(this.startAngle);
+		const normEnd = AngleUtils.normalizeAngle(this.endAngle);
 
 		let sweep;
 		if (normStart <= normEnd) {
@@ -160,8 +135,7 @@ export class EllipticalArc extends Ellipse
 		const h = ((a - b) * (a - b)) / ((a + b) * (a + b));
 		const fullPerimeter = Math.PI * (a + b) * (1 + (3 * h) / (10 + Math.sqrt(4 - 3 * h)));
 
-		let sweep = this.endAngle - this.startAngle;
-		if (sweep < 0) sweep += Math.PI * 2;
+		const sweep = AngleUtils.getAngularSweep(this.startAngle, this.endAngle);
 
 		return fullPerimeter * (sweep / (Math.PI * 2));
 	}
@@ -221,16 +195,13 @@ export class EllipticalArc extends Ellipse
 			endAngle: this.endAngle
 		};
 	}
-// 		this.geometry 		= Shape.ELLIPTICAL_ARC;
 
 	static fromJSON(data) {
 		const ellipse = new EllipticalArc([data.x, data.y, data.radiusX, data.radiusY, data.rotation, data.startAngle, data.endAngle]);
 		ellipse.type = data.type;
 		ellipse.geometry = data.geometry;
 		if(data.penStyle) ellipse.penStyle = data.penStyle;
-		
+
 		return ellipse;
 	}
-
-
 }

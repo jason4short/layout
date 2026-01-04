@@ -1,5 +1,7 @@
 import {Shape, Geometry} from './Geometry.js';
 import {Point} from './Point.js';
+import * as VectorUtils from './utils/VectorUtils.js';
+import * as TransformUtils from './utils/TransformUtils.js';
 
 export class Ellipse extends Geometry
 {
@@ -79,7 +81,7 @@ export class Ellipse extends Geometry
 		const py = this.y + uy * this.radiusY;
 
 		const point = new Point(px, py);
-		point.distance = this.distanceBetweenPoints(mouse, point);
+		point.distance = VectorUtils.distance(mouse, point);
 
 		if(point.distance > pixelTolerance){
 			return null;
@@ -106,7 +108,7 @@ export class Ellipse extends Geometry
 
 	clone() {
 		let e = new Ellipse([this.x, this.y, this.radiusX, this.radiusY, this.rotation]);
-		e.type = this.type; 
+		e.type = this.type;
 		return e;
 	}
 
@@ -142,8 +144,9 @@ export class Ellipse extends Geometry
 
 	// Scale the ellipse relative to an anchor point
 	scale(anchorX, anchorY, factor){
-		this.x = anchorX + (this.x - anchorX) * factor;
-		this.y = anchorY + (this.y - anchorY) * factor;
+		const scaled = TransformUtils.scalePoint(this.x, this.y, anchorX, anchorY, factor);
+		this.x = scaled.x;
+		this.y = scaled.y;
 		this.radiusX = this.radiusX * Math.abs(factor);
 		this.radiusY = this.radiusY * Math.abs(factor);
 		this.update();
@@ -151,12 +154,9 @@ export class Ellipse extends Geometry
 
 	// Rotate the ellipse around an anchor point by angle (in radians)
 	rotate(anchorX, anchorY, angleRad) {
-		const cos = Math.cos(angleRad);
-		const sin = Math.sin(angleRad);
-		const dx = this.x - anchorX;
-		const dy = this.y - anchorY;
-		this.x = anchorX + dx * cos - dy * sin;
-		this.y = anchorY + dx * sin + dy * cos;
+		const rotated = TransformUtils.rotatePoint(this.x, this.y, anchorX, anchorY, angleRad);
+		this.x = rotated.x;
+		this.y = rotated.y;
 		// Rotate the ellipse's own rotation
 		this.rotation += angleRad;
 		this.update();
@@ -165,17 +165,13 @@ export class Ellipse extends Geometry
 	// Mirror the ellipse across a line defined by two points
 	mirror(x1, y1, x2, y2){
 		// Mirror center
-		const dx = x2 - x1;
-		const dy = y2 - y1;
-		const t = ((this.x - x1) * dx + (this.y - y1) * dy) / (dx * dx + dy * dy);
-		const cx = x1 + t * dx;
-		const cy = y1 + t * dy;
-		this.x = 2 * cx - this.x;
-		this.y = 2 * cy - this.y;
+		const mirrored = TransformUtils.mirrorPoint(this.x, this.y, x1, y1, x2, y2);
+		this.x = mirrored.x;
+		this.y = mirrored.y;
 
 		// Reflect rotation across mirror line angle
-		const lineAngle = Math.atan2(dy, dx);
-		this.rotation = 2 * lineAngle - this.rotation;
+		const lineAngle = TransformUtils.getMirrorLineAngle(x1, y1, x2, y2);
+		this.rotation = TransformUtils.mirrorAngle(this.rotation, lineAngle);
 
 		this.update();
 	}

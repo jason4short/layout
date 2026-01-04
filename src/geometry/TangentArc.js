@@ -1,5 +1,8 @@
 import {Shape, Geometry} from './Geometry.js';
 import {Point} from './Point.js';
+import * as AngleUtils from './utils/AngleUtils.js';
+import * as VectorUtils from './utils/VectorUtils.js';
+import * as TransformUtils from './utils/TransformUtils.js';
 
 // Arc defined by start point, tangent direction, and end point
 // The tangent handle can be edited to change the arc's curvature
@@ -38,9 +41,8 @@ export class TangentArc extends Geometry
 		const endPoint = this.endPoint;
 
 		// Tangent direction vector
-		const tx = tangentPoint.x - startPoint.x;
-		const ty = tangentPoint.y - startPoint.y;
-		const tLen = Math.sqrt(tx * tx + ty * ty);
+		const tangentVec = VectorUtils.vectorBetweenPoints(startPoint, tangentPoint);
+		const tLen = VectorUtils.length(tangentVec);
 
 		if (tLen < 1e-10) {
 			this.radius = 0;
@@ -48,13 +50,11 @@ export class TangentArc extends Geometry
 		}
 
 		// Normalized tangent
-		const tnx = tx / tLen;
-		const tny = ty / tLen;
+		const tangentNorm = VectorUtils.normalize(tangentVec);
 
 		// Vector from start to end
-		const dx = endPoint.x - startPoint.x;
-		const dy = endPoint.y - startPoint.y;
-		const dLen = Math.sqrt(dx * dx + dy * dy);
+		const chordVec = VectorUtils.vectorBetweenPoints(startPoint, endPoint);
+		const dLen = VectorUtils.length(chordVec);
 
 		if (dLen < 1e-10) {
 			this.radius = 0;
@@ -63,33 +63,33 @@ export class TangentArc extends Geometry
 
 		// The center lies on the perpendicular to the tangent at startPoint
 		// Perpendicular direction (rotate tangent 90 degrees)
-		const px = -tny;
-		const py = tnx;
+		const perpDir = VectorUtils.perpendicular(tangentNorm);
 
 		// The center also lies on the perpendicular bisector of start-end chord
 		// Midpoint of chord
-		const mx = (startPoint.x + endPoint.x) / 2;
-		const my = (startPoint.y + endPoint.y) / 2;
+		const midpoint = {
+			x: (startPoint.x + endPoint.x) / 2,
+			y: (startPoint.y + endPoint.y) / 2
+		};
 
 		// Direction perpendicular to chord
-		const cx = -dy;
-		const cy = dx;
+		const chordPerp = { x: -chordVec.y, y: chordVec.x };
 
 		// Find intersection of:
-		// Line 1: startPoint + t * (px, py)
-		// Line 2: midpoint + s * (cx, cy)
-		const denom = px * cy - py * cx;
+		// Line 1: startPoint + t * perpDir
+		// Line 2: midpoint + s * chordPerp
+		const denom = perpDir.x * chordPerp.y - perpDir.y * chordPerp.x;
 
 		if (Math.abs(denom) < 1e-10) {
 			this.radius = 0;
 			return;
 		}
 
-		const t = ((mx - startPoint.x) * cy - (my - startPoint.y) * cx) / denom;
+		const t = ((midpoint.x - startPoint.x) * chordPerp.y - (midpoint.y - startPoint.y) * chordPerp.x) / denom;
 
 		// Center point
-		this.x = startPoint.x + t * px;
-		this.y = startPoint.y + t * py;
+		this.x = startPoint.x + t * perpDir.x;
+		this.y = startPoint.y + t * perpDir.y;
 
 		// Radius
 		this.radius = Math.abs(t);
@@ -107,10 +107,10 @@ export class TangentArc extends Geometry
 		const expectedTangentCCW = radiusAngle + Math.PI / 2;
 		const expectedTangentCW = radiusAngle - Math.PI / 2;
 
-		const tangentAngle = Math.atan2(tny, tnx);
+		const tangentAngle = Math.atan2(tangentNorm.y, tangentNorm.x);
 
-		const diffCCW = this.normalizeAngle(tangentAngle - expectedTangentCCW);
-		const diffCW = this.normalizeAngle(tangentAngle - expectedTangentCW);
+		const diffCCW = AngleUtils.normalizeAngleSigned(tangentAngle - expectedTangentCCW);
+		const diffCW = AngleUtils.normalizeAngleSigned(tangentAngle - expectedTangentCW);
 
 		const goCCW = Math.abs(diffCCW) < Math.abs(diffCW);
 
@@ -123,12 +123,6 @@ export class TangentArc extends Geometry
 		}
 
 		this.updateBoundingBox();
-	}
-
-	normalizeAngle(angle) {
-		while (angle > Math.PI) angle -= Math.PI * 2;
-		while (angle < -Math.PI) angle += Math.PI * 2;
-		return angle;
 	}
 
 	updateBoundingBox() {
@@ -150,18 +144,7 @@ export class TangentArc extends Geometry
 
 	// Check if angle is within arc range
 	containsAngle(angle) {
-		const TWO_PI = Math.PI * 2;
-		const normalize = (a) => ((a % TWO_PI) + TWO_PI) % TWO_PI;
-
-		const normAngle = normalize(angle);
-		const normStart = normalize(this.startAngle);
-		const normEnd = normalize(this.endAngle);
-
-		if (normStart <= normEnd) {
-			return normAngle >= normStart && normAngle <= normEnd;
-		} else {
-			return normAngle >= normStart || normAngle <= normEnd;
-		}
+		return AngleUtils.isAngleInRange(angle, this.startAngle, this.endAngle);
 	}
 
 	getGeoSnap(mouse, mouseRect, pixelTolerance) {
@@ -230,59 +213,33 @@ export class TangentArc extends Geometry
 
 	// Translate by offset
 	translate(dx, dy) {
-		this.startPoint.x += dx;
-		this.startPoint.y += dy;
-		this.tangentPoint.x += dx;
-		this.tangentPoint.y += dy;
-		this.endPoint.x += dx;
-		this.endPoint.y += dy;
+		TransformUtils.translatePointInPlace(this.startPoint, dx, dy);
+		TransformUtils.translatePointInPlace(this.tangentPoint, dx, dy);
+		TransformUtils.translatePointInPlace(this.endPoint, dx, dy);
 		this.recalculate();
 	}
 
 	// Scale relative to anchor
 	scale(anchorX, anchorY, factor) {
-		this.startPoint.x = anchorX + (this.startPoint.x - anchorX) * factor;
-		this.startPoint.y = anchorY + (this.startPoint.y - anchorY) * factor;
-		this.tangentPoint.x = anchorX + (this.tangentPoint.x - anchorX) * factor;
-		this.tangentPoint.y = anchorY + (this.tangentPoint.y - anchorY) * factor;
-		this.endPoint.x = anchorX + (this.endPoint.x - anchorX) * factor;
-		this.endPoint.y = anchorY + (this.endPoint.y - anchorY) * factor;
+		TransformUtils.scalePointInPlace(this.startPoint, anchorX, anchorY, factor);
+		TransformUtils.scalePointInPlace(this.tangentPoint, anchorX, anchorY, factor);
+		TransformUtils.scalePointInPlace(this.endPoint, anchorX, anchorY, factor);
 		this.recalculate();
 	}
 
 	// Rotate around anchor
 	rotate(anchorX, anchorY, angleRad) {
-		const cos = Math.cos(angleRad);
-		const sin = Math.sin(angleRad);
-
-		const rotatePoint = (p) => {
-			const dx = p.x - anchorX;
-			const dy = p.y - anchorY;
-			p.x = anchorX + dx * cos - dy * sin;
-			p.y = anchorY + dx * sin + dy * cos;
-		};
-
-		rotatePoint(this.startPoint);
-		rotatePoint(this.tangentPoint);
-		rotatePoint(this.endPoint);
+		TransformUtils.rotatePointInPlace(this.startPoint, anchorX, anchorY, angleRad);
+		TransformUtils.rotatePointInPlace(this.tangentPoint, anchorX, anchorY, angleRad);
+		TransformUtils.rotatePointInPlace(this.endPoint, anchorX, anchorY, angleRad);
 		this.recalculate();
 	}
 
 	// Mirror across line
 	mirror(x1, y1, x2, y2) {
-		const mirrorPoint = (p) => {
-			const dx = x2 - x1;
-			const dy = y2 - y1;
-			const t = ((p.x - x1) * dx + (p.y - y1) * dy) / (dx * dx + dy * dy);
-			const cx = x1 + t * dx;
-			const cy = y1 + t * dy;
-			p.x = 2 * cx - p.x;
-			p.y = 2 * cy - p.y;
-		};
-
-		mirrorPoint(this.startPoint);
-		mirrorPoint(this.tangentPoint);
-		mirrorPoint(this.endPoint);
+		TransformUtils.mirrorPointInPlace(this.startPoint, x1, y1, x2, y2);
+		TransformUtils.mirrorPointInPlace(this.tangentPoint, x1, y1, x2, y2);
+		TransformUtils.mirrorPointInPlace(this.endPoint, x1, y1, x2, y2);
 		this.recalculate();
 	}
 

@@ -1,24 +1,21 @@
 import {Shape, Geometry} from './Geometry.js';
 import {Point} from './Point.js';
-	
+import * as VectorUtils from './utils/VectorUtils.js';
+import * as TransformUtils from './utils/TransformUtils.js';
+import * as CircleUtils from './utils/CircleUtils.js';
+
 export class Circle extends Geometry
 {
-	// private members
-
 	constructor(params)
 	{
 		super();
-		// this.init();		
-		this.type 			= Shape.PLAIN;		
+		this.type 			= Shape.PLAIN;
 		this.geometry		= Shape.CIRCLE;
-		
+
 		this.x 				= params[0];
 		this.y 				= params[1];
 		this.radius 		= params[2];
 		this.updateBoundingBox();
-	}
-
-	init(){
 	}
 
 	update(){
@@ -56,22 +53,22 @@ export class Circle extends Geometry
 			{ x: this.x - this.radius, y: this.y },
 			{ x: this.x, y: this.y + this.radius},
 			{ x: this.x, y: this.y - this.radius}
-			
+
 		];
 	}
-	
+
 	getGeoSnap(mouse, mouseRect, pixelTolerance)
 	{
 		// Quick reject
 		if(!this.bounds.intersects(mouseRect)){
 			return null;
 		}
-		
-		// If the circle is degenerate, it can’t be snapped as geometry.
+
+		// If the circle is degenerate, it can't be snapped as geometry.
 		if(this.radius <= 0){return null;}
 
 		const centerPoint = new Point(this.x, this.y);
-		const distanceToCenter = this.distanceBetweenPoints(mouse, centerPoint);
+		const distanceToCenter = VectorUtils.distance(mouse, centerPoint);
 
 		if(distanceToCenter === 0){return null;}
 
@@ -87,23 +84,20 @@ export class Circle extends Geometry
 		const point = new Point(
 			this.x + (directionX * this.radius),
 			this.y + (directionY * this.radius));
-		
-		point.distance = this.distanceBetweenPoints(mouse, point);
-		
+
+		point.distance = VectorUtils.distance(mouse, point);
+
 		return point;
 	}
-	
+
 	length() {
-		return 2 * Math.PI * this.radius;
+		return CircleUtils.circumference(this.radius);
 	}
 
 	// Get tangent angle (in degrees) at a point on the circle
 	// Tangent is perpendicular to the radius at that point
 	getTangentAngle(point) {
-		const radiusAngle = Math.atan2(point.y - this.y, point.x - this.x);
-		// Tangent is perpendicular to radius (add 90°)
-		const tangentAngle = radiusAngle + Math.PI / 2;
-		return tangentAngle * (180 / Math.PI);
+		return CircleUtils.getTangentAngle(this.x, this.y, point.x, point.y);
 	}
 
 	// Translate the circle by offset
@@ -115,33 +109,27 @@ export class Circle extends Geometry
 
 	// Scale the circle relative to an anchor point
 	scale(anchorX, anchorY, factor){
-		this.x = anchorX + (this.x - anchorX) * factor;
-		this.y = anchorY + (this.y - anchorY) * factor;
+		const scaled = TransformUtils.scalePoint(this.x, this.y, anchorX, anchorY, factor);
+		this.x = scaled.x;
+		this.y = scaled.y;
 		this.radius = this.radius * Math.abs(factor);
 		this.update();
 	}
 
 	// Rotate the circle around an anchor point by angle (in radians)
 	rotate(anchorX, anchorY, angleRad) {
-		const cos = Math.cos(angleRad);
-		const sin = Math.sin(angleRad);
-		const dx = this.x - anchorX;
-		const dy = this.y - anchorY;
-		this.x = anchorX + dx * cos - dy * sin;
-		this.y = anchorY + dx * sin + dy * cos;
+		const rotated = TransformUtils.rotatePoint(this.x, this.y, anchorX, anchorY, angleRad);
+		this.x = rotated.x;
+		this.y = rotated.y;
 		// radius stays the same
 		this.update();
 	}
 
 	// Mirror the circle across a line defined by two points
 	mirror(x1, y1, x2, y2){
-		const dx = x2 - x1;
-		const dy = y2 - y1;
-		const t = ((this.x - x1) * dx + (this.y - y1) * dy) / (dx * dx + dy * dy);
-		const cx = x1 + t * dx;
-		const cy = y1 + t * dy;
-		this.x = 2 * cx - this.x;
-		this.y = 2 * cy - this.y;
+		const mirrored = TransformUtils.mirrorPoint(this.x, this.y, x1, y1, x2, y2);
+		this.x = mirrored.x;
+		this.y = mirrored.y;
 		// radius stays the same
 		this.update();
 	}
@@ -159,10 +147,7 @@ export class Circle extends Geometry
 			case 3: // bottom quadrant
 			case 4: // top quadrant
 				// Calculate new radius from center to new point
-				this.radius = Math.sqrt(
-					Math.pow(newX - this.x, 2) +
-					Math.pow(newY - this.y, 2)
-				);
+				this.radius = VectorUtils.distance({x: this.x, y: this.y}, {x: newX, y: newY});
 				break;
 		}
 		this.update();
@@ -186,4 +171,3 @@ export class Circle extends Geometry
 		return circle;
 	}
 }
-
