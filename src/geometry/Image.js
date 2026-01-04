@@ -21,6 +21,8 @@ export class Image extends Geometry
 		this.loaded 		= false;
 		this.error 			= false;
 		this.rotation 		= 0;     // rotation in radians
+		this.flipX 			= false; // horizontal flip
+		this.flipY 			= false; // vertical flip
 
 		// Images default to locked for tracing
 		this.locked 		= true;
@@ -91,6 +93,8 @@ export class Image extends Geometry
 		img.loaded 		= this.loaded;
 		img.locked 		= this.locked;
 		img.rotation 	= this.rotation;
+		img.flipX 		= this.flipX;
+		img.flipY 		= this.flipY;
 		return img;
 	}
 
@@ -107,6 +111,8 @@ export class Image extends Geometry
 		this.loaded = other.loaded;
 		this.locked = other.locked;
 		this.rotation = other.rotation;
+		this.flipX = other.flipX;
+		this.flipY = other.flipY;
 		this.update();
 	}
 
@@ -224,9 +230,40 @@ export class Image extends Geometry
 
 	// Mirror the image across a line defined by two points
 	mirror(x1, y1, x2, y2){
-		const mirrored = TransformUtils.mirrorPoint(this.x, this.y, x1, y1, x2, y2);
-		this.x = mirrored.x;
-		this.y = mirrored.y;
+		// Mirror the center position
+		const centerX = this.x + this.width / 2;
+		const centerY = this.y + this.height / 2;
+		const mirrored = TransformUtils.mirrorPoint(centerX, centerY, x1, y1, x2, y2);
+
+		// Update position based on mirrored center
+		this.x = mirrored.x - this.width / 2;
+		this.y = mirrored.y - this.height / 2;
+
+		// Calculate mirror line angle (0 = horizontal, π/2 = vertical)
+		const mirrorAngle = Math.atan2(y2 - y1, x2 - x1);
+
+		// Normalize angle to [0, π) since mirror lines are bidirectional
+		const normalizedAngle = ((mirrorAngle % Math.PI) + Math.PI) % Math.PI;
+
+		// Determine flip axis based on mirror line orientation
+		// Vertical line (around π/2): flip horizontally
+		// Horizontal line (around 0 or π): flip vertically
+		// For arbitrary angles, we adjust rotation and flip
+
+		if(Math.abs(normalizedAngle - Math.PI/2) < 0.01){
+			// Nearly vertical mirror line - flip horizontally
+			this.flipX = !this.flipX;
+			this.rotation = -this.rotation;
+		} else if(normalizedAngle < 0.01 || Math.abs(normalizedAngle - Math.PI) < 0.01){
+			// Nearly horizontal mirror line - flip vertically
+			this.flipY = !this.flipY;
+			this.rotation = -this.rotation;
+		} else {
+			// Arbitrary angle - reflect rotation and flip
+			this.rotation = 2 * mirrorAngle - this.rotation;
+			this.flipX = !this.flipX;
+		}
+
 		this.update();
 	}
 
@@ -286,6 +323,8 @@ export class Image extends Geometry
 			width: this.width,
 			height: this.height,
 			rotation: this.rotation,
+			flipX: this.flipX,
+			flipY: this.flipY,
 			src: this.src
 		};
 	}
@@ -296,6 +335,8 @@ export class Image extends Geometry
 		if(data.penStyle) img.penStyle = data.penStyle;
 		if(data.locked !== undefined) img.locked = data.locked;
 		if(data.rotation !== undefined) img.rotation = data.rotation;
+		if(data.flipX !== undefined) img.flipX = data.flipX;
+		if(data.flipY !== undefined) img.flipY = data.flipY;
 
 		// Load the image from path
 		if(data.src){

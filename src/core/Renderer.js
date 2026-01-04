@@ -285,15 +285,21 @@ export class Renderer
 				const centerX = topLeft.x + width / 2;
 				const centerY = topLeft.y + height / 2;
 
-				// Save context for rotation
+				// Save context for transforms
 				ctx.save();
 
-				// Rotate around center
+				// Apply rotation and flip around center
+				ctx.translate(centerX, centerY);
 				if(shape.rotation !== 0){
-					ctx.translate(centerX, centerY);
 					ctx.rotate(shape.rotation);
-					ctx.translate(-centerX, -centerY);
 				}
+				// Apply flip
+				const scaleX = shape.flipX ? -1 : 1;
+				const scaleY = shape.flipY ? -1 : 1;
+				if(shape.flipX || shape.flipY){
+					ctx.scale(scaleX, scaleY);
+				}
+				ctx.translate(-centerX, -centerY);
 
 				// Draw the image if loaded
 				if(shape.loaded && shape.imageElement){
