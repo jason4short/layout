@@ -63,6 +63,15 @@ class Stage extends View
 
 		this.renderer 			= new Renderer();
 
+		// Dirty flag rendering - prevents redundant draws
+		this._isDirty 			= true;
+		this._rafId 			= null;
+		this._renderLoop 		= this._renderLoop.bind(this);
+
+		// Throttle snap calculations (~60fps max)
+		this._lastSnapTime 		= 0;
+		this._snapThrottleMs 	= 16; // ~60fps
+
         return Stage.instance;
 	}
 	
@@ -87,8 +96,48 @@ class Stage extends View
 		this.render();
     }
 
-	/** Redraw everything. */
-	render(){
+	/**
+	 * Mark the stage as needing a redraw.
+	 * Coalesces multiple calls into a single render via requestAnimationFrame.
+	 */
+	markDirty() {
+		if (this._isDirty) return; // Already scheduled
+		this._isDirty = true;
+
+		if (this._rafId === null) {
+			this._rafId = requestAnimationFrame(this._renderLoop);
+		}
+	}
+
+	/**
+	 * Internal render loop - called by requestAnimationFrame.
+	 * Only renders if dirty flag is set.
+	 */
+	_renderLoop() {
+		this._rafId = null;
+
+		if (this._isDirty) {
+			this._isDirty = false;
+			this.renderer.draw();
+
+			// Update inspector panel
+			const insp = getInspector();
+			if (insp) insp.update();
+		}
+	}
+
+	/**
+	 * Redraw everything immediately (synchronous).
+	 * Use markDirty() for most cases to batch updates.
+	 */
+	render() {
+		// Cancel any pending RAF to avoid double-render
+		if (this._rafId !== null) {
+			cancelAnimationFrame(this._rafId);
+			this._rafId = null;
+		}
+		this._isDirty = false;
+
 		this.renderer.draw();
 		// Update inspector panel
 		const insp = getInspector();
@@ -345,10 +394,15 @@ class Stage extends View
 		if(e.which == 3){
 			console.log("hi")
 			toolManager.handTool.onMouseMove(this.mouse);
-		}else{		
-			draftingAssistant.snap(this.mouse, toolManager.generateGuides());
+		}else{
+			// Throttle snap calculations to prevent excessive computation
+			const now = performance.now();
+			if (now - this._lastSnapTime >= this._snapThrottleMs) {
+				this._lastSnapTime = now;
+				draftingAssistant.snap(this.mouse, toolManager.generateGuides());
+			}
 			this.dispatchEvent('mouseMove', this.mouse);
-			this.render();
+			this.markDirty(); // Batches renders via RAF
 		}
 	}
 

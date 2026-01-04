@@ -9,7 +9,8 @@ import {SnapPoint} 				from '../geometry/SnapPoint.js';
 import draftingAssistant 		from '../geometry/DraftingAssistant.js';
 import {Intersections} 			from './Intersections.js';
 import {Intersection}			from './Intersection.js';
-	
+import {SpatialGrid}			from './SpatialGrid.js';
+
 import undoManager				from '../core/UndoManager.js';
 
 import {	AddConstructionCommand,
@@ -58,15 +59,23 @@ class Data
 		// geometry solver class
 		this.intersections			= new Intersections();
 
+		// Spatial grid for fast neighbor queries
+		this.spatialGrid			= new SpatialGrid(100); // 100 world units per cell
+
 		// Clipboard for copy/paste
 		this.clipboard				= [];
+
+		// Stable shape ID counter
+		this._nextShapeId = 1;
 
 		// This is a singleton class
         return Data.instance;
 	}
-	
-	// generate an ID for each shape
-	generateID(){ Math.random().toString(36).slice(2);}
+
+	// Generate a unique ID for each shape
+	generateID(){
+		return `shape_${this._nextShapeId++}`;
+	}
 
 	// --------------------------------------------------------------------------------
 	// Intersection Management
@@ -130,14 +139,16 @@ class Data
 		// Remove old intersections
 		this.removeIntersectionsForShape(shape);
 
-		// Find new intersections with all other shapes
-		for(const other of this.shapes){
-			if(other !== shape){
-				this.findAndRegisterIntersections(shape, other);
-			}
+		// Update position in spatial grid
+		this.spatialGrid.updateShape(shape);
+
+		// Find new intersections using spatial grid (O(n×k) instead of O(n²))
+		const neighbors = this.spatialGrid.getNeighbors(shape);
+		for(const neighbor of neighbors){
+			this.findAndRegisterIntersections(shape, neighbor);
 		}
 
-		// Find new intersections with constructions
+		// Find new intersections with constructions (not in grid)
 		for(const construction of this.constructions){
 			this.findAndRegisterIntersections(shape, construction);
 		}
@@ -463,6 +474,7 @@ class Data
 		let index = this.shapes.indexOf(shape);
 		if(index > -1){
 			this.shapes.splice(index, 1);
+			this.spatialGrid.removeShape(shape);
 			this.removeIntersectionsForShape(shape);
 			this.rebuildPOIs();
 			return;
@@ -490,12 +502,16 @@ class Data
 		// Store POIs for this shape
 		this.storeShapePOIs(newShape);
 
-		// Find intersections with existing shapes
-		for(const shape of this.shapes){
-			this.findAndRegisterIntersections(newShape, shape);
+		// Add to spatial grid for efficient neighbor queries
+		this.spatialGrid.addShape(newShape);
+
+		// Find intersections using spatial grid (O(n×k) instead of O(n²))
+		const neighbors = this.spatialGrid.getNeighbors(newShape);
+		for(const neighbor of neighbors){
+			this.findAndRegisterIntersections(newShape, neighbor);
 		}
 
-		// Find intersections with existing constructions
+		// Also check constructions (not in spatial grid)
 		for(const construction of this.constructions){
 			this.findAndRegisterIntersections(newShape, construction);
 		}

@@ -1,223 +1,202 @@
-import stage from '../core/Stage.js';
-import data from '../data/Data.js';
-
-// IntersectionManager.js
-
 /**
- * IntersectionManager
- * ------------------
- * Maintains an incremental index of pairwise intersections between shapes.
- * - Reuses your Rectangle class for bounds and overlap checks.
- * - Accepts a getShapeBounds callback to adapt your shape objects to an AABB.
- * - Optionally subscribes to your Data store for add/update/remove.
+ * SpatialGrid - Spatial indexing for fast neighbor queries
  *
- * Required per-shape properties for intersection math:
- *  - type: "lineSegment" | "circle" | ... (extend as needed)
- *  - For line segments: { ax, ay, bx, by }
- *  - For circles: { cx, cy, r }
- *
- * Public API:
- *  - getAllIntersectionSnapPoints(): Array<{ x, y, source: { a, b } }>
- *  - addShape(shape), updateShape(shape), removeShape(shapeId)  (used if not auto-wired)
+ * Uses a grid-based spatial hash to find shapes that might intersect.
+ * Reduces intersection checks from O(n²) to O(n × k) where k is average neighbors.
  */
 
 export class SpatialGrid {
 
-	constructor(gridCellSize = 128, mergeTolerance = 1e-6)
-	{
-		this.spatialGrid 			= new Map();		// pairKey `${x},${y}`;
-		this.intersectionsByPair 	= new Map();		// pairKey -> Array<{x:number, y:number}>
+	constructor(gridCellSize = 100) {
+		// Grid cell size in world units
+		this.gridCellSize = gridCellSize;
 
-		this.gridW		 		= Math.floor(Math.sqrt(gridCellSize));
+		// Map: gridKey → Set<shape>
+		this.grid = new Map();
 
-		this.gridCellSize 		= this.gridW * this.gridW;
-		this.mergeTolerance 	= mergeTolerance;
+		// Map: shape → Set<gridKey> (for fast removal)
+		this.shapeToKeys = new Map();
 	}
 
-	// Add a shape and compute its intersections with nearby shapes
-	addShape(shape) {
-		this.insertIntoSpatialGrid(shape);
-		//this.recomputePairsForShape(shape.id);
-	}
-
-	// Update a shape and recompute only affected pairs
-	updateShape(shape) {
-		this.removeFromSpatialGrid(shape);
-		this.insertIntoSpatialGrid(shape);
-
-		this.deletePairsInvolving(shape);
-		this.recomputePairsForShape(shape.id);
-	}
-
-	// Remove a shape and clear any intersections that mention it
-	removeShape(shape) {
-// 		if(!this.shapesById.has(shapeId)) return;
-		
-		this.removeFromSpatialGrid(shape);
-// 		this.shapesById.delete(shapeId);
-		this.deletePairsInvolving(shape);
-	}
-
-
-	// Get a de-duplicated array of intersection snap points.
-	getAllIntersectionSnapPoints() {
-		const uniqueByKey = new Map();
-		for(const [pairKey, points] of this.intersectionsByPair.entries()) {
-			const [a, b] = pairKey.split('|');
-			for(const point of points) {
-				const key = this.makePointKey(point.x, point.y);
-				if(!uniqueByKey.has(key)) {
-					uniqueByKey.set(key, { x: point.x, y: point.y, source: { a, b } });
-				}
-			}
-		}
-		return Array.from(uniqueByKey.values());
-	}
-
-
-
-
-
-
-	// ----------------- Private helpers: spatial hashing -----------------
-
-	// Insert a shape into the spatial grid.
-	insertIntoSpatialGrid(shape) {
-	
-		// Convert the bounding box corners into grid indices
-		const x0 = this.gridIndex(shape.bounds.x);
-		const y0 = this.gridIndex(shape.bounds.y);
-		const x1 = this.gridIndex(shape.bounds.x + shape.bounds.width);
-		const y1 = this.gridIndex(shape.bounds.y + shape.bounds.height);
-	
-		// Loop through all grid cells covered by the bounding box
-		for (let x = x0; x <= x1; x++) {
-			for (let y = y0; y <= y1; y++) {
-
-				// Create a unique key for this cell, e.g. "2,5"
-				const key = this.gridKey(x, y);
-	
-				// Look up the set of shapes already in this cell
-				let shapes = this.spatialGrid.get(key);
-	
-				// If no set exists yet for this cell, create one and store it
-				if (!shapes) {
-					shapes = new Set();
-					this.spatialGrid.set(key, shapes);
-				}
-				shapes.add(shape);
-			}
-		}
-	}
-	
-	
 	/**
-	 * Returns the IDs of shapes that share at least one spatial grid cell
-	 * @returns {Set<string>} Unique neighbor shape IDs
+	 * Clear all shapes from the grid
 	 */
-	 // why send shapeId just to get the shape - 
-	getNeighbors(shape)
-	{
-		// Allocate a Set to hold unique neighbor IDs.
-		const neighbors = new Set();
-	
-		// Read the shape's axis-aligned bounds and convert the corners to grid indices.
-		const x0 = this.gridIndex(shape.bounds.x);
-		const y0 = this.gridIndex(shape.bounds.y);
-		const x1 = this.gridIndex(shape.bounds.x + shape.bounds.width);
-		const y1 = this.gridIndex(shape.bounds.y + shape.bounds.height);
-	
-		// For every grid cell overlapped by the bounds, merge the resident IDs into neighbors.
-		for (let x = x0; x <= x1; x++) {
-			for (let y = y0; y <= y1; y++) {
+	clear() {
+		this.grid.clear();
+		this.shapeToKeys.clear();
+	}
 
-				// Compute the cell key and get the Set of IDs stored for that cell.
-				const key = this.gridKey(x, y);
-				const shapes = this.spatialGrid.get(key);
+	/**
+	 * Add a shape to the spatial grid
+	 * @param {Object} shape - Shape with bounds property
+	 */
+	addShape(shape) {
+		if (!shape.bounds) return;
 
-				// Empty cells are skipped quickly.
-				if(!shapes) continue;
-	
-				// Add every other shape ID in the cell; skip the original shape.
-				for(const id of shapes){
-					if(id !== shape.id) neighbors.add(otherId);
+		const keys = this.getKeysForBounds(shape.bounds);
+		this.shapeToKeys.set(shape, keys);
+
+		for (const key of keys) {
+			if (!this.grid.has(key)) {
+				this.grid.set(key, new Set());
+			}
+			this.grid.get(key).add(shape);
+		}
+	}
+
+	/**
+	 * Remove a shape from the spatial grid
+	 * @param {Object} shape - Shape to remove
+	 */
+	removeShape(shape) {
+		const keys = this.shapeToKeys.get(shape);
+		if (!keys) return;
+
+		for (const key of keys) {
+			const cell = this.grid.get(key);
+			if (cell) {
+				cell.delete(shape);
+				// Clean up empty cells
+				if (cell.size === 0) {
+					this.grid.delete(key);
 				}
 			}
 		}
-	
-		// Return the unique neighbor IDs discovered across all overlapped cells.
+
+		this.shapeToKeys.delete(shape);
+	}
+
+	/**
+	 * Update a shape's position in the grid (after transform)
+	 * @param {Object} shape - Shape that moved
+	 */
+	updateShape(shape) {
+		this.removeShape(shape);
+		this.addShape(shape);
+	}
+
+	/**
+	 * Get all shapes that might intersect with the given shape
+	 * @param {Object} shape - Shape to find neighbors for
+	 * @returns {Set<Object>} Set of potential neighbor shapes (excluding self)
+	 */
+	getNeighbors(shape) {
+		const neighbors = new Set();
+
+		if (!shape.bounds) return neighbors;
+
+		const keys = this.getKeysForBounds(shape.bounds);
+
+		for (const key of keys) {
+			const cell = this.grid.get(key);
+			if (!cell) continue;
+
+			for (const other of cell) {
+				if (other !== shape) {
+					neighbors.add(other);
+				}
+			}
+		}
+
 		return neighbors;
 	}
-	
-	removeFromSpatialGrid(shape)
-	{
-		for(const shapes of this.spatialGrid.values()){
-			if(shapes.has(shape.id))
-				shapes.delete(shape.id);
-		}
-	}
 
-	gridIndex(value)
-	{
-		// flip to int and bitwise to get 64 or 128 cells
-		return Math.floor(value / this.gridCellSize);
-	}
+	/**
+	 * Get all shapes within a world-space rectangle
+	 * @param {Object} rect - Rectangle with x, y, width, height
+	 * @returns {Set<Object>} Set of shapes in the region
+	 */
+	queryRect(rect) {
+		const results = new Set();
+		const keys = this.getKeysForBounds(rect);
 
-	gridKey(x, y) {
-		return `${x},${y}`;
-	}
+		for (const key of keys) {
+			const cell = this.grid.get(key);
+			if (!cell) continue;
 
-
-
-	// ----------------- Private helpers: pair bookkeeping -----------------
-
-	pairKey(aId, bId) {
-		return (aId < bId) ? `${aId}|${bId}` : `${bId}|${aId}`;
-	}
-
-	deletePairsInvolving(shape) {
-		for(const key of Array.from(this.intersectionsByPair.keys())){
-			if(key.startsWith(shape.id + '|') || key.endsWith('|' + shape.id)) {
-				this.intersectionsByPair.delete(key);
+			for (const shape of cell) {
+				// Double-check bounds intersection for accuracy
+				if (shape.bounds && this.boundsIntersect(shape.bounds, rect)) {
+					results.add(shape);
+				}
 			}
 		}
+
+		return results;
 	}
 
-	// xxx
-	recomputePairsForShape(shape) {
+	/**
+	 * Get all shapes within radius of a point
+	 * @param {Object} point - Point with x, y
+	 * @param {number} radius - Search radius in world units
+	 * @returns {Set<Object>} Set of shapes in range
+	 */
+	queryRadius(point, radius) {
+		const rect = {
+			x: point.x - radius,
+			y: point.y - radius,
+			width: radius * 2,
+			height: radius * 2
+		};
+		return this.queryRect(rect);
+	}
 
-		const neighbors = this.getNeighbors(shape);
-		
-		for(const otherId of neighbors){
-			// checks if ID is in use by a shape 
-			// XXX need workaround for this
-			const other = this.shapesById.get(otherId);
-			if(!other) continue;
+	// ==================== Private Helpers ====================
 
-			// Use your Rectangle-based overlap (via adapter) to cheap-reject non-overlapping pairs
-			//const a = this.getShapeBounds(shape);
-			//const b = this.getShapeBounds(other);
-			//if(!aabbIntersects(a, b)) continue;
-			// XXX arrrrrg
-			
-			if(!shape.intersects(other)) continue;
-			
-			const pairKey 	= this.pairKey(shape.id, other.id);
-			const points 	= computeIntersections(shape, other, this.mergeTolerance);
+	/**
+	 * Get grid cell keys that a bounding box overlaps
+	 * @private
+	 */
+	getKeysForBounds(bounds) {
+		const keys = new Set();
 
-			if(points.length > 0) {
-				this.intersectionsByPair.set(pairKey, points);
-			} else {
-				this.intersectionsByPair.delete(pairKey);
+		const x0 = Math.floor(bounds.x / this.gridCellSize);
+		const y0 = Math.floor(bounds.y / this.gridCellSize);
+		const x1 = Math.floor((bounds.x + bounds.width) / this.gridCellSize);
+		const y1 = Math.floor((bounds.y + bounds.height) / this.gridCellSize);
+
+		for (let x = x0; x <= x1; x++) {
+			for (let y = y0; y <= y1; y++) {
+				keys.add(`${x},${y}`);
 			}
 		}
+
+		return keys;
 	}
 
-	// ----------------- Private helpers: stable rounding key -----------------
+	/**
+	 * Check if two rectangles intersect
+	 * @private
+	 */
+	boundsIntersect(a, b) {
+		return !(
+			a.x + a.width < b.x ||
+			b.x + b.width < a.x ||
+			a.y + a.height < b.y ||
+			b.y + b.height < a.y
+		);
+	}
 
-	makePointKey(x, y) {
-		const qx = Math.round(x / this.mergeTolerance);
-		const qy = Math.round(y / this.mergeTolerance);
-		return `${qx}:${qy}`;
+	// ==================== Debug Helpers ====================
+
+	/**
+	 * Get stats about the grid
+	 */
+	getStats() {
+		let totalShapes = 0;
+		let maxPerCell = 0;
+
+		for (const cell of this.grid.values()) {
+			totalShapes += cell.size;
+			maxPerCell = Math.max(maxPerCell, cell.size);
+		}
+
+		return {
+			cellCount: this.grid.size,
+			shapeCount: this.shapeToKeys.size,
+			avgShapesPerCell: this.grid.size > 0 ? totalShapes / this.grid.size : 0,
+			maxShapesPerCell: maxPerCell,
+			cellSize: this.gridCellSize
+		};
 	}
 }

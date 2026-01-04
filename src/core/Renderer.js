@@ -71,13 +71,61 @@ export class Renderer
 		ctx.setLineDash([]);
 	}
 
+	/**
+	 * Get the visible viewport in world coordinates.
+	 * Used for frustum culling - skip drawing shapes outside viewport.
+	 */
+	getViewport() {
+		const canvasWidth = stage.canvas.clientWidth;
+		const canvasHeight = stage.canvas.clientHeight;
+
+		// Convert screen corners to world coords
+		const topLeft = stage.screenToWorld(0, 0);
+		const bottomRight = stage.screenToWorld(canvasWidth, canvasHeight);
+
+		return {
+			x: topLeft.x,
+			y: topLeft.y,
+			width: bottomRight.x - topLeft.x,
+			height: bottomRight.y - topLeft.y,
+			// For quick checks
+			minX: topLeft.x,
+			minY: topLeft.y,
+			maxX: bottomRight.x,
+			maxY: bottomRight.y
+		};
+	}
+
+	/**
+	 * Check if a shape's bounds intersect the viewport.
+	 * Returns true if shape should be drawn.
+	 */
+	isInViewport(shape, viewport) {
+		const bounds = shape.bounds;
+		if (!bounds) return true; // No bounds = always draw
+
+		// AABB intersection test
+		return !(
+			bounds.x + bounds.width < viewport.minX ||
+			bounds.x > viewport.maxX ||
+			bounds.y + bounds.height < viewport.minY ||
+			bounds.y > viewport.maxY
+		);
+	}
+
 	draw()
 	{
 		let ctx = stage.ctx;
 		ctx.clearRect(0, 0, stage.canvas.width, stage.canvas.height);
 
+		// Calculate viewport once for frustum culling
+		const viewport = this.getViewport();
+
 		for(const shape of data.getShapesToRender())
 		{
+			// Frustum culling - skip shapes entirely outside viewport
+			if (!this.isInViewport(shape, viewport)) continue;
+
 			ctx.beginPath();
 			this.applyPenStyle(ctx, shape);
 
