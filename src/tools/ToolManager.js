@@ -246,7 +246,11 @@ class ToolManager extends EventDispatcher
  
 	onKeyDown(e)
 	{
-		console.log(e.key)
+		if(e.key == 'd'){
+			console.log(data.snapPoint.x, data.snapPoint.y)
+		}
+
+// 		console.log(e.key)
 		if(stage.commandKey){
 			stage.setCursor('command', 8, 8);
 			this.strokeTool.activate();
@@ -352,6 +356,10 @@ class ToolManager extends EventDispatcher
 				
 			case 'F1':
 				this.setTool(this.pointerTool);
+				break;
+
+			case 'F2':
+				this.setTool(this.lineTool);
 				break;
 				
 			case 'F3':

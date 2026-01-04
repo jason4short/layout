@@ -206,4 +206,31 @@ export class EllipticalArc extends Ellipse
 		}
 		this.update();
 	}
+
+	toJSON() {
+		return {
+			type: this.type,
+			geometry: this.geometry,
+			penStyle: this.penStyle,
+			x: this.x,
+			y: this.y,
+			radiusX: this.radiusX,
+			radiusY: this.radiusY,
+			rotation: this.rotation,
+			startAngle: this.startAngle,
+			endAngle: this.endAngle
+		};
+	}
+// 		this.geometry 		= Shape.ELLIPTICAL_ARC;
+
+	static fromJSON(data) {
+		const ellipse = new EllipticalArc([data.x, data.y, data.radiusX, data.radiusY, data.rotation, data.startAngle, data.endAngle]);
+		ellipse.type = data.type;
+		ellipse.geometry = data.geometry;
+		if(data.penStyle) ellipse.penStyle = data.penStyle;
+		
+		return ellipse;
+	}
+
+
 }

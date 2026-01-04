@@ -208,6 +208,19 @@ export class TangentArc extends Geometry
 		return t;
 	}
 
+	copyFrom(other) {
+		this.startPoint.x = other.startPoint.x;
+		this.startPoint.y = other.startPoint.y;
+		this.tangentPoint.x = other.tangentPoint.x;
+		this.tangentPoint.y = other.tangentPoint.y;
+		this.endPoint.x = other.endPoint.x;
+		this.endPoint.y = other.endPoint.y;
+		this.type = other.type;
+		this.geometry = other.geometry;
+		this.penStyle = other.penStyle;
+		this.recalculate();
+	}
+
 	// Arc length
 	length() {
 		let span = this.endAngle - this.startAngle;

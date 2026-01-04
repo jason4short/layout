@@ -32,6 +32,14 @@ export class Construction extends Line
 	init(){
 	}
 
+	clone(){
+		let l = new Construction([this.start.x, this.start.y, this.end.x, this.end.y]);
+		l.type 		= this.type;
+		l.geometry	= this.geometry;
+		l.penStyle	= this.penStyle;
+		return l;
+	}
+
 	getAngleRadians(){
 		return this.angle * (Math.PI / 180);
 	}

@@ -2,13 +2,16 @@ import data from '../data/Data.js';
 import stage from './Stage.js';
 import undoManager from './UndoManager.js';
 
-import {Shape} from '../geometry/Geometry.js';
-import {Line} from '../geometry/Line.js';
-import {Circle} from '../geometry/Circle.js';
-import {Arc} from '../geometry/Arc.js';
-import {TangentArc} from '../geometry/TangentArc.js';
-import {Ellipse} from '../geometry/Ellipse.js';
-import {Spline} from '../geometry/Spline.js';
+import {Shape} 				from '../geometry/Geometry.js';
+import {Line} 				from '../geometry/Line.js';
+import {Circle} 			from '../geometry/Circle.js';
+import {Arc} 				from '../geometry/Arc.js';
+import {TangentArc} 		from '../geometry/TangentArc.js';
+import {Ellipse} 			from '../geometry/Ellipse.js';
+import {EllipticalArc} 		from '../geometry/EllipticalArc.js';
+import {Spline} 			from '../geometry/Spline.js';
+
+
 import {Construction} from '../geometry/Construction.js';
 
 class FileManager
@@ -103,6 +106,8 @@ class FileManager
 				return Ellipse.fromJSON(shapeData);
 			case Shape.SPLINE:
 				return Spline.fromJSON(shapeData);
+			case Shape.ELLIPTICAL_ARC:
+				return EllipticalArc.fromJSON(shapeData);
 			default:
 				console.warn('Unknown geometry type:', shapeData.geometry);
 				return null;

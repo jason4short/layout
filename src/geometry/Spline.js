@@ -68,8 +68,8 @@ export class Spline extends Geometry
 	getSnapPOIs() {
 		// Return all 4 control points
 		// POI indices: 0=p0(start), 1=p1(handle1), 2=p2(handle2), 3=p3(end)
-		//return [this.p0, this.p1, this.p2, this.p3];
-		return [this.p0, this.p3];
+		return [this.p0, this.p1, this.p2, this.p3];
+		//return [this.p0, this.p3];
 	}
 
 	getGeoSnap(mouse, mouseRect, pixelTolerance)

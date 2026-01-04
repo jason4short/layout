@@ -42,7 +42,7 @@ export class InputHandler
 		if(e.key === 'Enter'){
 			if(typeof this.onDimensionCommit === 'function'){
 				this.onDimensionCommit(this.dimensionInputNumber);
-				this.input.value = '';
+				//this.input.value = '';
 				this.input.blur();			
 			}
 		}

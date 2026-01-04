@@ -307,43 +307,56 @@ export class ChamferCommand extends Command {
 	}
 }
 
-// Fillet command - creates arc and trims two lines
+// Fillet command - creates arc and trims two shapes (lines, arcs, or circles)
+// Note: Circles are never trimmed (original is null), only lines and arcs are trimmed
 export class FilletCommand extends Command {
-	constructor(arc, line1, line2, line1Original, line2Original) {
+	constructor(arc, shape1, shape2, shape1Original, shape2Original) {
 		super('Fillet');
 		this.arc = arc;
-		this.line1 = line1;
-		this.line2 = line2;
-		// Store clones of original line states for undo
-		this.line1Original = line1Original;
-		this.line2Original = line2Original;
+		this.shape1 = shape1;
+		this.shape2 = shape2;
+		// Store clones of original shape states for undo (null for circles)
+		this.shape1Original = shape1Original;
+		this.shape2Original = shape2Original;
 		// Store trimmed states for redo (captured on first execute)
-		this.line1Trimmed = null;
-		this.line2Trimmed = null;
+		this.shape1Trimmed = null;
+		this.shape2Trimmed = null;
 		this.firstExecute = true;
 	}
 
 	execute() {
 		if (this.firstExecute) {
 			this.firstExecute = false;
-			// Capture trimmed states for later redo
-			this.line1Trimmed = this.line1.clone();
-			this.line2Trimmed = this.line2.clone();
+			// Capture trimmed states for later redo (only for shapes that were trimmed)
+			if (this.shape1Original) {
+				this.shape1Trimmed = this.shape1.clone();
+			}
+			if (this.shape2Original) {
+				this.shape2Trimmed = this.shape2.clone();
+			}
 			return;
 		}
 
-		// Redo: add arc and apply trimmed line states
+		// Redo: add arc and apply trimmed shape states
 		data.addShape(this.arc);
-		this.line1.copyFrom(this.line1Trimmed);
-		this.line2.copyFrom(this.line2Trimmed);
+		if (this.shape1Trimmed) {
+			this.shape1.copyFrom(this.shape1Trimmed);
+		}
+		if (this.shape2Trimmed) {
+			this.shape2.copyFrom(this.shape2Trimmed);
+		}
 	}
 
 	undo() {
 		// Remove the arc
 		data.deleteShape(this.arc);
-		// Restore lines to original state
-		this.line1.copyFrom(this.line1Original);
-		this.line2.copyFrom(this.line2Original);
+		// Restore shapes to original state (only if they were trimmed)
+		if (this.shape1Original) {
+			this.shape1.copyFrom(this.shape1Original);
+		}
+		if (this.shape2Original) {
+			this.shape2.copyFrom(this.shape2Original);
+		}
 	}
 }
 

@@ -232,8 +232,7 @@ export class Renderer
 			}
 		}
 
-/*
-	debugging
+///* debugging
 	
 		// Draw snap point indicators
 		for(const intersection of data.getIntersectionCandidates())
@@ -255,7 +254,7 @@ export class Renderer
 			ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
 			ctx.stroke();
 		}
-*/
+//*/
 		// Draw snap point indicators
 		for(const intersection of data.snapPoints)
 		{

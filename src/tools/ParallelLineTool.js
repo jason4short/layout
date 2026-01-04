@@ -5,7 +5,9 @@ import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
 import undoManager		from '../core/UndoManager.js';
-import {AddShapeCommand, MoveCommand} from '../core/Commands.js';
+import {AddShapeCommand,
+		AddConstructionCommand,
+			MoveCommand} from '../core/Commands.js';
 
 const STATE = {
 	IDLE: 0,		// Waiting for click on a line
@@ -139,7 +141,12 @@ export class ParallelLineTool extends Tool
 		// Commit the preview line
 		data.removeTempShape();
 		this.previewLine.update();
-		undoManager.execute(new AddShapeCommand(this.previewLine));
+	
+		if(this.previewLine.type == Shape.CONSTRUCTION){
+			undoManager.execute(new AddConstructionCommand(this.previewLine));
+		}else{
+			undoManager.execute(new AddShapeCommand(this.previewLine));
+		}
 
 		// Keep reference for dimension adjustment
 		this.createdLine = this.previewLine;
