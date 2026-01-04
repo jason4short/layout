@@ -54,6 +54,7 @@ class FileManager
 		data.constructions = [];
 		data.intersectionSet.clear();
 		data.intersectionsByShape.clear();
+		data.spatialGrid.clear();
 		data.shapePOIs = [];
 		data.selectedPoints.clear();
 		data.resetSnaps();
@@ -171,6 +172,7 @@ class FileManager
 		data.constructions = [];
 		data.intersectionSet.clear();
 		data.intersectionsByShape.clear();
+		data.spatialGrid.clear();
 		data.shapePOIs = [];
 		data.selectedPoints.clear();
 		data.resetSnaps();
