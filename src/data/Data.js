@@ -220,13 +220,6 @@ class Data
 		}
 	}
 	
-	getTargetShape(mouse){
-		let snap = draftingAssistant.findNearestSnapPoint_OnShape(mouse, this.getShapes());
-		if(snap){
-			return snap.shape;
-		}
-	}
-	
 	getSelected(){
 		const shapes = this.getShapes();
 		let selectedShapes = [];
@@ -252,24 +245,51 @@ class Data
 		return intersections;
 	}
 	
-	selectShape(mouse, shiftKey){
-		// clear selection unless shift is held
-		if(shiftKey == false){this.selectNone();}
-
-		// Filter out locked shapes from selection
-		const selectableShapes = this.shapes.filter(s => !s.locked);
-		let snap = draftingAssistant.findNearestSnapPoint_OnShape(mouse, selectableShapes);
-		if(snap){
-			// Toggle selection if shift is held, otherwise select
-			if(shiftKey){
-				snap.shape.selected = !snap.shape.selected;
-			}else{
-				snap.shape.selected = true;
-			}
-			return snap.shape;
+// 	selectShape2(mouse, shiftKey){
+// 		// clear selection unless shift is held
+// 		if(shiftKey == false){this.selectNone();}
+// 
+// 		// Filter out locked shapes from selection
+// 		const selectableShapes = this.shapes.filter(s => !s.locked);
+// 		
+// 		let snap = draftingAssistant.findNearestSnapPoint_OnShape(mouse, selectableShapes);
+// 
+// 		if(snap){
+// 			// Toggle selection if shift is held, otherwise select
+// 			if(shiftKey){
+// 				snap.shape.selected = !snap.shape.selected;
+// 			}else{
+// 				snap.shape.selected = true;
+// 			}
+// 			return snap.shape;
+// 		}
+// 	}
+	
+	getTargetShape(){
+		if(this.snapPoint.shape){
+			return this.snapPoint.shape
+		}else {
+			return null;
 		}
 	}
 	
+	
+	selectSnapShape(shiftKey){
+		if(!this.snapPoint.shape) {
+			this.selectNone();
+			return;
+		}
+
+		if(this.snapPoint.shape.locked || this.snapPoint.shape.type == Shape.GUIDE) return;
+		
+		if(shiftKey){
+			this.snapPoint.shape.selected = !this.snapPoint.shape.selected;
+		}else{
+			this.selectNone();
+			this.snapPoint.shape.selected = true;
+		}
+	}
+		
 	selectNone(){
 		for(let i = 0; i < this.shapes.length; i++){
 			this.shapes[i].selected = false;
@@ -285,6 +305,13 @@ class Data
 			return snap.shape;
 		}
 		return null;
+	}
+
+	// Toggle control point visibility on a shape (Cmd+click)
+	toggleControlPoints(){
+		if(this.snapPoint.shape){
+			this.snapPoint.shape.showControlPoints = !this.snapPoint.shape.showControlPoints;
+		}
 	}
 
 	selectAll(){

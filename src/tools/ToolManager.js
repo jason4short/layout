@@ -211,9 +211,14 @@ class ToolManager extends EventDispatcher
 	onMouseDown(e)
 	{
 		if(stage.spaceKey){
-			this.handTool.onMouseDown(e);				
+			this.handTool.onMouseDown(e);
+			
 		}else if(stage.commandKey){
 			this.strokeTool.onMouseDown(e);
+			
+		}else if(stage.shiftKey){
+			this.pointerTool.onMouseDown(e);
+			
 		}else{
 			this.currentTool.onMouseDown(e);
 		}
@@ -223,8 +228,13 @@ class ToolManager extends EventDispatcher
 	{
 		if(stage.spaceKey){
 			this.handTool.onMouseMove(e);
+			
 		}else if(stage.commandKey){
 			this.strokeTool.onMouseMove(e);
+
+		}else if(stage.shiftKey){
+			this.pointerTool.onMouseMove(e);
+
 		}else{
 			this.currentTool.onMouseMove(e);
 		}
@@ -234,8 +244,13 @@ class ToolManager extends EventDispatcher
 	{
 		if(stage.spaceKey){
 			this.handTool.onMouseUp(e);
+			
 		}else if(stage.commandKey){
 			this.strokeTool.onMouseUp(e);
+			
+		}else if(stage.shiftKey){
+			this.pointerTool.onMouseUp(e);
+
 		}else{
 			this.currentTool.onMouseUp(e);
 		}
@@ -249,6 +264,7 @@ class ToolManager extends EventDispatcher
  
 	onKeyDown(e)
 	{
+// 		console.log("onKeyDown"+ e);
 		if(e.key == 'd'){
 			console.log(data.snapPoint.x, data.snapPoint.y)
 		}
@@ -259,16 +275,13 @@ class ToolManager extends EventDispatcher
 			this.strokeTool.activate();
 			data.resetSnaps();
 
-
 		} else if(stage.spaceKey){
 			stage.setCursor('hand');
 
 		} else if(stage.shiftKey){
 			stage.setCursor('default');
 
-		} else {
-			this.currentTool.updateCursor();
-		}
+		} 
 		
 		if(stage.commandKey){
 			switch(e.key){
@@ -434,20 +447,30 @@ class ToolManager extends EventDispatcher
 				}
 				stage.render();
 				break;
+
+			case '`':
+				// Toggle performance monitor
+				stage.togglePerfMonitor();
+				break;
 		}
 	}
 	
 	
 	onKeyUp(e)
 	{
+//		console.log("onKeyUp toolMan"+ e);
+
 		// Handle command key release - deactivate strokeTool and restore cursor
 		if(e.key == 'Meta'){
 			if(this.strokeTool.active){
 				this.strokeTool.deactivate();
 			}
-			return;
 		}
+
+		if(!(stage.commandKey && stage.spaceKey && stage.shiftKey)){
 			this.currentTool.updateCursor();
+		}
+			
 // 
 // 		// Handle shift key release - restore cursor
 // 		if(stage.shiftKey){

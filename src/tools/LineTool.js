@@ -88,7 +88,9 @@ export class LineTool extends Tool
 		this.line.end.x = data.snapPoint.x
 		this.line.end.y = data.snapPoint.y
 		
-		if(this.line.length() < 5){
+		// Check minimum length in screen pixels (not world units)
+		const screenLength = stage.worldToScreenScale(this.line.length());
+		if(screenLength < 5){
 			// do nothing, we're still defining the line
 		}else{
 			this.line.update();

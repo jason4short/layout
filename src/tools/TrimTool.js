@@ -53,61 +53,55 @@ export class TrimTool extends Tool
 
 	onMouseDown(e)
 	{
-		data.resetSnaps();
-		if(stage.shiftKey){
-			// Toggle boundary selection
-			data.selectShape(e, stage.shiftKey);
+		// Get boundaries and attempt trim/extend
+		const clickedShape = data.getTargetShape();
+
+		if(!clickedShape) return;
+
+		// Reset tracking for this operation
+		this.shapesRemoved = [];
+		this.shapesAdded = [];
+		this.originalStates = [];
+
+		// Filter out the clicked shape from boundaries (can't trim a shape against itself)
+		const boundaries = data.getSelected().filter(s => s !== clickedShape);
+
+		if(stage.optionKey){
+			this.extendLine(clickedShape, boundaries, e);
 		}else{
-			// Get boundaries and attempt trim/extend
-			const clickedShape = data.getTargetShape(e);
+			// Handle different shape types
+			if(clickedShape.geometry === Shape.LINE){
+				this.trimLine(clickedShape, boundaries, e);
 
-			if(!clickedShape){
-				return;
-			}
+			}else if(clickedShape.geometry === Shape.CIRCLE){
+				this.trimCircle(clickedShape, boundaries, e);
 
-			// Reset tracking for this operation
-			this.shapesRemoved = [];
-			this.shapesAdded = [];
-			this.originalStates = [];
+			}else if(clickedShape.geometry === Shape.ARC){
+				this.trimArc(clickedShape, boundaries, e);
 
-			// Filter out the clicked shape from boundaries (can't trim a shape against itself)
-			const boundaries = data.getSelected().filter(s => s !== clickedShape);
-
-			if(stage.optionKey){
-				this.extendLine(clickedShape, boundaries, e);
-			}else{
-				// Handle different shape types
-				if(clickedShape.geometry === Shape.LINE){
-					this.trimLine(clickedShape, boundaries, e);
-
-				}else if(clickedShape.geometry === Shape.CIRCLE){
-					this.trimCircle(clickedShape, boundaries, e);
-
-				}else if(clickedShape.geometry === Shape.ARC){
-					this.trimArc(clickedShape, boundaries, e);
-
-				}else if(clickedShape.geometry === Shape.ELLIPSE || clickedShape.geometry === Shape.ELLIPTICAL_ARC){
-					this.trimEllipse(clickedShape, boundaries, e);
-				}
-			}
-
-			// Execute command if changes were made
-			if(this.shapesRemoved.length > 0 || this.shapesAdded.length > 0){
-				undoManager.execute(new TrimCommand(
-					this.shapesRemoved,
-					this.shapesAdded,
-					this.originalStates
-				));
+			}else if(clickedShape.geometry === Shape.ELLIPSE || clickedShape.geometry === Shape.ELLIPTICAL_ARC){
+				this.trimEllipse(clickedShape, boundaries, e);
 			}
 		}
+
+		// Execute command if changes were made
+		if(this.shapesRemoved.length > 0 || this.shapesAdded.length > 0){
+			undoManager.execute(new TrimCommand(
+				this.shapesRemoved,
+				this.shapesAdded,
+				this.originalStates
+			));
+		}
+		
 		stage.render();
 	}
 	
 	onMouseMove(e){
 		
 	}
+	
 	onMouseUp(e){
-		
+	//	data.resetSnaps();		
 	}
 
 // 	// Find clicked shape, excluding boundary shapes

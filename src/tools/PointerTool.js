@@ -318,6 +318,7 @@ export class PointerTool extends Tool
 			if(this.isCloning && this.clonedShapes.length > 0){
 				// Record clone command for undo (shapes already added)
 				undoManager.record(new AddShapesCommand(this.clonedShapes));
+				
 			} else if(this.originalPositions.length > 0){
 				// Record move command for undo
 				// Build moveData with old and new positions
@@ -339,9 +340,13 @@ export class PointerTool extends Tool
 			// Finish marquee selection
 			data.selectByMarquee(this.marqueeRect, stage.shiftKey);
 			this.marqueeRect = null;
+			
 		} else if(this.dragStart && !this.isDragging && !this.isMoving){
 			// It was a click, not a drag - use existing click selection
-			data.selectShape(e, stage.shiftKey);
+			//data.selectShape(e, stage.shiftKey);
+			data.selectSnapShape(stage.shiftKey);
+		}else{
+			data.selectNone();
 		}
 
 		this.resetDrag();

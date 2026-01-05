@@ -282,8 +282,6 @@ export class Renderer
 				const topLeft = this.toScreen(shape.x, shape.y);
 				const width = this.toScreenScale(shape.width);
 				const height = this.toScreenScale(shape.height);
-				const centerX = topLeft.x + width / 2;
-				const centerY = topLeft.y + height / 2;
 
 				// Save context for transforms
 				ctx.save();
@@ -293,22 +291,44 @@ export class Renderer
 					ctx.globalAlpha = shape.opacity;
 				}
 
-				// Apply rotation and flip around center
-				ctx.translate(centerX, centerY);
-				if(shape.rotation !== 0){
-					ctx.rotate(shape.rotation);
-				}
-				// Apply flip
-				const scaleX = shape.flipX ? -1 : 1;
-				const scaleY = shape.flipY ? -1 : 1;
-				if(shape.flipX || shape.flipY){
-					ctx.scale(scaleX, scaleY);
-				}
-				ctx.translate(-centerX, -centerY);
-
 				// Draw the image if loaded
 				if(shape.loaded && shape.imageElement){
-					ctx.drawImage(shape.imageElement, topLeft.x, topLeft.y, width, height);
+					const img = shape.imageElement;
+					const needsTransform = shape.rotation !== 0 || shape.flipX || shape.flipY;
+
+					if(needsTransform){
+						// Apply rotation and flip around center
+						const centerX = topLeft.x + width / 2;
+						const centerY = topLeft.y + height / 2;
+						ctx.translate(centerX, centerY);
+						if(shape.rotation !== 0) ctx.rotate(shape.rotation);
+						if(shape.flipX || shape.flipY) ctx.scale(shape.flipX ? -1 : 1, shape.flipY ? -1 : 1);
+						ctx.translate(-centerX, -centerY);
+						ctx.drawImage(img, topLeft.x, topLeft.y, width, height);
+					} else {
+						// No transform - use optimized partial draw for high zoom
+						const canvasW = stage.canvas.clientWidth;
+						const canvasH = stage.canvas.clientHeight;
+
+						// Clamp to visible area
+						const dstLeft = Math.max(0, topLeft.x);
+						const dstTop = Math.max(0, topLeft.y);
+						const dstRight = Math.min(canvasW, topLeft.x + width);
+						const dstBottom = Math.min(canvasH, topLeft.y + height);
+
+						if(dstRight > dstLeft && dstBottom > dstTop){
+							// Calculate corresponding source region
+							const srcLeft = ((dstLeft - topLeft.x) / width) * img.naturalWidth;
+							const srcTop = ((dstTop - topLeft.y) / height) * img.naturalHeight;
+							const srcRight = ((dstRight - topLeft.x) / width) * img.naturalWidth;
+							const srcBottom = ((dstBottom - topLeft.y) / height) * img.naturalHeight;
+
+							ctx.drawImage(img,
+								srcLeft, srcTop, srcRight - srcLeft, srcBottom - srcTop,
+								dstLeft, dstTop, dstRight - dstLeft, dstBottom - dstTop
+							);
+						}
+					}
 				} else {
 					// Draw placeholder rectangle
 					ctx.fillStyle = shape.error ? '#FFEEEE' : '#F0F0F0';

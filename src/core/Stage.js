@@ -72,6 +72,15 @@ class Stage extends View
 		this._lastSnapTime 		= 0;
 		this._snapThrottleMs 	= 16; // ~60fps
 
+		// Performance monitoring
+		this._perfMonitorEnabled = false;
+		this._perfElement 		= null;
+		this._lastFrameTime 	= 0;
+		this._frameIntervals 	= [];
+		this._drawTimes 		= [];
+		this._snapTimes 		= [];
+		this._maxFrameSamples 	= 60; // Rolling average over 60 frames
+
         return Stage.instance;
 	}
 	
@@ -120,14 +129,22 @@ class Stage extends View
 
 		if (this._isDirty) {
 			this._isDirty = false;
+
+			const startTime = performance.now();
 			this.renderer.draw();
+			const frameTime = performance.now() - startTime;
+
+			if (this._perfMonitorEnabled) {
+				this._updatePerfMonitor(frameTime);
+			}
 
 			// Update inspector panel
 			const insp = getInspector();
 			if (insp) insp.update();
 		}
 	}
-
+	
+	
 	/**
 	 * Redraw everything immediately (synchronous).
 	 * Use markDirty() for most cases to batch updates.
@@ -140,13 +157,119 @@ class Stage extends View
 		}
 		this._isDirty = false;
 
+		const startTime = performance.now();
 		this.renderer.draw();
+		const frameTime = performance.now() - startTime;
+
+		if (this._perfMonitorEnabled) {
+			this._updatePerfMonitor(frameTime);
+		}
+
 		// Update inspector panel
 		const insp = getInspector();
 		if (insp) insp.update();
 	}
 
+	/**
+	 * Toggle performance monitor display
+	 */
+	togglePerfMonitor() {
+		this._perfMonitorEnabled = !this._perfMonitorEnabled;
+
+		if (this._perfMonitorEnabled) {
+			this._createPerfElement();
+		} else if (this._perfElement) {
+			this._perfElement.style.display = 'none';
+		}
+	}
+
+	/**
+	 * Create or show the performance monitor DOM element
+	 */
+	_createPerfElement() {
+		if (!this._perfElement) {
+			this._perfElement = document.createElement('div');
+			this._perfElement.id = 'perfMonitor';
+			this._perfElement.style.cssText = `
+				position: fixed;
+				top: 8px;
+				right: 8px;
+				background: rgba(0, 0, 0, 0.75);
+				color: #0f0;
+				font-family: monospace;
+				font-size: 12px;
+				padding: 6px 10px;
+				border-radius: 4px;
+				z-index: 10000;
+				pointer-events: none;
+				min-width: 100px;
+			`;
+			document.body.appendChild(this._perfElement);
+		}
+		this._perfElement.style.display = 'block';
+		this._frameIntervals = [];
+		this._drawTimes = [];
+		this._snapTimes = [];
+		this._lastFrameTime = 0;
+	}
+
+	/**
+	 * Update the performance monitor with new frame timing
+	 */
+	_updatePerfMonitor(drawTimeMs) {
+		if (!this._perfElement) return;
+
+		const now = performance.now();
+
+		// Track frame interval (time between frames)
+		if (this._lastFrameTime > 0) {
+			const interval = now - this._lastFrameTime;
+			this._frameIntervals.push(interval);
+			if (this._frameIntervals.length > this._maxFrameSamples) {
+				this._frameIntervals.shift();
+			}
+		}
+		this._lastFrameTime = now;
+
+		// Track draw time
+		this._drawTimes.push(drawTimeMs);
+		if (this._drawTimes.length > this._maxFrameSamples) {
+			this._drawTimes.shift();
+		}
+
+		// Calculate stats
+		const avgInterval = this._frameIntervals.length > 0
+			? this._frameIntervals.reduce((a, b) => a + b, 0) / this._frameIntervals.length
+			: 16.67;
+		const fps = 1000 / avgInterval;
+
+		const avgDrawTime = this._drawTimes.reduce((a, b) => a + b, 0) / this._drawTimes.length;
+
+		// Snap timing
+		const avgSnapTime = this._snapTimes.length > 0
+			? this._snapTimes.reduce((a, b) => a + b, 0) / this._snapTimes.length
+			: 0;
+
+		// Shape count
+		const shapeCount = data.shapes.length;
+
+		// Color code based on performance
+		let color = '#0f0'; // Green = good
+		if (avgInterval > 20) color = '#ff0'; // Yellow = below 50fps
+		if (avgInterval > 33) color = '#f00'; // Red = below 30fps
+
+		this._perfElement.style.color = color;
+		this._perfElement.innerHTML = `
+			FPS: ${fps.toFixed(0)}<br>
+			Draw: ${avgDrawTime.toFixed(1)}ms<br>
+			Snap: ${avgSnapTime.toFixed(1)}ms<br>
+			Shapes: ${shapeCount} | Zoom: ${this.zoom.toFixed(1)}x
+		`;
+	}
+
 	setCursor(name, hotspotX=16, hotspotY=16){
+		console.log("setCursor() "+name);
+		
 		if(name == 'default'){
 			this.canvas.style.cursor = 'default';
 		}else if(name == 'crosshair'){
@@ -231,7 +354,7 @@ class Stage extends View
 		if (this.isInputFocused()) {
 			return;
 		}
-
+		console.log("onKeyUp stage"+ e);
 		this.dispatchEvent('keyUp', e);
 	}
 
@@ -406,15 +529,30 @@ class Stage extends View
 	onMouseMove(e)
 	{
 		this.mouse = this.normalizeMouseEvent(e);
+		
+		// right click and drag - pan the view
 		if(e.which == 3){
 			toolManager.handTool.onMouseMove(this.mouse);
+			
 		}else{
 			// Throttle snap calculations to prevent excessive computation
 			const now = performance.now();
+			
 			if (now - this._lastSnapTime >= this._snapThrottleMs) {
 				this._lastSnapTime = now;
+				const snapStart = performance.now();
+
+				// find a snap point
 				draftingAssistant.snap(this.mouse, toolManager.generateGuides());
+				
+				if (this._perfMonitorEnabled) {
+					this._snapTimes.push(performance.now() - snapStart);
+					if (this._snapTimes.length > this._maxFrameSamples) {
+						this._snapTimes.shift();
+					}
+				}
 			}
+			
 			this.dispatchEvent('mouseMove', this.mouse);
 			this.markDirty(); // Batches renders via RAF
 		}

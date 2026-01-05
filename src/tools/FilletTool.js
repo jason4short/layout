@@ -104,7 +104,7 @@ export class FilletTool extends Tool
 			return;
 		}
 
-		const clickedShape = snapPt.shape; //data.getTargetShape(e);
+		const clickedShape = data.getTargetShape();		
 		const isValidShape = isFilletableShape(clickedShape);
 
 		switch (this.state) {
@@ -161,7 +161,8 @@ export class FilletTool extends Tool
 		const releasePt = data.getCurrentSnapPoint();
 		
 		const dragDist = GeometryUtils.distance(this.firstClickPt, releasePt);
-		const secondShape = releasePt.shape; //data.getTargetShape(e);
+		const secondShape = data.getTargetShape();
+		
 		const isValidSecond = isFilletableShape(secondShape) &&
 							  secondShape !== this.firstShape;
 

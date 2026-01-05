@@ -91,7 +91,8 @@ export class ChamferTool extends Tool
 			return;
 		}
 
-		const clickedShape = snapPt.shape; //data.getTargetShape(e);
+
+		const clickedShape = data.getTargetShape();
 		const isLine = clickedShape && clickedShape.geometry === Shape.LINE;
 
 		switch (this.state) {
@@ -148,7 +149,7 @@ export class ChamferTool extends Tool
 		const releasePt = data.getCurrentSnapPoint();
 		
 		const dragDist = GeometryUtils.distance(this.firstClickPt, releasePt);
-		const secondLine = releasePt.shape;// data.getTargetShape(e);
+		const secondLine = releasePt.shape;
 		const isValidSecond = secondLine &&
 							  secondLine.geometry === Shape.LINE &&
 							  secondLine !== this.firstLine;

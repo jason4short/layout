@@ -84,7 +84,7 @@ export class ParallelLineTool extends Tool
 			this.reset();
 		}
 
-		const clickedShape = data.getTargetShape(e);
+		const clickedShape = data.getTargetShape();
 
 		if (!clickedShape || clickedShape.geometry !== Shape.LINE) {
 			return;
