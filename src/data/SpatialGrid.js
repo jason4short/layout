@@ -150,10 +150,25 @@ export class SpatialGrid {
 	getKeysForBounds(bounds) {
 		const keys = new Set();
 
+		// Validate bounds - skip if invalid
+		if (!isFinite(bounds.x) || !isFinite(bounds.y) ||
+			!isFinite(bounds.width) || !isFinite(bounds.height)) {
+			console.warn('SpatialGrid: Invalid bounds', bounds);
+			return keys;
+		}
+
 		const x0 = Math.floor(bounds.x / this.gridCellSize);
 		const y0 = Math.floor(bounds.y / this.gridCellSize);
 		const x1 = Math.floor((bounds.x + bounds.width) / this.gridCellSize);
 		const y1 = Math.floor((bounds.y + bounds.height) / this.gridCellSize);
+
+		// Limit cells to prevent memory issues with huge shapes
+		const maxCells = 10000;
+		const cellCount = (x1 - x0 + 1) * (y1 - y0 + 1);
+		if (cellCount > maxCells) {
+			console.warn('SpatialGrid: Bounds too large, skipping', bounds);
+			return keys;
+		}
 
 		for (let x = x0; x <= x1; x++) {
 			for (let y = y0; y <= y1; y++) {

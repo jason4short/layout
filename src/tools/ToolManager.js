@@ -414,6 +414,26 @@ class ToolManager extends EventDispatcher
 			case 'F7':
 				this.setTool(this.trimTool);
 				break;
+
+			case '[':
+				// Decrease opacity on selected images
+				for(const shape of data.getSelected()){
+					if(shape.opacity !== undefined){
+						shape.opacity = Math.max(0.1, shape.opacity - 0.1);
+					}
+				}
+				stage.render();
+				break;
+
+			case ']':
+				// Increase opacity on selected images
+				for(const shape of data.getSelected()){
+					if(shape.opacity !== undefined){
+						shape.opacity = Math.min(1.0, shape.opacity + 0.1);
+					}
+				}
+				stage.render();
+				break;
 		}
 	}
 	

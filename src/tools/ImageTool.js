@@ -70,38 +70,48 @@ export class ImageTool extends Tool
 			const file = e.target.files[0];
 			if(!file) return;
 
-			// Create object URL for the image
-			const url = URL.createObjectURL(file);
+			// Read file as data URL (base64) so it persists when saved
+			const reader = new FileReader();
+			reader.onload = (event) => {
+				const dataUrl = event.target.result;
 
-			// Load the image to get dimensions
-			const img = new window.Image();
-			img.onload = () => {
-				this.imageElement = img;
-				this.imageSrc = url;
-				this.placing = true;
+				// Load the image to get dimensions
+				const img = new window.Image();
+				img.onload = () => {
+					this.imageElement = img;
+					this.imageSrc = dataUrl;
+					this.placing = true;
 
-				// Create preview at origin with natural size
-				// Convert to world coordinates based on current zoom
-				const worldWidth = stage.screenToWorldScale(img.naturalWidth);
-				const worldHeight = stage.screenToWorldScale(img.naturalHeight);
+					// Create preview at origin with natural size
+					// Convert to world coordinates based on current zoom
+					const worldWidth = stage.screenToWorldScale(img.naturalWidth);
+					const worldHeight = stage.screenToWorldScale(img.naturalHeight);
 
-				this.preview = new Image([0, 0, worldWidth, worldHeight]);
-				this.preview.imageElement = img;
-				this.preview.src = url;
-				this.preview.loaded = true;
-				this.preview.locked = true;
+					this.preview = new Image([0, 0, worldWidth, worldHeight]);
+					this.preview.imageElement = img;
+					this.preview.src = dataUrl;
+					this.preview.loaded = true;
+					this.preview.locked = true;
 
-				data.addTempShape(this.preview);
-				this.updateCursor();
-				stage.render();
+					data.addTempShape(this.preview);
+					this.updateCursor();
+					stage.render();
+				};
+
+				img.onerror = () => {
+					console.error('Failed to load image:', file.name);
+					alert('Failed to load image file.');
+				};
+
+				img.src = dataUrl;
 			};
 
-			img.onerror = () => {
-				console.error('Failed to load image:', file.name);
-				alert('Failed to load image file.');
+			reader.onerror = () => {
+				console.error('Failed to read file:', file.name);
+				alert('Failed to read image file.');
 			};
 
-			img.src = url;
+			reader.readAsDataURL(file);
 		};
 
 		input.click();

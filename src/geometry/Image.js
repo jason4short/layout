@@ -23,6 +23,7 @@ export class Image extends Geometry
 		this.rotation 		= 0;     // rotation in radians
 		this.flipX 			= false; // horizontal flip
 		this.flipY 			= false; // vertical flip
+		this.opacity 		= 1.0;   // 0.0 to 1.0
 
 		// Images default to locked for tracing
 		this.locked 		= true;
@@ -36,6 +37,18 @@ export class Image extends Geometry
 
 	updateBoundingBox()
 	{
+		// Validate dimensions - ensure they're finite
+		if (!isFinite(this.x) || !isFinite(this.y) ||
+			!isFinite(this.width) || !isFinite(this.height) ||
+			!isFinite(this.rotation)) {
+			// Use fallback bounds
+			this.bounds.x = 0;
+			this.bounds.y = 0;
+			this.bounds.width = 100;
+			this.bounds.height = 100;
+			return;
+		}
+
 		if(this.rotation === 0){
 			this.bounds.x 		= this.x;
 			this.bounds.y 		= this.y;
@@ -95,6 +108,7 @@ export class Image extends Geometry
 		img.rotation 	= this.rotation;
 		img.flipX 		= this.flipX;
 		img.flipY 		= this.flipY;
+		img.opacity 	= this.opacity;
 		return img;
 	}
 
@@ -113,6 +127,7 @@ export class Image extends Geometry
 		this.rotation = other.rotation;
 		this.flipX = other.flipX;
 		this.flipY = other.flipY;
+		this.opacity = other.opacity;
 		this.update();
 	}
 
@@ -325,6 +340,7 @@ export class Image extends Geometry
 			rotation: this.rotation,
 			flipX: this.flipX,
 			flipY: this.flipY,
+			opacity: this.opacity,
 			src: this.src
 		};
 	}
@@ -337,6 +353,7 @@ export class Image extends Geometry
 		if(data.rotation !== undefined) img.rotation = data.rotation;
 		if(data.flipX !== undefined) img.flipX = data.flipX;
 		if(data.flipY !== undefined) img.flipY = data.flipY;
+		if(data.opacity !== undefined) img.opacity = data.opacity;
 
 		// Load the image from path
 		if(data.src){

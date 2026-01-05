@@ -288,6 +288,11 @@ export class Renderer
 				// Save context for transforms
 				ctx.save();
 
+				// Apply opacity
+				if(shape.opacity !== undefined && shape.opacity < 1){
+					ctx.globalAlpha = shape.opacity;
+				}
+
 				// Apply rotation and flip around center
 				ctx.translate(centerX, centerY);
 				if(shape.rotation !== 0){
@@ -356,8 +361,7 @@ export class Renderer
 			}
 		}
 
-///* debugging
-	
+/* debugging - disabled for performance
 		// Draw snap point indicators
 		for(const intersection of data.getIntersectionCandidates())
 		{
@@ -378,7 +382,7 @@ export class Renderer
 			ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
 			ctx.stroke();
 		}
-//*/
+*/
 		// Draw snap point indicators
 		for(const intersection of data.snapPoints)
 		{

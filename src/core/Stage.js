@@ -293,7 +293,6 @@ class Stage extends View
 		const zoomFactor = 1.1;
 		const screenX = e.offsetX;
 		const screenY = e.offsetY;
-		console.log(screenX, screenY)
 		
 		//let newZoom;
 		if(e.deltaY < 0){
