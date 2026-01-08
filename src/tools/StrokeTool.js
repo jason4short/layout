@@ -8,6 +8,8 @@ import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
 import undoManager		from '../core/UndoManager.js';
+import da 				from '../geometry/DraftingAssistant.js';
+
 import {AddConstructionCommand, AddShapeCommand} from '../core/Commands.js';
 
 // Direction encoding:
@@ -22,7 +24,6 @@ export class StrokeTool extends Tool
 
 		this.name 	= "Gesture";
 		this.usage 	= "Draw gestures to create construction lines or trigger commands.";
-		this.cursor = "cursor_gesture";
 
 		this.generateGuides 	= false;
 		this.active 			= false;
@@ -75,17 +76,11 @@ export class StrokeTool extends Tool
 		data.resetSnaps();		
 		this.active 		= true;
 // 		console.log("begin Stroke Tool");
-// 		toolManager.addEventListener('mouseUp', 		this.onMouseUp);
-// 		toolManager.addEventListener('mouseMove', 	this.onMouseMove);
-// 		toolManager.addEventListener('mouseDown', 	this.onMouseDown);
 	}
 
 	deactivate(){
 // 		console.log("exit Stroke Tool");
 		this.active 		= false;
-// 		toolManager.removeEventListener('mouseUp', 	this.onMouseUp);
-// 		toolManager.removeEventListener('mouseMove', 	this.onMouseMove);
-// 		toolManager.removeEventListener('mouseDown', 	this.onMouseDown);
 	}
 	reset(){
 		this.gestures 		= [];
@@ -102,7 +97,7 @@ export class StrokeTool extends Tool
 		this.screenCurrent 	= { x: e.screenX, y: e.screenY };
 
 		// Use snap point for world coordinates (for construction lines)
-		const snap = data.getCurrentSnapPoint();
+		const snap = da.getCurrentSnapPoint();
 		this.worldStart 	= { x: snap.x, y: snap.y };
 		this.worldCurrent 	= { x: snap.x, y: snap.y };
 	}

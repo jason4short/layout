@@ -18,7 +18,6 @@ export class TrimTool extends Tool
 
 		this.name 	= "Trim";
 		this.usage 	= "Click on a segment to trim it at the nearest intersections.";
-		this.cursor = "cursor_trim";
 
 		this.generateGuides		= false;
 
@@ -34,13 +33,11 @@ export class TrimTool extends Tool
 
 	begin(){
 		//console.log("begin Trim Tool");
-		toolManager.addEventListener('mouseDown',		this.onMouseDown);
 		this.updateCursor();
 	}
 
 	exit(){
 		//console.log("exit Trim Tool");
-		toolManager.removeEventListener('mouseDown', 	this.onMouseDown);
 	}
 
 	updateCursor(){

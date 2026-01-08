@@ -14,6 +14,10 @@ export class Arc extends Circle
 		this.geometry 	= Shape.ARC;
 		this.startAngle = params[3];  // radians
 		this.endAngle 	= params[4];  // radians
+				
+		this.startPt	= null;
+		this.endPt 		= null;
+		this.midPt 		= null;
 	}
 
 	clone(){
@@ -21,16 +25,24 @@ export class Arc extends Circle
 		a.type 		= this.type;
 		return a;
 	}
-
+	
+	update(){
+	
+		this.startPt 	= this.getPointAtAngle(this.startAngle);
+		this.endPt 		= this.getPointAtAngle(this.endAngle);
+		this.midPt 		= this.getPointAtAngle(this.getMidAngle());
+	
+		super.update();
+	}
 	copyFrom(other) {
-		this.x = other.x;
-		this.y = other.y;
-		this.radius = other.radius;
-		this.startAngle = other.startAngle;
-		this.endAngle = other.endAngle;
-		this.type = other.type;
-		this.geometry = other.geometry;
-		this.penStyle = other.penStyle;
+		this.x 				= other.x;
+		this.y 				= other.y;
+		this.radius 		= other.radius;
+		this.startAngle 	= other.startAngle;
+		this.endAngle 		= other.endAngle;
+		this.type 			= other.type;
+		this.geometry 		= other.geometry;
+		this.penStyle 		= other.penStyle;
 		this.update();
 	}
 
@@ -40,11 +52,19 @@ export class Arc extends Circle
 	}
 
 	// Get point on arc at given angle
-	getPointAtAngle(angle) {
+	/*getPointAtAngle(angle) {
 		return new Point(
 			this.x + Math.cos(angle) * this.radius,
 			this.y + Math.sin(angle) * this.radius
 		);
+	}*/
+	
+	// Get point on arc at given angle
+	getPointAtAngle(angle) {
+		return {
+			x:this.x + Math.cos(angle) * this.radius,
+			y:this.y + Math.sin(angle) * this.radius
+		};
 	}
 
 	// Get the midpoint angle of the arc
@@ -53,15 +73,15 @@ export class Arc extends Circle
 	}
 
 	getSnapPOIs() {
-		const startPt = this.getPointAtAngle(this.startAngle);
-		const endPt = this.getPointAtAngle(this.endAngle);
-		const midPt = this.getPointAtAngle(this.getMidAngle());
-
 		return [
 			{ x: this.x, y: this.y },  // center
-			startPt,
-			endPt,
-			midPt
+			this.startPt,
+			this.endPt,
+			this.midPt,
+			{ x: this.x + this.radius, y: this.y },
+			{ x: this.x - this.radius, y: this.y },
+			{ x: this.x, y: this.y + this.radius},
+			{ x: this.x, y: this.y - this.radius}
 		];
 	}
 

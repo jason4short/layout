@@ -7,6 +7,8 @@ import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
 import undoManager		from '../core/UndoManager.js';
+import da 				from '../geometry/DraftingAssistant.js';
+
 import {AddShapeCommand} from '../core/Commands.js';
 
 export class TangentPointArcTool extends Tool
@@ -17,7 +19,6 @@ export class TangentPointArcTool extends Tool
 
 		this.name 	= "Tangent Arc";
 		this.usage 	= "Click start point, drag to set tangent direction, then click end point.";
-		this.cursor = "cursor_arc";
 
 		this.arc 			= null;
 		this.tangentLine	= null;
@@ -31,15 +32,14 @@ export class TangentPointArcTool extends Tool
 
 	begin(){
 		//console.log("TangentPointArcTool begin");
-		toolManager.addEventListener('mouseMove', this.onMouseMove);
-		toolManager.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
 		//console.log("TangentPointArcTool exit");
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseDown', this.onMouseDown);
 		this.reset();
+	}
+	updateCursor(){
+		stage.setCursor('arcTan');
 	}
 
 	reset(){
@@ -54,7 +54,7 @@ export class TangentPointArcTool extends Tool
 	onMouseDown(e)
 	{
 		data.resetSnaps();
-		const currentPoint = data.getCurrentSnapPoint();
+		const currentPoint = da.getCurrentSnapPoint();
 
 		if(this.step === 0){
 			// First click: set start point, show tangent line
@@ -86,7 +86,7 @@ export class TangentPointArcTool extends Tool
 
 	onMouseMove(e)
 	{
-		const currentPoint = data.getCurrentSnapPoint();
+		const currentPoint = da.getCurrentSnapPoint();
 
 		if(this.step === 1 && this.tangentLine){
 			// Update tangent line preview

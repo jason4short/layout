@@ -28,20 +28,114 @@ export class Image extends Geometry
 		// Images default to locked for tracing
 		this.locked 		= true;
 
+		// Cached geometry for hot paths (mouse move)
+		this.cachedGeometryState = null;
+		this.cachedCenter = {x: 0, y: 0};
+		this.cachedCorners = [
+			{x: 0, y: 0},
+			{x: 0, y: 0},
+			{x: 0, y: 0},
+			{x: 0, y: 0}
+		];
+		this.cachedEdges = [
+			{start: this.cachedCorners[0], end: this.cachedCorners[1]},
+			{start: this.cachedCorners[1], end: this.cachedCorners[2]},
+			{start: this.cachedCorners[2], end: this.cachedCorners[3]},
+			{start: this.cachedCorners[3], end: this.cachedCorners[0]}
+		];
+
+		this.update();
+	}
+
+	/**
+	 * Recompute bounds and cached geometry if anything changed.
+	 * Call this after any mutation (translate/scale/rotate/control point edits).
+	 */
+	update(){
+		this.updateCachedGeometryIfNeeded();
 		this.updateBoundingBox();
 	}
 
-	update(){
-		this.updateBoundingBox();
+	/**
+	 * Update cached corners/edges/center only when x/y/width/height/rotation changed.
+	 * This makes getGeoSnap() and getSnapPOIs() cheap during mouse move.
+	 */
+	updateCachedGeometryIfNeeded()
+	{
+// 		const newState = this.createGeometryStateKey();
+// 
+// 		if(this.cachedGeometryState === newState){
+// 			return;
+// 		}
+// 
+//		this.cachedGeometryState = newState;
+
+		this.cachedCenter.x = this.x + (this.width * 0.5);
+		this.cachedCenter.y = this.y + (this.height * 0.5);
+
+		if(this.rotation === 0){
+			// Unrotated corners (top-left, top-right, bottom-right, bottom-left)
+			this.cachedCorners[0].x = this.x;
+			this.cachedCorners[0].y = this.y;
+
+			this.cachedCorners[1].x = this.x + this.width;
+			this.cachedCorners[1].y = this.y;
+
+			this.cachedCorners[2].x = this.x + this.width;
+			this.cachedCorners[2].y = this.y + this.height;
+
+			this.cachedCorners[3].x = this.x;
+			this.cachedCorners[3].y = this.y + this.height;
+
+			return;
+		}
+
+		const cos = Math.cos(this.rotation);
+		const sin = Math.sin(this.rotation);
+
+		// Corners relative to center (avoids reallocations)
+		const halfWidth = this.width * 0.5;
+		const halfHeight = this.height * 0.5;
+
+		// top-left (-hw, -hh)
+		this.setRotatedCorner(this.cachedCorners[0], -halfWidth, -halfHeight, cos, sin);
+
+		// top-right (hw, -hh)
+		this.setRotatedCorner(this.cachedCorners[1], halfWidth, -halfHeight, cos, sin);
+
+		// bottom-right (hw, hh)
+		this.setRotatedCorner(this.cachedCorners[2], halfWidth, halfHeight, cos, sin);
+
+		// bottom-left (-hw, hh)
+		this.setRotatedCorner(this.cachedCorners[3], -halfWidth, halfHeight, cos, sin);
 	}
+
+	/**
+	 * Create a small string key representing the geometry that affects corners.
+	 * This is faster and simpler than deep comparisons.
+	 */
+	createGeometryStateKey()
+	{
+		return `${this.x},${this.y},${this.width},${this.height},${this.rotation}`;
+	}
+
+	/**
+	 * Helper: write a rotated corner into a target object (no allocations).
+	 */
+	setRotatedCorner(targetCorner, localX, localY, cos, sin)
+	{
+		targetCorner.x = this.cachedCenter.x + (localX * cos) - (localY * sin);
+		targetCorner.y = this.cachedCenter.y + (localX * sin) + (localY * cos);
+	}
+
 
 	updateBoundingBox()
 	{
 		// Validate dimensions - ensure they're finite
-		if (!isFinite(this.x) || !isFinite(this.y) ||
+		if(!isFinite(this.x) || !isFinite(this.y) ||
 			!isFinite(this.width) || !isFinite(this.height) ||
 			!isFinite(this.rotation)) {
-			// Use fallback bounds
+
 			this.bounds.x = 0;
 			this.bounds.y = 0;
 			this.bounds.width = 100;
@@ -54,23 +148,93 @@ export class Image extends Geometry
 			this.bounds.y 		= this.y;
 			this.bounds.width 	= this.width;
 			this.bounds.height 	= this.height;
-		} else {
-			// Compute axis-aligned bounding box of rotated rectangle
-			const corners = this.getRotatedCorners();
-			const xs = corners.map(c => c.x);
-			const ys = corners.map(c => c.y);
-			const minX = Math.min(...xs);
-			const maxX = Math.max(...xs);
-			const minY = Math.min(...ys);
-			const maxY = Math.max(...ys);
-
-			this.bounds.x 		= minX;
-			this.bounds.y 		= minY;
-			this.bounds.width 	= maxX - minX;
-			this.bounds.height 	= maxY - minY;
+			return;
 		}
+
+		// Use cached corners instead of recomputing
+		let minX = this.cachedCorners[0].x;
+		let maxX = this.cachedCorners[0].x;
+		let minY = this.cachedCorners[0].y;
+		let maxY = this.cachedCorners[0].y;
+
+		for(let i = 1; i < 4; i++){
+			const corner = this.cachedCorners[i];
+
+			if(corner.x < minX) minX = corner.x;
+			if(corner.x > maxX) maxX = corner.x;
+			if(corner.y < minY) minY = corner.y;
+			if(corner.y > maxY) maxY = corner.y;
+		}
+
+		this.bounds.x 		= minX;
+		this.bounds.y 		= minY;
+		this.bounds.width 	= maxX - minX;
+		this.bounds.height 	= maxY - minY;
 	}
 
+	/**
+	 * POIs: 0=top-left, 1=top-right, 2=bottom-right, 3=bottom-left, 4=center
+	 * Returns cached points (no trig, no allocations).
+	 */
+	getSnapPOIs()
+	{
+		//this.updateCachedGeometryIfNeeded();
+
+		return [
+			this.cachedCorners[0],
+			this.cachedCorners[1],
+			this.cachedCorners[2],
+			this.cachedCorners[3],
+			this.cachedCenter
+		];
+	}
+
+	/**
+	 * Return the closest point on the image outline for snapping.
+	 * Uses cached corners/edges and squared distance for cheap comparisons.
+	 */
+	 
+	 // XXX disabled for now
+	getGeoSnap1(mouse, mouseRect, pixelTolerance)
+	{
+		if(!this.bounds.intersects(mouseRect)){
+			return null;
+		}
+
+		//this.updateCachedGeometryIfNeeded();
+
+		const pixelToleranceSquared = pixelTolerance * pixelTolerance;
+
+		let closestPoint = null;
+		let closestDistanceSquared = Infinity;
+
+		for(const edge of this.cachedEdges){
+			const closest = VectorUtils.closestPointOnSegment(mouse, edge.start, edge.end);
+
+			const dx = mouse.x - closest.x;
+			const dy = mouse.y - closest.y;
+			const distanceSquared = (dx * dx) + (dy * dy);
+
+			if(distanceSquared < closestDistanceSquared){
+				closestDistanceSquared = distanceSquared;
+				closestPoint = closest;
+			}
+		}
+
+		if(closestDistanceSquared > pixelToleranceSquared){
+			return null;
+		}
+
+		const point = new Point(closestPoint.x, closestPoint.y);
+		point.distance = Math.sqrt(closestDistanceSquared); // only pay sqrt for the winning candidate
+		return point;
+	}
+	
+	getGeoSnap(mouse, mouseRect, pixelTolerance)
+	{
+		return null;
+	}
+	
 	// Load image from a file path or data URL
 	loadImage(src){
 		this.src = src;
@@ -81,7 +245,6 @@ export class Image extends Geometry
 
 		this.imageElement.onload = () => {
 			this.loaded = true;
-			// If dimensions weren't set, use natural size
 			if(this.width === 0 || this.height === 0){
 				this.width = this.imageElement.naturalWidth;
 				this.height = this.imageElement.naturalHeight;
@@ -99,112 +262,36 @@ export class Image extends Geometry
 	}
 
 	clone(){
-		const img 		= new Image([this.x, this.y, this.width, this.height]);
-		img.type 		= this.type;
-		img.src 		= this.src;
-		img.imageElement = this.imageElement;
-		img.loaded 		= this.loaded;
-		img.locked 		= this.locked;
-		img.rotation 	= this.rotation;
-		img.flipX 		= this.flipX;
-		img.flipY 		= this.flipY;
-		img.opacity 	= this.opacity;
+		const img 			= new Image([this.x, this.y, this.width, this.height]);
+		img.type 			= this.type;
+		img.src 			= this.src;
+		img.imageElement 	= this.imageElement;
+		img.loaded 			= this.loaded;
+		img.locked 			= this.locked;
+		img.rotation 		= this.rotation;
+		img.flipX 			= this.flipX;
+		img.flipY 			= this.flipY;
+		img.opacity 		= this.opacity;
 		return img;
 	}
 
 	copyFrom(other) {
-		this.x = other.x;
-		this.y = other.y;
-		this.width = other.width;
-		this.height = other.height;
-		this.type = other.type;
-		this.geometry = other.geometry;
-		this.penStyle = other.penStyle;
-		this.src = other.src;
-		this.imageElement = other.imageElement;
-		this.loaded = other.loaded;
-		this.locked = other.locked;
-		this.rotation = other.rotation;
-		this.flipX = other.flipX;
-		this.flipY = other.flipY;
-		this.opacity = other.opacity;
+		this.x 				= other.x;
+		this.y 				= other.y;
+		this.width 			= other.width;
+		this.height 		= other.height;
+		this.type 			= other.type;
+		this.geometry 		= other.geometry;
+		this.penStyle 		= other.penStyle;
+		this.src 			= other.src;
+		this.imageElement 	= other.imageElement;
+		this.loaded 		= other.loaded;
+		this.locked 		= other.locked;
+		this.rotation 		= other.rotation;
+		this.flipX 			= other.flipX;
+		this.flipY 			= other.flipY;
+		this.opacity 		= other.opacity;
 		this.update();
-	}
-
-	// Get rotated corners for internal use
-	getRotatedCorners() {
-		const centerX = this.x + this.width / 2;
-		const centerY = this.y + this.height / 2;
-		const cos = Math.cos(this.rotation);
-		const sin = Math.sin(this.rotation);
-
-		// Unrotated corners relative to center
-		const corners = [
-			{ x: -this.width / 2, y: -this.height / 2 },  // top-left
-			{ x: this.width / 2, y: -this.height / 2 },   // top-right
-			{ x: this.width / 2, y: this.height / 2 },    // bottom-right
-			{ x: -this.width / 2, y: this.height / 2 }    // bottom-left
-		];
-
-		// Rotate each corner around center
-		return corners.map(c => ({
-			x: centerX + c.x * cos - c.y * sin,
-			y: centerY + c.x * sin + c.y * cos
-		}));
-	}
-
-	// POIs: 0=top-left, 1=top-right, 2=bottom-right, 3=bottom-left, 4=center
-	getSnapPOIs() {
-		const corners = this.getRotatedCorners();
-		const centerX = this.x + this.width / 2;
-		const centerY = this.y + this.height / 2;
-
-		return [
-			corners[0],
-			corners[1],
-			corners[2],
-			corners[3],
-			{ x: centerX, y: centerY }
-		];
-	}
-
-	getGeoSnap(mouse, mouseRect, pixelTolerance)
-	{
-		// Quick reject
-		if(!this.bounds.intersects(mouseRect)){
-			return null;
-		}
-
-		// Get rotated corners
-		const corners = this.getRotatedCorners();
-
-		// Find closest point on rotated rectangle edges
-		const edges = [
-			{ start: corners[0], end: corners[1] },  // top edge
-			{ start: corners[1], end: corners[2] },  // right edge
-			{ start: corners[2], end: corners[3] },  // bottom edge
-			{ start: corners[3], end: corners[0] }   // left edge
-		];
-
-		let closestPoint = null;
-		let closestDist = Infinity;
-
-		for(const edge of edges){
-			const closest = VectorUtils.closestPointOnSegment(mouse, edge.start, edge.end);
-			const dist = VectorUtils.distance(mouse, closest);
-			if(dist < closestDist){
-				closestDist = dist;
-				closestPoint = closest;
-			}
-		}
-
-		if(closestDist > pixelTolerance){
-			return null;
-		}
-
-		const point = new Point(closestPoint.x, closestPoint.y);
-		point.distance = closestDist;
-		return point;
 	}
 
 	// Translate the image by offset
@@ -216,12 +303,10 @@ export class Image extends Geometry
 
 	// Scale the image relative to an anchor point (preserves aspect ratio)
 	scale(anchorX, anchorY, factor){
-		// Scale the top-left corner position
 		const scaled = TransformUtils.scalePoint(this.x, this.y, anchorX, anchorY, factor);
 		this.x = scaled.x;
 		this.y = scaled.y;
 
-		// Scale dimensions
 		this.width = this.width * Math.abs(factor);
 		this.height = this.height * Math.abs(factor);
 		this.update();
@@ -229,16 +314,13 @@ export class Image extends Geometry
 
 	// Rotate the image around an anchor point by angle (in radians)
 	rotate(anchorX, anchorY, angleRad) {
-		// Rotate the center position around the anchor
 		const centerX = this.x + this.width / 2;
 		const centerY = this.y + this.height / 2;
 		const rotated = TransformUtils.rotatePoint(centerX, centerY, anchorX, anchorY, angleRad);
 
-		// Update position (keeping center at rotated location)
 		this.x = rotated.x - this.width / 2;
 		this.y = rotated.y - this.height / 2;
 
-		// Accumulate the rotation angle
 		this.rotation += angleRad;
 		this.update();
 	}

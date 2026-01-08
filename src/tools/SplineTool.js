@@ -7,6 +7,8 @@ import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
 import undoManager		from '../core/UndoManager.js';
+import da 				from '../geometry/DraftingAssistant.js';
+
 import {AddShapeCommand} from '../core/Commands.js';
 
 export class SplineTool extends Tool
@@ -17,7 +19,6 @@ export class SplineTool extends Tool
 
 		this.name 	= "Spline";
 		this.usage 	= "Click 4 points: start, end, then two control handles to shape the curve.";
-		this.cursor = "cursor_spline";
 
 		this.spline 		= null;
 		this.linePreview	= null;
@@ -34,40 +35,44 @@ export class SplineTool extends Tool
 	}
 
 	begin(){
-		toolManager.addEventListener('mouseMove', this.onMouseMove);
-		toolManager.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseDown', this.onMouseDown);
 		this.reset();
 	}
 
 	reset(){
-		this.step = 0;
-		this.p0 = null;
-		this.p1 = null;
-		this.p2 = null;
-		this.p3 = null;
-		this.spline = null;
-		this.linePreview = null;
+		this.step 			= 0;
+		this.p0 			= null;
+		this.p1 			= null;
+		this.p2 			= null;
+		this.p3 			= null;
+		
+		this.spline 		= null;
+		this.linePreview 	= null;
 		data.removeTempShape();
+	}
+	updateCursor(){
+		stage.setCursor('spline', 0, 0);
 	}
 
 	onMouseDown(e)
 	{
 		data.resetSnaps();
-		const snap = data.getCurrentSnapPoint();
+		const snap = da.getCurrentSnapPoint();
 
 		switch(this.step){
 			case 0:
 				// First click: set start point (p0)
 				this.p0 = {x: snap.x, y: snap.y};
+				this.linePreview = data.getNewShape(Shape.LINE);
+				data.addTempShape(this.linePreview);
 				this.step = 1;
 				break;
 
 			case 1:
+				data.removeTempShape();
+					
 				// Second click: set end point (p3)
 				this.p3 = {x: snap.x, y: snap.y};
 				// Default control handles to 1/3 and 2/3 along the line
@@ -107,16 +112,9 @@ export class SplineTool extends Tool
 				this.spline.update();
 
 				// Commit the spline
-				data.removeTempShape();
 				undoManager.execute(new AddShapeCommand(this.spline));
 
-				// Reset for next spline
-				this.step = 0;
-				this.p0 = null;
-				this.p1 = null;
-				this.p2 = null;
-				this.p3 = null;
-				this.spline = null;
+				this.reset()
 				break;
 		}
 
@@ -125,14 +123,11 @@ export class SplineTool extends Tool
 
 	onMouseMove(e)
 	{
-		const snap = data.getCurrentSnapPoint();
+		const snap = da.getCurrentSnapPoint();
 
 		if(this.step === 1 && this.p0){
-			// Show line preview from p0 to cursor
-			if(!this.linePreview){
-				this.linePreview = new Line([this.p0.x, this.p0.y, snap.x, snap.y]);
-				this.linePreview.stroke = '#999';
-			} else {
+			console.log("lp")
+			if(this.linePreview){
 				this.linePreview.end.x = snap.x;
 				this.linePreview.end.y = snap.y;
 			}

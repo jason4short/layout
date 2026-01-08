@@ -1,6 +1,6 @@
-import {Point} from './Point.js';
-import {Rectangle} from './Rectangle.js';
-import * as VectorUtils from './utils/VectorUtils.js';
+import {Point} 				from './Point.js';
+import {Rectangle} 			from './Rectangle.js';
+import * as VectorUtils 	from './utils/VectorUtils.js';
 
 export const Shape = Object.freeze({
 	/*geometry*/

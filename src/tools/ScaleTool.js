@@ -42,9 +42,6 @@ export class ScaleTool extends Tool
 
 	begin(){
 		this.resetState();
-		toolManager.addEventListener('mouseDown', this.onMouseDown);
-		toolManager.addEventListener('mouseMove', this.onMouseMove);
-		toolManager.addEventListener('mouseUp', this.onMouseUp);
 
 		const selected = data.getSelected();
 		if(selected.length === 0){
@@ -56,9 +53,6 @@ export class ScaleTool extends Tool
 	}
 
 	exit(){
-		toolManager.removeEventListener('mouseDown', this.onMouseDown);
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		this.resetState();
 	}
 

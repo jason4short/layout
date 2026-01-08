@@ -6,6 +6,8 @@ import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
 import undoManager		from '../core/UndoManager.js';
+import da 				from '../geometry/DraftingAssistant.js';
+
 import {AddShapeCommand} from '../core/Commands.js';
 
 export class ImageTool extends Tool
@@ -16,7 +18,6 @@ export class ImageTool extends Tool
 
 		this.name 	= "Image";
 		this.usage 	= "Select an image file to place on the canvas.";
-		this.cursor = "cursor_crosshair";
 
 		this.imageElement 	= null;
 		this.imageSrc 		= null;
@@ -124,7 +125,7 @@ export class ImageTool extends Tool
 	onMouseMove(e){
 		if(!this.placing || !this.preview) return;
 
-		const snapPt = data.getCurrentSnapPoint();
+		const snapPt = da.getCurrentSnapPoint();
 
 		// Center the image on cursor
 		this.preview.x = snapPt.x - this.preview.width / 2;
@@ -138,7 +139,7 @@ export class ImageTool extends Tool
 		if(!this.placing || !this.preview) return;
 
 		// Finalize position
-		const snapPt = data.getCurrentSnapPoint();
+		const snapPt = da.getCurrentSnapPoint();
 		this.preview.x = snapPt.x - this.preview.width / 2;
 		this.preview.y = snapPt.y - this.preview.height / 2;
 		this.preview.update();

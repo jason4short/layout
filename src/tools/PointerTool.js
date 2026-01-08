@@ -5,6 +5,8 @@ import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
 import undoManager		from '../core/UndoManager.js';
+import da 				from '../geometry/DraftingAssistant.js';
+
 import {AddShapesCommand, MoveCommand} from '../core/Commands.js';
 
 export class PointerTool extends Tool
@@ -17,7 +19,6 @@ export class PointerTool extends Tool
 
 		this.name 	= "Pointer";
 		this.usage 	= "Click to select. Drag to marquee or move. Option+drag to clone.";
-		this.cursor = "cursor_pointer";
 
 		this.generateGuides 	= false; // Enable snapping for move operations
 
@@ -44,15 +45,9 @@ export class PointerTool extends Tool
 	begin(){
 		data.resetSnaps();
 		this.updateCursor();
-		toolManager.addEventListener('mouseUp', 		this.onMouseUp);
-		toolManager.addEventListener('mouseMove',		this.onMouseMove);
-		toolManager.addEventListener('mouseDown',		this.onMouseDown);
 	}
 
 	exit(){
-		toolManager.removeEventListener('mouseUp', 		this.onMouseUp);
-		toolManager.removeEventListener('mouseMove', 	this.onMouseMove);
-		toolManager.removeEventListener('mouseDown', 	this.onMouseDown);
 		this.resetDrag();
 	}
 	
@@ -81,56 +76,6 @@ export class PointerTool extends Tool
 		data.clearExcludeFromSnap();
 	}
 
-	// Check if mouse is over a selected point or shape
-	hitTestSelection(mouse){
-		const tolerance = 8; // screen pixels
-		const screenMouse = { x: mouse.screenX, y: mouse.screenY };
-
-		// Check selected control points first (compare in screen space)
-		for(const [shape, indices] of data.getSelectedPoints().entries()){
-			const pois = shape.getSnapPOIs();
-
-			for(const index of indices){
-				const poi = pois[index];
-				if(poi){
-					const screenPOI = stage.worldToScreen(poi.x, poi.y);
-					if(this.distanceTo(screenMouse, screenPOI) < tolerance){
-						return {type: 'point', shape, pointIndex: index};
-					}
-				}
-			}
-		}
-
-		// Check whole-shape selections (test their selectable points)
-		for(const shape of data.getSelected()){
-			const pois = shape.getSnapPOIs();
-			const selectableIndices = data.getSelectableIndices(shape);
-
-			for(const index of selectableIndices){
-				const poi = pois[index];
-				if(poi){
-					const screenPOI = stage.worldToScreen(poi.x, poi.y);
-					if(this.distanceTo(screenMouse, screenPOI) < tolerance){
-						return {type: 'shape', shape, pointIndex: index};
-					}
-				}
-			}
-		}
-
-		// Check if mouse is on the geometry of any selected shape
-		// (getGeoSnap works in world space, so convert tolerance)
-		const worldTolerance = tolerance / stage.zoom;
-		const mouseRect = new Rectangle(mouse.x - worldTolerance, mouse.y - worldTolerance, worldTolerance * 2, worldTolerance * 2);
-
-		for(const shape of data.getSelected()){
-			const geoSnap = shape.getGeoSnap(mouse, mouseRect, worldTolerance);
-			if(geoSnap){
-				return {type: 'shape', shape, pointIndex: null};
-			}
-		}
-
-		return null;
-	}
 
 	distanceTo(a, b){
 		return Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2));
@@ -219,7 +164,7 @@ export class PointerTool extends Tool
 
 		// Cmd+click toggles control point visibility
 		if(stage.commandKey){
-			data.toggleControlPoints(e);
+			data.toggleControlPoints();
 			stage.render();
 			return;
 		}
@@ -230,7 +175,7 @@ export class PointerTool extends Tool
 		this.isMoving = false;
 
 		// Check if clicking on something already selected
-		this.moveTarget = this.hitTestSelection(e);
+		this.moveTarget = data.getTargetShape();
 	}
 
 	onMouseMove(e){
@@ -251,7 +196,7 @@ export class PointerTool extends Tool
 				// Start move operation
 				this.isMoving = true;
 				// Store the snap point when move started
-				const snap = data.getCurrentSnapPoint();
+				const snap = da.getCurrentSnapPoint();
 				this.moveStart = {x: snap.x, y: snap.y};
 
 				// Option+drag = clone shapes
@@ -293,7 +238,7 @@ export class PointerTool extends Tool
 		if(this.originalPositions.length === 0) return;
 
 		// Get current snap point (already set by Stage.onMouseMove)
-		const snapPt = data.getCurrentSnapPoint();
+		const snapPt = da.getCurrentSnapPoint();
 
 		// Calculate delta from where we started dragging
 		const snapDx = snapPt.x - this.moveStart.x;
@@ -346,7 +291,8 @@ export class PointerTool extends Tool
 			//data.selectShape(e, stage.shiftKey);
 			data.selectSnapShape(stage.shiftKey);
 		}else{
-			data.selectNone();
+			if(e.target == stage.canvas)
+				data.selectNone();
 		}
 
 		this.resetDrag();

@@ -5,6 +5,7 @@ import {Line} 			from '../geometry/Line.js';
 import toolManager 		from './ToolManager.js';
 import stage 			from '../core/Stage.js';
 import data 			from '../data/Data.js';
+import da 				from '../geometry/DraftingAssistant.js';
 
 export class BoxTool extends Tool
 {
@@ -13,7 +14,6 @@ export class BoxTool extends Tool
 		super();
 		this.name 	= "Rectangle";
 		this.usage 	= "Click to set one corner, drag to the opposite corner to create a rectangle.";
-		this.cursor = "cursor_crosshair";
 
 		this.generateGuides = true;
 
@@ -26,16 +26,9 @@ export class BoxTool extends Tool
 	}
 
 	begin(){
-		console.log("toolManager "+toolManager)
-		//console.log("BoxTool begin");
-		toolManager.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
-		//console.log("BoxTool exit");
-		toolManager.removeEventListener('mouseDown', this.onMouseDown);
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		this.reset();
 	}
 
@@ -43,15 +36,12 @@ export class BoxTool extends Tool
 		stage.setCursor('crosshair');
 	}
 
-	reset(){
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseUp', this.onMouseUp);
-
+	reset()
+	{
 		this.startPt = null;
+
 		// Remove preview lines
-		for(const line of this.previewLines){
-			data.deleteShape(line);
-		}
+		data.clearTempShapes();
 		this.previewLines = [];
 	}
 
@@ -59,7 +49,8 @@ export class BoxTool extends Tool
 	onMouseDown(e)
 	{
 		data.resetSnaps();
-		const snapPt = data.getCurrentSnapPoint();
+		
+		const snapPt = da.getCurrentSnapPoint();
 		this.startPt = {x: snapPt.x, y: snapPt.y};
 
 		// Create 4 preview lines (will be updated during drag)
@@ -68,48 +59,39 @@ export class BoxTool extends Tool
 		for(let i = 0; i < 4; i++){
 			const line = new Line([this.startPt.x, this.startPt.y, this.startPt.x, this.startPt.y]);
 			this.previewLines.push(line);
-			data.addShape(line);
 		}
-
-		toolManager.addEventListener('mouseMove', this.onMouseMove);
-		toolManager.addEventListener('mouseUp', this.onMouseUp);
-
+		data.setTempShapes(this.previewLines);
 		stage.render();
 	}
 
 	onMouseMove(e)
 	{
-		const snapPt = data.getCurrentSnapPoint();
+		if(!this.startPt) return;
+		
+		const snapPt = da.getCurrentSnapPoint();
 		this.updateBoxLines(this.startPt, snapPt);
 		stage.render();
 	}
 
 	onMouseUp(e)
 	{
+		if(!this.startPt) return;
 		data.resetSnaps();
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseUp', this.onMouseUp);
-
-		const snapPt = data.getCurrentSnapPoint();
-
+		const snapPt = da.getCurrentSnapPoint();
+		
 		// Calculate box size
 		const width = Math.abs(snapPt.x - this.startPt.x);
 		const height = Math.abs(snapPt.y - this.startPt.y);
 
-		// If box is too small, cancel
-		if(width < 5 && height < 5){
-			this.reset();
-			stage.render();
-			return;
+		// If box is big enough // world scale!
+		if(width > 5 && height > 5){
+			// Update final positions and keep the lines
+			for(let i = 0; i < 4; i++){
+				data.addShape(this.previewLines[i]);
+			}
 		}
-
-		// Update final positions and keep the lines
-		this.updateBoxLines(this.startPt, snapPt);
-
-		// Clear references (lines stay in data.shapes)
-		this.startPt = null;
-		this.previewLines = [];
-
+		
+		this.reset()
 		stage.render();
 	}
 

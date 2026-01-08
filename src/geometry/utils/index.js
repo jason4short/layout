@@ -23,6 +23,7 @@ export {
 export {
 	distance,
 	distanceSquared,
+	distFast,
 	normalize,
 	dotProduct,
 	crossProduct,
@@ -33,6 +34,7 @@ export {
 	lengthSquared,
 	perpendicular,
 	angleBetween,
+	getAngleDeg,
 	closestPointOnSegment,
 	lerp,
 	clamp

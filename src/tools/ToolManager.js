@@ -1,8 +1,8 @@
-import stage 					from '../core/Stage.js';
-import data 					from '../data/Data.js';
-import undoManager				from '../core/UndoManager.js';
-import fileManager				from '../core/FileManager.js';
-import { AddShapesCommand }	from '../core/Commands.js';
+import stage 							from '../core/Stage.js';
+import data 							from '../data/Data.js';
+import undoManager						from '../core/UndoManager.js';
+import fileManager						from '../core/FileManager.js';
+import { AddShapesCommand }				from '../core/Commands.js';
 
 import { EventDispatcher } 				from '../core/EventDispatcher.js';
 
@@ -136,7 +136,7 @@ class ToolManager extends EventDispatcher
 				const btn = document.createElement('button');
 				btn.className = 'tool-btn';
 				btn.dataset.toolId = item.tool.constructor.name;
-				btn.innerHTML = `${item.name}<span class="shortcut">${item.shortcut}</span>`;
+				btn.innerHTML = `${item.name}`;
 				btn.addEventListener('click', () => this.setTool(item.tool));
 				palette.appendChild(btn);
 			}
@@ -194,14 +194,12 @@ class ToolManager extends EventDispatcher
 	
 
 	undo(){
-		console.log("undo")
 		if(undoManager.undo()){
 			stage.render();
 		}
 	}
 
 	redo(){
-		console.log("redo")
 		if(undoManager.redo()){
 			stage.render();
 		}
@@ -264,7 +262,6 @@ class ToolManager extends EventDispatcher
  
 	onKeyDown(e)
 	{
-// 		console.log("onKeyDown"+ e);
 		if(e.key == 'd'){
 			console.log(data.snapPoint.x, data.snapPoint.y)
 		}

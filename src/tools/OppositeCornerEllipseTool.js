@@ -6,6 +6,8 @@ import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
 import undoManager		from '../core/UndoManager.js';
+import da 				from '../geometry/DraftingAssistant.js';
+
 import {AddShapeCommand} from '../core/Commands.js';
 
 export class OppositeCornerEllipseTool extends Tool
@@ -16,7 +18,6 @@ export class OppositeCornerEllipseTool extends Tool
 
 		this.name 	= "Corner Ellipse";
 		this.usage 	= "Click one corner of the bounding box, drag to the opposite corner.";
-		this.cursor = "cursor_ellipse";
 
 		this.generateGuides = true;
 
@@ -35,16 +36,10 @@ export class OppositeCornerEllipseTool extends Tool
 
 	exit(){
 		//console.log("OppositeCornerEllipseTool exit");
-		toolManager.removeEventListener('mouseDown', this.onMouseDown);
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		this.reset();
 	}
 
 	reset(){
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseUp', this.onMouseUp);
-
 		this.startPt = null;
 		if(this.ellipse){
 			data.removeTempShape();
@@ -54,32 +49,29 @@ export class OppositeCornerEllipseTool extends Tool
 
 	onMouseDown(e)
 	{
-		const snapPt = data.getCurrentSnapPoint();
+		const snapPt = da.getCurrentSnapPoint();
 		this.startPt = {x: snapPt.x, y: snapPt.y};
 
 		// Create preview ellipse (will be updated during drag)
 		this.ellipse = new Ellipse([this.startPt.x, this.startPt.y, 0, 0, 0]);
 		data.addTempShape(this.ellipse);
 
-		toolManager.addEventListener('mouseMove', this.onMouseMove);
-		toolManager.addEventListener('mouseUp', this.onMouseUp);
-
 		stage.render();
 	}
 
 	onMouseMove(e)
 	{
-		const snapPt = data.getCurrentSnapPoint();
+		const snapPt = da.getCurrentSnapPoint();
 		this.updateEllipse(this.startPt, snapPt);
 		stage.render();
 	}
 
 	onMouseUp(e)
 	{
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseUp', this.onMouseUp);
+		if(!this.startPt)
+			return;
 
-		const snapPt = data.getCurrentSnapPoint();
+		const snapPt = da.getCurrentSnapPoint();
 
 		// Calculate ellipse size
 		const width = Math.abs(snapPt.x - this.startPt.x);

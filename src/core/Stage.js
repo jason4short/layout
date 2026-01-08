@@ -97,6 +97,7 @@ class Stage extends View
 		window.addEventListener('keydown', 			this.onKeyDown, 	{ capture: true });
 		window.addEventListener('keyup', 			this.onKeyUp, 		{ capture: true });
 		window.addEventListener('blur', 			this.onBlur);
+		
 		this.canvas.addEventListener('mousedown', 	this.onMouseDown);
 		this.canvas.addEventListener('wheel',		this.onWheel, { passive: false });
 
@@ -267,9 +268,7 @@ class Stage extends View
 		`;
 	}
 
-	setCursor(name, hotspotX=16, hotspotY=16){
-		console.log("setCursor() "+name);
-		
+	setCursor(name, hotspotX=16, hotspotY=16){		
 		if(name == 'default'){
 			this.canvas.style.cursor = 'default';
 		}else if(name == 'crosshair'){
@@ -354,7 +353,6 @@ class Stage extends View
 		if (this.isInputFocused()) {
 			return;
 		}
-		console.log("onKeyUp stage"+ e);
 		this.dispatchEvent('keyUp', e);
 	}
 
@@ -526,6 +524,19 @@ class Stage extends View
 		};
 	}
 
+	// --------------------------------------------
+
+	onMouseDown(e)
+	{
+		this.mouse = this.normalizeMouseEvent(e);
+
+		if(e.which == 3){
+			toolManager.handTool.onMouseDown(this.mouse);
+		}else{
+			this.dispatchEvent('mouseDown', this.mouse);
+		}
+	}
+
 	onMouseMove(e)
 	{
 		this.mouse = this.normalizeMouseEvent(e);
@@ -555,17 +566,6 @@ class Stage extends View
 			
 			this.dispatchEvent('mouseMove', this.mouse);
 			this.markDirty(); // Batches renders via RAF
-		}
-	}
-
-	onMouseDown(e)
-	{
-		this.mouse = this.normalizeMouseEvent(e);
-
-		if(e.which == 3){
-			toolManager.handTool.onMouseDown(this.mouse);
-		}else{
-			this.dispatchEvent('mouseDown', this.mouse);
 		}
 	}
 

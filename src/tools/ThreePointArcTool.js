@@ -7,6 +7,8 @@ import stage 				from '../core/Stage.js';
 import toolManager			from './ToolManager.js';
 import data 				from '../data/Data.js';
 import undoManager			from '../core/UndoManager.js';
+import da 					from '../geometry/DraftingAssistant.js';
+
 import {AddShapeCommand} 	from '../core/Commands.js';
 
 export class ThreePointArcTool extends Tool
@@ -33,14 +35,10 @@ export class ThreePointArcTool extends Tool
 
 	begin(){
 		//console.log("ThreePointArcTool begin");
-		toolManager.addEventListener('mouseMove', this.onMouseMove);
-		toolManager.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
 		//console.log("ThreePointArcTool exit");
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseDown', this.onMouseDown);
 		this.reset();
 	}
 
@@ -53,10 +51,14 @@ export class ThreePointArcTool extends Tool
 		data.removeTempShape();
 	}
 
+	updateCursor(){
+		stage.setCursor('arc3');
+	}
+
 	onMouseDown(e)
 	{
 		data.resetSnaps();
-		const currentPoint = data.getCurrentSnapPoint();
+		const currentPoint = da.getCurrentSnapPoint();
 
 		if(this.step === 0){
 			// First click: set start point and create line preview
@@ -93,7 +95,7 @@ export class ThreePointArcTool extends Tool
 
 	onMouseMove(e)
 	{
-		const currentPoint = data.getCurrentSnapPoint();
+		const currentPoint = da.getCurrentSnapPoint();
 
 		// Step 1: update line preview
 		if(this.step === 1 && this.linePreview){

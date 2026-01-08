@@ -2,12 +2,13 @@ import {Tool} 			from './Tool.js';
 import {Shape} 			from '../geometry/Geometry.js';
 import {GeometryUtils} 	from '../geometry/GeometryUtils.js';
 import {Line} 			from '../geometry/Line.js';
+import { ChamferCommand } from '../core/Commands.js';
 
 import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
 import undoManager		from '../core/UndoManager.js';
-import { ChamferCommand } from '../core/Commands.js';
+import da 				from '../geometry/DraftingAssistant.js';
 
 // Explicit states for the chamfer tool
 const STATE = {
@@ -24,7 +25,6 @@ export class ChamferTool extends Tool
 
 		this.name 	= "Chamfer";
 		this.usage 	= "Click two lines to add a beveled corner. Shift+click near intersection for quick chamfer.";
-		this.cursor = "cursor_chamfer";
 
 		this.generateGuides = false;
 
@@ -48,18 +48,9 @@ export class ChamferTool extends Tool
 
 	begin() {
 		this.state = STATE.IDLE;
-
-		toolManager.addEventListener('mouseDown', this.onMouseDown);
-		toolManager.addEventListener('mouseMove', this.onMouseMove);
-		toolManager.addEventListener('mouseUp', this.onMouseUp);
 	}
 
 	exit() {
-		stage.setCursor('crosshairs');
-
-		toolManager.removeEventListener('mouseDown', this.onMouseDown);
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		this.reset();
 	}
 
@@ -82,8 +73,8 @@ export class ChamferTool extends Tool
 	}
 
 	onMouseDown(e) {
-		const clickPt = { x: e.x, y: e.y };
-		const snapPt = data.getCurrentSnapPoint();
+		const clickPt 	= { x: e.x, y: e.y };
+		const snapPt 	= da.getCurrentSnapPoint();
 
 		// Shift+click: quick chamfer at nearest intersection
 		if (stage.shiftKey) {
@@ -92,8 +83,8 @@ export class ChamferTool extends Tool
 		}
 
 
-		const clickedShape = data.getTargetShape();
-		const isLine = clickedShape && clickedShape.geometry === Shape.LINE;
+		const clickedShape 	= data.getTargetShape();
+		const isLine 		= clickedShape && clickedShape.geometry === Shape.LINE;
 
 		switch (this.state) {
 			case STATE.IDLE:
@@ -132,7 +123,7 @@ export class ChamferTool extends Tool
 
 	onMouseMove(e) {
 		if (this.state === STATE.DRAGGING || this.state === STATE.FIRST_SELECTED) {
-			const snapPt = data.getCurrentSnapPoint();
+			const snapPt = da.getCurrentSnapPoint();
 			if (this.linePreview) {
 				this.linePreview.end.x = snapPt.x;
 				this.linePreview.end.y = snapPt.y;
@@ -145,11 +136,10 @@ export class ChamferTool extends Tool
 	onMouseUp(e) {
 		if (this.state !== STATE.DRAGGING) return;
 
-//		const releasePt = { x: e.x, y: e.y };
-		const releasePt = data.getCurrentSnapPoint();
+		const releasePt 	= da.getCurrentSnapPoint();
 		
-		const dragDist = GeometryUtils.distance(this.firstClickPt, releasePt);
-		const secondLine = releasePt.shape;
+		const dragDist 		= GeometryUtils.distance(this.firstClickPt, releasePt);
+		const secondLine 	= releasePt.shape;
 		const isValidSecond = secondLine &&
 							  secondLine.geometry === Shape.LINE &&
 							  secondLine !== this.firstLine;

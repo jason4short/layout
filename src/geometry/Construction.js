@@ -1,6 +1,6 @@
-import {Shape, Geometry} from './Geometry.js';
-import {Point} from './Point.js';
-import {Line} from './Line.js';
+import {Shape, Geometry} 	from './Geometry.js';
+import {Point} 				from './Point.js';
+import {Line} 				from './Line.js';
 
 const GUIDE_LENGTH = 10000; // Large enough to appear infinite
 

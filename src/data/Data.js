@@ -39,10 +39,10 @@ class Data
 		this.snapIndex				= 0;
 		
         // geometry intersections - new architecture
-		this.shapePOIs			 	= []; 	// POIs from shapes (endpoints, centers, etc.)
+		this.shapePOIs			 	= []; 			// POIs from shapes (endpoints, centers, etc.)
 		this.intersectionSet		= new Set();	// All Intersection objects
 		this.intersectionsByShape	= new Map();	// Map<shape, Set<Intersection>> for quick lookup
-		this.guideIntersections		= [];	// temp guide intersections (ephemeral)
+		this.guideIntersections		= [];			// temp guide intersections (ephemeral)
 
 		// the point under the cursor
 		this.snapPoint				= new SnapPoint();
@@ -177,7 +177,7 @@ class Data
 		}
 	}
 
-	// 
+	// add new POIs to our cache
 	storeShapePOIs(shape){
 		const points = shape.getSnapPOIs();
 		// Add shape reference to each POI for exclusion checking
@@ -291,8 +291,9 @@ class Data
 	}
 		
 	selectNone(){
-		for(let i = 0; i < this.shapes.length; i++){
-			this.shapes[i].selected = false;
+		const shapes = this.getShapes();
+		for(let i = 0; i < shapes.length; i++){
+			shapes[i].selected = false;
 		}
 		this.selectedPoints.clear();
 	}
@@ -527,9 +528,8 @@ class Data
 	}
 
 
-	// 	stores a shape from a shape geometry object
-	//	useful for interactively generating shapes via tools
-	// should this be a clone?
+	// stores a shape from a shape geometry object
+	// useful for interactively generating shapes via tools
 	addShape(newShape){
 		newShape.id = this.generateID();
 
@@ -635,10 +635,11 @@ class Data
 	}
 
 	// Array of all points we could snap to
-	getPOICandidates2(){
+	getPOICandidates(){
 		return [...this.shapePOIs];
 	}
 	
+/*
 	getPOICandidates(){
 		const shapePOIs = [];
 		for(const shape of this.shapes){
@@ -651,17 +652,19 @@ class Data
 		
 		return shapePOIs;
 	}
-	
+*/	
 	
 	getGuides(){
 		return this.guides;
 	}
 
 	getNewShape(type){
-		this.setCurrentSnapPoint(this.snapPoint, true);
+		// XXX what is this???
+		//da.setCurrentSnapPoint(this.snapPoint, true);
 		
 		if(type == Shape.LINE){
-			return new Line([this.snapPoint.x, this.snapPoint.y, this.snapPoint.x, this.snapPoint.y]);			
+			return new Line([this.snapPoint.x, this.snapPoint.y, this.snapPoint.x, this.snapPoint.y]);
+			
 		}else if (type == Shape.CIRCLE){
 			return new Circle([this.snapPoint.x, this.snapPoint.y, 0]);
 		}
@@ -670,40 +673,20 @@ class Data
 	// --------------------------------------------------------------------------------
 	// DA Guides
 	// --------------------------------------------------------------------------------
-	// xxx move logic to DA?
-
-	// tracks the current snapped point
-	setCurrentSnapPoint(p, store){ 
-// 		console.log(p, store)
-		this.snapPoint = p;
-	
-		if(store){
-			this.addSnapPoint(p)
-		}
-	}
-	
-	getCurrentSnapPoint(){ 
-		return this.snapPoint;
-	}
-	
 	
 	// when creating geometry include the start point as a snap guide
 	addSnapPoint(p){
 		// no dupes
 		for(const snapPoint of this.snapPoints){
+			// shitty if we're using floats?
 			if(snapPoint.x == p.x && snapPoint.y == p.y)
 				return;
 		}
-		
+
 		this.snapPoints[this.snapIndex] = p;
 		this.snapIndex++;
-		if (this.snapIndex >= MAX_SNAP) this.snapIndex = 0;
-			
-		// generate temp DA guides for each point
-		this.clearGuides();
-		for(const snapPoint of this.snapPoints){
-			draftingAssistant.createGuides(snapPoint);
-		}
+		if (this.snapIndex >= MAX_SNAP)
+			this.snapIndex = 0;
 	}
 
 	resetSnaps(){

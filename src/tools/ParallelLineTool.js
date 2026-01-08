@@ -23,7 +23,6 @@ export class ParallelLineTool extends Tool
 
 		this.name 	= "Parallel Line";
 		this.usage 	= "Click a line, then drag to create a parallel copy at an offset distance.";
-		this.cursor = "cursor_parallel";
 
 		this.state 			= STATE.IDLE;
 		this.originalLine 	= null;
@@ -45,15 +44,9 @@ export class ParallelLineTool extends Tool
 
 	begin() {
 		this.state = STATE.IDLE;
-		toolManager.addEventListener('mouseDown', this.onMouseDown);
-		toolManager.addEventListener('mouseMove', this.onMouseMove);
-		toolManager.addEventListener('mouseUp', this.onMouseUp);
 	}
 
 	exit() {
-		toolManager.removeEventListener('mouseDown', this.onMouseDown);
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		this.reset();
 	}
 	

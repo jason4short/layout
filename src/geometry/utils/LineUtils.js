@@ -235,6 +235,7 @@ export function getAngleDeg(line) {
 	return angleDeg;
 }
 
+
 /**
  * Calculate the length of a line segment.
  * @param {Object} line - Line with start and end points

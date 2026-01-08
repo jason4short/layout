@@ -79,6 +79,12 @@ export function distance(p1, p2) {
 	return Math.sqrt(distanceSquared(p1, p2));
 }
 
+export function distFast(p1, p2) {
+	return Math.max(Math.abs(p1.x - p2.x), Math.abs(p1.y - p2.y));
+}
+// 			const d = Math.max(Math.abs(screenMouse.x - screenPOI.x), Math.abs(screenMouse.y - screenPOI.y));
+
+
 /**
  * Normalize a vector to unit length.
  * Returns zero vector if input is degenerate.
@@ -155,6 +161,17 @@ export function angleBetween(v1, v2) {
 	const dot = dotProduct(v1, v2);
 	return Math.acos(Math.max(-1, Math.min(1, dot)));
 }
+
+export function getAngleDeg(pointA, pointB) {
+	const dx = pointB.x - pointA.x;
+	const dy = pointB.y - pointA.y;
+	// canvas is flipped Y
+	const angleRad = Math.atan2(-dy, dx);
+	let angleDeg = angleRad * (180 / Math.PI);
+	if (angleDeg < 0) angleDeg += 360;
+	return angleDeg;
+}
+
 
 /**
  * Project a vector onto a direction vector.

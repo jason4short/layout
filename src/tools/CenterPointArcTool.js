@@ -2,12 +2,13 @@ import {Tool} 			from './Tool.js';
 import {Shape} 			from '../geometry/Geometry.js';
 import {Arc} 			from '../geometry/Arc.js';
 import {Line} 			from '../geometry/Line.js';
+import {AddShapeCommand} from '../core/Commands.js';
 
 import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
 import undoManager		from '../core/UndoManager.js';
-import {AddShapeCommand} from '../core/Commands.js';
+import da 				from '../geometry/DraftingAssistant.js';
 
 export class CenterPointArcTool extends Tool
 {
@@ -15,9 +16,8 @@ export class CenterPointArcTool extends Tool
 	{
 		super();
 
-		this.name 	= "Center Arc";
-		this.usage 	= "Click center, click again to set radius and start angle, then click to set end angle.";
-		this.cursor = "cursor_arc";
+		this.name 			= "Center Arc";
+		this.usage 			= "Click center, click again to set radius and start angle, then click to set end angle.";
 
 		this.arc 			= null;
 		this.radiusLine		= null;
@@ -33,20 +33,17 @@ export class CenterPointArcTool extends Tool
 
 	begin(){
 		//console.log("CenterPointArcTool begin");
-		toolManager.addEventListener('mouseMove', this.onMouseMove);
-		toolManager.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
 		//console.log("CenterPointArcTool exit");
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseDown', this.onMouseDown);
 		this.reset();
 	}
 
 	updateCursor(){
-		stage.setCursor('crosshair');
+		stage.setCursor('arc');
 	}
+	
 	reset(){
 		this.arc = null;
 		this.radiusLine = null;
@@ -59,7 +56,7 @@ export class CenterPointArcTool extends Tool
 
 	onMouseDown(e)
 	{
-		const currentPoint = data.getCurrentSnapPoint();
+		const currentPoint = da.getCurrentSnapPoint();
 
 		if(this.step === 0){
 			// First click: set center point, show radius line
@@ -106,7 +103,7 @@ export class CenterPointArcTool extends Tool
 
 	onMouseMove(e)
 	{
-		const currentPoint = data.getCurrentSnapPoint();
+		const currentPoint = da.getCurrentSnapPoint();
 
 		if(this.step === 1 && this.radiusLine){
 			// Update radius line preview

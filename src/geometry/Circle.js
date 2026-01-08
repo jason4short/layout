@@ -15,15 +15,12 @@ export class Circle extends Geometry
 		this.x 				= params[0];
 		this.y 				= params[1];
 		this.radius 		= params[2];
-		this.updateBoundingBox();
+		this.update();
 	}
 
 	update(){
-		this.updateBoundingBox();
-	}
-
-	updateBoundingBox()
-	{
+	
+		// bounding box
 		this.bounds.x 		= this.x - this.radius;
 		this.bounds.y 		= this.y - this.radius;
 		this.bounds.width 	= this.radius * 2;
@@ -97,7 +94,17 @@ export class Circle extends Geometry
 	// Get tangent angle (in degrees) at a point on the circle
 	// Tangent is perpendicular to the radius at that point
 	getTangentAngle(point) {
-		return CircleUtils.getTangentAngle(this.x, this.y, point.x, point.y);
+	
+		// if point eq a POI, return precomputed tangent
+		if(point.x == this.x && point.y == this.y){
+			// center = no tangent
+			return null;
+		}else if (point.x == this.x){
+			return (point.y > this.y) ? 90:-90;
+		}else if (point.y == this.y){
+			return (point.x > this.x) ? 0:180;
+		}else 
+			return CircleUtils.getTangentAngle(this.x, this.y, point.x, point.y);
 	}
 
 	// Translate the circle by offset

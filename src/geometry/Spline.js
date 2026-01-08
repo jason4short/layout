@@ -21,15 +21,15 @@ export class Spline extends Geometry
 		this.p2 = new Point(params[4], params[5]);
 		this.p3 = new Point(params[6], params[7]);
 
-		this.updateBoundingBox();
+		this.update();
 	}
 
 	update(){
-		this.updateBoundingBox();
-	}
+		this.tangentA = VectorUtils.getAngleDeg(this.p1, this.p0);
+		this.tangentB = VectorUtils.getAngleDeg(this.p2, this.p3);
 
-	updateBoundingBox()
-	{
+		//console.log(this.tangentA, this.tangentB);
+
 		// Bounding box contains all control points (conservative)
 		const minX = Math.min(this.p0.x, this.p1.x, this.p2.x, this.p3.x);
 		const maxX = Math.max(this.p0.x, this.p1.x, this.p2.x, this.p3.x);
@@ -145,6 +145,15 @@ export class Spline extends Geometry
 
 	// Get tangent angle (in degrees) at a point on the spline
 	getTangentAngle(point) {
+
+		if(point.x == this.p0.x && point.y == this.p0.y ){		
+			return this.tangentA;
+			
+		}else if(point.x == this.p0.x && point.y == this.p0.y ){
+			return this.tangentB;
+		}
+	
+	
 		// Find t parameter for this point
 		let bestT = 0;
 		let bestDist = Infinity;

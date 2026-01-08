@@ -1,4 +1,4 @@
-const MAX_SNAP_PX = 20; // snap if within 20 screen pixels
+const MAX_SNAP_PX = 12; // snap if within 20 screen pixels
 
 import data 			from '../data/Data.js';
 import stage 			from '../core/Stage.js';
@@ -26,52 +26,79 @@ class DraftingAssistant
 	}
 	
 	// seek the nearest relevant snap point
-	snap(mouse, generateGuides = true)
-	{		
+	snap(mouse, generateGuides = true){
+	
 		let snap = null;
+	
 		// are we on a guide? - clean up later with a test of active guides
-		this.activateGuides(mouse, data.getGuides());
+		//this.activateGuides(mouse, data.getGuides());
 
 		// 1: snap on features of real geometry (endpoints, quadrants, etc...)
 		snap = this.findNearestSnapPoint_Geometry(mouse, data.getPOICandidates());
 		if(snap){
-			data.setCurrentSnapPoint(snap, generateGuides); // store snap point as a DA Snap
+			//console.log("POI "+snap);
+			this.setCurrentSnapPoint(snap, generateGuides); // store snap point as a DA Snap
 			return;
 		}
 
 		// 2, 3: snap on intersections of real geometry and constructions
 		snap = this.findNearestSnapPoint_Geometry(mouse, data.getIntersectionCandidates());
 		if(snap){
-			data.setCurrentSnapPoint(snap, generateGuides); // store snap point as a DA Snap
+			//console.log("IXD "+snap);
+			this.setCurrentSnapPoint(snap, generateGuides); // store snap point as a DA Snap
 			return;
 		}
 
 		// 4: snap on intersections of guides and geometry
 		snap = this.findNearestSnapPoint_Geometry(mouse, data.getGuideIntersectionCandidates());
 		if(snap){
-			data.setCurrentSnapPoint(snap, false); // do not store snap point as a DA Snap
+			//console.log("Guide IX "+snap);
+			this.setCurrentSnapPoint(snap, false); // do not store snap point as a DA Snap
 			return;
 		}
 
 		// 5: snap on real geometry
 		snap = this.findNearestSnapPoint_OnShape(mouse, data.getShapes());
 		if(snap){
-			data.setCurrentSnapPoint(snap, false); // do not store snap point as a DA Snap
+			//console.log("on"+snap);
+			this.setCurrentSnapPoint(snap, false); // do not store snap point as a DA Snap
 			return;
 		}
 
 		// 6: snap on guides
 		snap = this.findNearestSnapPoint_OnShape(mouse, data.getGuides());
 		if(snap){
-			data.setCurrentSnapPoint(snap, false); // do not store snap point as a DA Snap
+			//console.log("on G"+snap);
+			this.setCurrentSnapPoint(snap, false); // do not store snap point as a DA Snap
 			return;
 		}
 
 		// no snap, just return the mouse
 		// Floor to integers to reduce duplicate snap point calculations
-		data.setCurrentSnapPoint(new SnapPoint(Math.floor(mouse.x), Math.floor(mouse.y)));
+		this.setCurrentSnapPoint(new SnapPoint(mouse.x, mouse.y), false);
+// 		this.setCurrentSnapPoint(new SnapPoint(Math.floor(mouse.x), Math.floor(mouse.y)), false);	
 	}
 	
+	// tracks the current snapped point
+	setCurrentSnapPoint(p, store){ 
+		data.snapPoint = p;
+
+		if(store){
+			data.addSnapPoint(p);
+			// generate DA guides for each point 
+			// XXX - could be optimized but there aren't many guides?
+			// points with guides could be skipped
+			data.clearGuides();
+			for(const snapPoint of data.snapPoints){
+				this.createGuides(snapPoint);
+			}
+		}
+	}
+	
+	getCurrentSnapPoint(){ 
+		return data.snapPoint;
+	}
+		
 	findNearestSnapPoint_Geometry(mouse, candidates){
 		// Compare in screen space using screen pixel tolerance
 		const screenMouse = { x: mouse.screenX, y: mouse.screenY };
@@ -79,6 +106,10 @@ class DraftingAssistant
 		for(const point of candidates){
 			// Skip points belonging to excluded shapes
 			// Handle both POIs (single shape) and Intersections (two shapes)
+
+			// XXX this is neat, but maybe too much?
+			// consider a flag on the shapes to allow DA interaction
+			///*
 			if(point.shapes){
 				// Intersection object - skip if either shape is excluded
 				if(point.shapes.some(s => data.isExcludedFromSnap(s))){
@@ -88,9 +119,25 @@ class DraftingAssistant
 				continue;
 			}
 
+
+// 			if(point.sourceShapes.some(shape => data.isExcludedFromSnap(shape))){
+// 				continue;
+// 			}			
+			//*/
+			
+// 			if(point.shapes){
+// 				continue;
+// 			}
+// 			
+// 			if(point.shapes && point.shapes.selected){
+// 				continue;
+// 			}
+			
 			// Convert POI to screen space for comparison
 			const screenPOI = stage.worldToScreen(point.x, point.y);
-			const d = this.getDistance(screenMouse, screenPOI, MAX_SNAP_PX);
+
+			// Chebyshev distance
+			const d = Math.max(Math.abs(screenMouse.x - screenPOI.x), Math.abs(screenMouse.y - screenPOI.y));
 
 			// find the first POI within range
 			// we exit immediately, returning the world-space point
@@ -100,10 +147,11 @@ class DraftingAssistant
 		}
 		return false;
 	}
-
+		
 	activateGuides(mouse, geoSet){
 		// Shape.getGeoSnap works in world space, so convert screen tolerance to world
 		const worldTolerance = MAX_SNAP_PX / stage.zoom;
+		
 		const mouseRect = new Rectangle(
 			mouse.x - worldTolerance,
 			mouse.y - worldTolerance,
@@ -120,6 +168,7 @@ class DraftingAssistant
 	findNearestSnapPoint_OnShape(mouse, geoSet){
 		// Shape.getGeoSnap works in world space, so convert screen tolerance to world
 		const worldTolerance = MAX_SNAP_PX / stage.zoom;
+		
 		const mouseRect = new Rectangle(
 			mouse.x - worldTolerance,
 			mouse.y - worldTolerance,
@@ -154,39 +203,33 @@ class DraftingAssistant
 	// snaps is a hash of keys and points
 	createGuides(snapPoint)
 	{
+		return;
+		
+		const screenLength = stage.worldToScreenScale(1000);
+		
 		// vert
-		data.addGuide(new Guide([snapPoint.x, snapPoint.y, 90]));
+		data.addGuide(new Guide([snapPoint.x, snapPoint.y, 90, screenLength]));
 
 		// horz
-		data.addGuide(new Guide([snapPoint.x, snapPoint.y, 0]));
+		data.addGuide(new Guide([snapPoint.x, snapPoint.y, 0, screenLength]));
 
 		// 45°
-		data.addGuide(new Guide([snapPoint.x, snapPoint.y, 45]));
+		data.addGuide(new Guide([snapPoint.x, snapPoint.y, 45, screenLength]));
 
 		// -45°
-		data.addGuide(new Guide([snapPoint.x, snapPoint.y, -45]));
+		data.addGuide(new Guide([snapPoint.x, snapPoint.y, -45, screenLength]));
 
 		// Tangent and perpendicular guides if snap point is on a shape
 		if (snapPoint.shape && typeof snapPoint.shape.getTangentAngle === 'function') {
+		
 			const tangentAngle = snapPoint.shape.getTangentAngle(snapPoint);
 			data.addGuide(new Guide([snapPoint.x, snapPoint.y, tangentAngle]));
+
 			// Perpendicular to tangent (normal)
 			data.addGuide(new Guide([snapPoint.x, snapPoint.y, tangentAngle + 90]));
 		}
 	}
 
-	getDistance(a, b, min)
-	{
-		const dx = b.x - a.x;
-		if(dx > min)
-			return min+1;
-
-		const dy = b.y - a.y;		
-		if(dy > min)
-			return min+1;
-
-		return Math.sqrt(dx * dx + dy * dy);
-	}
 }
 
 const instance = new DraftingAssistant();

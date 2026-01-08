@@ -31,15 +31,10 @@ export class LineTool extends Tool
 	
 	begin(){
 		//console.log("begin Line Tool");
-		toolManager.addEventListener('mouseDown',		this.onMouseDown);
-		toolManager.addEventListener('mouseMove',		this.onMouseMove);
 	}
 
 	exit(){
 		//console.log("exit Line Tool");
-		toolManager.removeEventListener('mouseUp', 	this.onMouseUp);
-		toolManager.removeEventListener('mouseMove', 	this.onMouseMove);
-		toolManager.removeEventListener('mouseDown', 	this.onMouseDown);
 	}
 	
 	updateCursor(){
@@ -47,7 +42,6 @@ export class LineTool extends Tool
 	}
 
 	reset(){
-		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		if(this.line)
 			this.line = false
 		data.resetSnaps();
@@ -58,7 +52,6 @@ export class LineTool extends Tool
 	onMouseDown(e)
 	{
 		data.resetSnaps();
-		toolManager.addEventListener('mouseUp', 		this.onMouseUp);
 
 		if(this.line){
 			// we're in 2-click mode
@@ -81,7 +74,6 @@ export class LineTool extends Tool
 
 	onMouseUp(e){
 		data.resetSnaps();
-		toolManager.removeEventListener('mouseUp', 	this.onMouseUp);
 		
 		if(!this.line)return;
 		

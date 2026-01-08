@@ -1,6 +1,7 @@
 import {Point} 				from './Point.js';
 import {Shape, Geometry} 	from './Geometry.js';
 import {Rectangle} 			from './Rectangle.js';
+
 import * as VectorUtils 	from './utils/VectorUtils.js';
 import * as TransformUtils 	from './utils/TransformUtils.js';
 import * as LineUtils 		from './utils/LineUtils.js';
@@ -16,16 +17,19 @@ export class Line extends Geometry
 		this.start		= new Point(params[0], params[1]);
 		this.end 		= new Point(params[2], params[3]);
 		this.mid 		= new Point((this.start.x + this.end.x) / 2, (this.start.y + this.end.y) / 2);
-		this.updateBoundingBox();
+		this.tangent;
+		this.update();
 	}
 
 	update(){
-		this.mid.x = (this.start.x + this.end.x) / 2;
-		this.mid.y = (this.start.y + this.end.y) / 2;
-		this.updateBoundingBox();
-	}
+		this.mid.x 			= (this.start.x + this.end.x) / 2;
+		this.mid.y 			= (this.start.y + this.end.y) / 2;
+		
+		// precompute tangent
+		this.tangent 		= LineUtils.getAngleDeg(this);
+		// XXX convert to radians
 
-	updateBoundingBox(){
+		// bounding box
 		this.bounds.x 		= Math.min(this.start.x, this.end.x);
 		this.bounds.y 		= Math.min(this.start.y, this.end.y);
 		this.bounds.width 	= Math.max(this.start.x, this.end.x) - this.bounds.x;
@@ -82,14 +86,16 @@ export class Line extends Geometry
 		this.update();
 	}
 
-	getAngleDeg(){
-		return LineUtils.getAngleDeg(this);
-	}
 
 	// Get tangent angle (in degrees) at any point on the line
 	// For a line, tangent is just the line's angle
 	getTangentAngle(point) {
-		return this.getAngleDeg();
+		return this.tangent;
+	}
+
+	// used by properties inspector
+	getAngleDeg(){
+		return this.tangent;
 	}
 
 	getGeoSnap(mouse, mouseRect, pixelTolerance)
@@ -99,9 +105,9 @@ export class Line extends Geometry
 
 		// Precise closest point on the segment
 		const point 	= VectorUtils.closestPointOnSegment(mouse, this.start, this.end);
-		point.distance 	= VectorUtils.distance(mouse, point);
 
-		if(point.distance < pixelTolerance){
+		// is it close enough for a snap		
+		if(VectorUtils.distFast(mouse, point) < pixelTolerance){
 			return point;
 		}else{
 			return null;

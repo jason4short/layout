@@ -20,7 +20,6 @@ export class RotateTool extends Tool
 
 		this.name 	= "Rotate";
 		this.usage 	= "Select shapes first. Click anchor, then reference, then target angle.";
-		this.cursor = "cursor_crosshair";
 
 		this.generateGuides = false;
 
@@ -42,9 +41,6 @@ export class RotateTool extends Tool
 
 	begin() {
 		this.resetState();
-		toolManager.addEventListener('mouseDown', this.onMouseDown);
-		toolManager.addEventListener('mouseMove', this.onMouseMove);
-		toolManager.addEventListener('mouseUp', this.onMouseUp);
 		this.updateCursor()
 		const selected = data.getSelected();
 		if (selected.length === 0) {
@@ -56,9 +52,6 @@ export class RotateTool extends Tool
 	}
 
 	exit() {
-		toolManager.removeEventListener('mouseDown', this.onMouseDown);
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		this.resetState();
 	}
 	

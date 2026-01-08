@@ -15,7 +15,6 @@ export class MirrorTool extends Tool
 
 		this.name 	= "Mirror";
 		this.usage 	= "Select shapes first. Click two points to define mirror line. Hold Option to duplicate.";
-		this.cursor = "cursor_crosshair";
 
 		this.generateGuides = false;
 
@@ -37,9 +36,6 @@ export class MirrorTool extends Tool
 
 	begin(){
 		this.resetState();
-		toolManager.addEventListener('mouseDown', this.onMouseDown);
-		toolManager.addEventListener('mouseMove', this.onMouseMove);
-		toolManager.addEventListener('mouseUp', this.onMouseUp);
 
 		const selected = data.getSelected();
 		if(selected.length === 0){
@@ -51,9 +47,6 @@ export class MirrorTool extends Tool
 	}
 
 	exit(){
-		toolManager.removeEventListener('mouseDown', this.onMouseDown);
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		this.resetState();
 	}
 	

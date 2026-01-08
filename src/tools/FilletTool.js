@@ -8,6 +8,8 @@ import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
 import undoManager		from '../core/UndoManager.js';
+import da 				from '../geometry/DraftingAssistant.js';
+
 import { FilletCommand } from '../core/Commands.js';
 
 // Helper to check if shape is a circular type (arc or circle)
@@ -37,7 +39,6 @@ export class FilletTool extends Tool
 
 		this.name 	= "Fillet";
 		this.usage 	= "Click two shapes (lines, arcs, or circles) to add a rounded corner. Shift+click near intersection for quick fillet.";
-		this.cursor = "cursor_fillet";
 
 		this.generateGuides = false;
 
@@ -80,6 +81,7 @@ export class FilletTool extends Tool
 	}
 
 	reset() {
+		console.log("Reset!!")
 		if (this.firstShape) {
 			this.firstShape.selected = false;
 		}
@@ -96,7 +98,7 @@ export class FilletTool extends Tool
 
 	onMouseDown(e) {
 		const clickPt = { x: e.x, y: e.y };
-		const snapPt = data.getCurrentSnapPoint();
+		const snapPt = da.getCurrentSnapPoint();
 
 		// Option+click: quick fillet at nearest intersection
 		if (stage.shiftKey) {
@@ -144,7 +146,7 @@ export class FilletTool extends Tool
 
 	onMouseMove(e) {
 		if (this.state === STATE.DRAGGING || this.state === STATE.FIRST_SELECTED) {
-			const snapPt = data.getCurrentSnapPoint();
+			const snapPt = da.getCurrentSnapPoint();
 			if (this.linePreview) {
 				this.linePreview.end.x = snapPt.x;
 				this.linePreview.end.y = snapPt.y;
@@ -158,7 +160,7 @@ export class FilletTool extends Tool
 		if (this.state !== STATE.DRAGGING) return;
 
 		//const releasePt = { x: e.x, y: e.y };
-		const releasePt = data.getCurrentSnapPoint();
+		const releasePt = da.getCurrentSnapPoint();
 		
 		const dragDist = GeometryUtils.distance(this.firstClickPt, releasePt);
 		const secondShape = data.getTargetShape();
@@ -213,7 +215,6 @@ export class FilletTool extends Tool
 			this.showRadiusInput();
 		}
 
-		this.reset();
 		stage.render();
 	}
 
@@ -611,6 +612,8 @@ export class FilletTool extends Tool
 
 		if (!this.lastFillet || !this.lastFillet.arc) {
 			this.radius = r;
+			this.lastFillet = null;
+			console.log("set r "+this.radius)
 			return;
 		}
 

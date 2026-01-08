@@ -1,12 +1,13 @@
 import {Tool} 			from './Tool.js';
 import {Shape} 			from '../geometry/Geometry.js';
 import {Ellipse} 		from '../geometry/Ellipse.js';
+import {AddShapeCommand} from '../core/Commands.js';
 
 import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
 import data 			from '../data/Data.js';
 import undoManager		from '../core/UndoManager.js';
-import {AddShapeCommand} from '../core/Commands.js';
+import da 				from '../geometry/DraftingAssistant.js';
 
 export class CenterPointEllipseTool extends Tool
 {
@@ -16,7 +17,6 @@ export class CenterPointEllipseTool extends Tool
 
 		this.name 	= "Center Ellipse";
 		this.usage 	= "Click to set center point, then drag to define the ellipse radii.";
-		this.cursor = "cursor_ellipse";
 
 		this.generateGuides = true;
 
@@ -30,14 +30,10 @@ export class CenterPointEllipseTool extends Tool
 
 	begin(){
 		//console.log("CenterPointEllipseTool begin");
-		toolManager.addEventListener('mouseDown', this.onMouseDown);
 	}
 
 	exit(){
 		//console.log("CenterPointEllipseTool exit");
-		toolManager.removeEventListener('mouseDown', this.onMouseDown);
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		this.reset();
 	}
 	updateCursor(){
@@ -45,8 +41,6 @@ export class CenterPointEllipseTool extends Tool
 	}
 
 	reset(){
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 
 		this.centerPt = null;
 		if(this.ellipse){
@@ -57,32 +51,29 @@ export class CenterPointEllipseTool extends Tool
 
 	onMouseDown(e)
 	{
-		const snapPt = data.getCurrentSnapPoint();
-		this.centerPt = {x: snapPt.x, y: snapPt.y};
+		const snapPt 	= da.getCurrentSnapPoint();
+		this.centerPt 	= {x: snapPt.x, y: snapPt.y};
 
 		// Create preview ellipse at center (will be updated during drag)
-		this.ellipse = new Ellipse([this.centerPt.x, this.centerPt.y, 0, 0, 0]);
+		this.ellipse 	= new Ellipse([this.centerPt.x, this.centerPt.y, 0, 0, 0]);
 		data.addTempShape(this.ellipse);
-
-		toolManager.addEventListener('mouseMove', this.onMouseMove);
-		toolManager.addEventListener('mouseUp', this.onMouseUp);
 
 		stage.render();
 	}
 
 	onMouseMove(e)
 	{
-		const snapPt = data.getCurrentSnapPoint();
+		const snapPt 	= da.getCurrentSnapPoint();
 		this.updateEllipse(this.centerPt, snapPt);
 		stage.render();
 	}
 
 	onMouseUp(e)
 	{
-		toolManager.removeEventListener('mouseMove', this.onMouseMove);
-		toolManager.removeEventListener('mouseUp', this.onMouseUp);
-
-		const snapPt = data.getCurrentSnapPoint();
+		if(!this.centerPt)
+			return;
+		
+		const snapPt = da.getCurrentSnapPoint();
 
 		// Calculate ellipse size
 		const radiusX = Math.abs(snapPt.x - this.centerPt.x);
@@ -96,14 +87,8 @@ export class CenterPointEllipseTool extends Tool
 		}
 
 		// Finalize ellipse
-		this.updateEllipse(this.centerPt, snapPt);
-		data.removeTempShape();
 		undoManager.execute(new AddShapeCommand(this.ellipse));
-
-		// Clear references
-		this.centerPt = null;
-		this.ellipse = null;
-
+		this.reset();
 		stage.render();
 	}
 
