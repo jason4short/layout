@@ -1,13 +1,14 @@
-import {Tool} 			from "./Tool.js";
-import {Rectangle} 		from '../geometry/Rectangle.js';
+import {Tool} 				from "./Tool.js";
+import {Rectangle} 			from '../geometry/Rectangle.js';
+	
+import stage 				from '../core/Stage.js';
+import toolManager			from './ToolManager.js';
+import data 				from '../data/Data.js';
+import undoManager			from '../core/UndoManager.js';
+import draftingAssistant 	from '../geometry/DraftingAssistant.js';
 
-import stage 			from '../core/Stage.js';
-import toolManager		from './ToolManager.js';
-import data 			from '../data/Data.js';
-import undoManager		from '../core/UndoManager.js';
-import da 				from '../geometry/DraftingAssistant.js';
-
-import {AddShapesCommand, MoveCommand} from '../core/Commands.js';
+import {AddShapesCommand, 
+		MoveCommand} 	from '../core/Commands.js';
 
 export class PointerTool extends Tool
 {
@@ -74,6 +75,8 @@ export class PointerTool extends Tool
 		this.clonedShapes 			= [];
 
 		data.clearExcludeFromSnap();
+		data.resetSnaps();
+		data.clearGuides();		
 	}
 
 
@@ -176,6 +179,8 @@ export class PointerTool extends Tool
 
 		// Check if clicking on something already selected
 		this.moveTarget = data.getTargetShape();
+		// create a guide reference from initial point
+		draftingAssistant.setCurrentSnapPoint(data.snapPoint, true);
 	}
 
 	onMouseMove(e){
@@ -196,7 +201,7 @@ export class PointerTool extends Tool
 				// Start move operation
 				this.isMoving = true;
 				// Store the snap point when move started
-				const snap = da.getCurrentSnapPoint();
+				const snap = draftingAssistant.getCurrentSnapPoint();
 				this.moveStart = {x: snap.x, y: snap.y};
 
 				// Option+drag = clone shapes
@@ -238,7 +243,7 @@ export class PointerTool extends Tool
 		if(this.originalPositions.length === 0) return;
 
 		// Get current snap point (already set by Stage.onMouseMove)
-		const snapPt = da.getCurrentSnapPoint();
+		const snapPt = draftingAssistant.getCurrentSnapPoint();
 
 		// Calculate delta from where we started dragging
 		const snapDx = snapPt.x - this.moveStart.x;

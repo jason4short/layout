@@ -46,6 +46,7 @@ export class LineTool extends Tool
 		if(this.line)
 			this.line = false
 		data.resetSnaps();
+		data.clearGuides();
 		data.clearTempShapes();
 		stage.render();
 	}
@@ -76,12 +77,9 @@ export class LineTool extends Tool
 	}
 
 	onMouseUp(e){
-		data.resetSnaps();
-		
+		data.resetSnaps();		
+
 		if(!this.line)return;
-		
-		this.line.end.x = data.snapPoint.x
-		this.line.end.y = data.snapPoint.y
 		
 		// Check minimum length in screen pixels (not world units)
 		const screenLength = stage.worldToScreenScale(this.line.length());
@@ -90,12 +88,10 @@ export class LineTool extends Tool
 		}else{
 			this.line.update();
 			undoManager.execute(new AddShapeCommand(this.line));
-			data.clearTempShapes();
-			stage.render();
 			stage.setInputCallback(this.updateDimension)
 			stage.setDimensionInputValue(this.line.length());
 			this.prevLine 	= this.line;
-			this.line 		= null;
+			this.reset()
 		}
 	}
 	

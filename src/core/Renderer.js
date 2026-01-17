@@ -50,7 +50,7 @@ export class Renderer
 		}
 
 		// Special handling for guide lines
-		if(shape.type === Shape.GUIDE && shape.active) {
+		if(shape.type === Shape.GUIDE/* && shape.active*/) {
 			ctx.strokeStyle = '#ff0000';
 			ctx.lineWidth = 0.5;
 			ctx.setLineDash([1, 4]);
@@ -134,7 +134,7 @@ export class Renderer
 				const end 		= this.toScreen(shape.end.x, shape.end.y);
 
 				// Skip inactive guides
-				if(shape.type === Shape.GUIDE && !shape.active) continue;
+				//if(shape.type === Shape.GUIDE && !shape.active) continue;
 
 				ctx.moveTo(start.x, start.y);
 				ctx.lineTo(end.x, end.y);

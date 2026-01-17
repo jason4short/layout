@@ -1,14 +1,16 @@
-import {Tool} 			from './Tool.js';
-import {Shape} 			from '../geometry/Geometry.js';
-import {GeometryUtils} 	from '../geometry/GeometryUtils.js';
-import {Arc} 			from '../geometry/Arc.js';
-import {Line} 			from '../geometry/Line.js';
-
-import stage 			from '../core/Stage.js';
-import toolManager		from './ToolManager.js';
-import data 			from '../data/Data.js';
-import undoManager		from '../core/UndoManager.js';
-import da 				from '../geometry/DraftingAssistant.js';
+import {Tool} 				from './Tool.js';
+import { Shape, 	
+		PenStyle } 			from '../geometry/Geometry.js';
+			
+import {GeometryUtils} 		from '../geometry/GeometryUtils.js';
+import {Arc} 				from '../geometry/Arc.js';
+import {Line} 				from '../geometry/Line.js';
+	
+import stage 				from '../core/Stage.js';
+import toolManager			from './ToolManager.js';
+import data 				from '../data/Data.js';
+import undoManager			from '../core/UndoManager.js';
+import draftingAssistant 	from '../geometry/DraftingAssistant.js';
 
 import { FilletCommand } from '../core/Commands.js';
 
@@ -94,14 +96,15 @@ export class FilletTool extends Tool
 		this.firstShape 	= null;
 		this.firstClickPt 	= null;
 		this.lastFillet 	= null;
+		stage.render();
 	}
 
 	onMouseDown(e) {
-		const clickPt = { x: e.x, y: e.y };
-		const snapPt = da.getCurrentSnapPoint();
+		const snapPt 	= draftingAssistant.getCurrentSnapPoint();
 
 		// Option+click: quick fillet at nearest intersection
 		if (stage.shiftKey) {
+			const clickPt 	= { x: e.x, y: e.y };
 			this.quickFillet(clickPt);
 			return;
 		}
@@ -114,13 +117,15 @@ export class FilletTool extends Tool
 				if (!isValidShape) return;
 
 				// Select first shape, start potential drag
-				this.firstShape 		= clickedShape;
-				this.firstClickPt 		= snapPt;
-				this.firstShape.selected = true;
-				this.state 				= STATE.DRAGGING;
+				this.firstShape 			= clickedShape;
+				this.firstClickPt 			= snapPt;
+				this.firstShape.selected 	= true;
+				this.state 					= STATE.DRAGGING;
 
 				// Create preview line
-				this.linePreview = new Line([snapPt.x, snapPt.y, snapPt.x, snapPt.y]);
+				this.linePreview 			= new Line([snapPt.x, snapPt.y, snapPt.x, snapPt.y]);
+				this.linePreview.penStyle 	= PenStyle.HIDDEN
+
 				data.addTempShape(this.linePreview);
 				stage.render();
 				break;
@@ -129,28 +134,24 @@ export class FilletTool extends Tool
 				if (!isValidShape) {
 					// Clicked empty space - cancel
 					this.reset();
-					stage.render();
 					return;
 				}
 				if (clickedShape === this.firstShape) return;
 
 				// Second shape clicked - create fillet
-				this.completeFillet(clickedShape, clickPt);
+				this.completeFillet(clickedShape, snapPt);
+				this.reset();
 				break;
 
-			case STATE.DRAGGING:
-				// Shouldn't happen - mouseUp handles this
-				break;
 		}
 	}
 
 	onMouseMove(e) {
 		if (this.state === STATE.DRAGGING || this.state === STATE.FIRST_SELECTED) {
-			const snapPt = da.getCurrentSnapPoint();
+			const snapPt = draftingAssistant.getCurrentSnapPoint();
 			if (this.linePreview) {
 				this.linePreview.end.x = snapPt.x;
 				this.linePreview.end.y = snapPt.y;
-				this.linePreview.update();
 				stage.render();
 			}
 		}
@@ -159,28 +160,17 @@ export class FilletTool extends Tool
 	onMouseUp(e) {
 		if (this.state !== STATE.DRAGGING) return;
 
-		//const releasePt = { x: e.x, y: e.y };
-		const releasePt = da.getCurrentSnapPoint();
-		
-		const dragDist = GeometryUtils.distance(this.firstClickPt, releasePt);
-		const secondShape = data.getTargetShape();
+		const releasePt 	= draftingAssistant.getCurrentSnapPoint();		
+		const secondShape 	= data.getTargetShape();
 		
 		const isValidSecond = isFilletableShape(secondShape) &&
 							  secondShape !== this.firstShape;
 
 		if (isValidSecond) {
-			// Released on a valid second shape - create fillet
 			this.completeFillet(secondShape, releasePt);
-
-		} else if (dragDist < 5) {
-			// Small movement = click, wait for second click
-			this.state = STATE.FIRST_SELECTED;
-
-		} else {
-			// Dragged to empty space - cancel
-			this.reset();
-			stage.render();
 		}
+
+		this.reset();
 	}
 
 	completeFillet(secondShape, secondClickPt) {
@@ -333,10 +323,6 @@ export class FilletTool extends Tool
 		data.addShape(arc);
 
 		this.lastFillet.arc = arc;
-
-		// Trim lines - keep the side the user clicked on
-		//GeometryUtils.trimLineKeepClickSide(line1, tangent1, clickPt1);
-		//GeometryUtils.trimLineKeepClickSide(line2, tangent2, clickPt2);
 		
 		GeometryUtils.trimLineKeepClickSide(line1, intersection, clickPt1, tangent1);
 		GeometryUtils.trimLineKeepClickSide(line2, intersection, clickPt2, tangent2);
