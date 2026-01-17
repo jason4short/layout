@@ -173,7 +173,7 @@ export class PointerTool extends Tool
 		}
 
 		// Store both world and screen coords
-		this.dragStart = {x: e.x, y: e.y, screenX: e.screenX, screenY: e.screenY};
+		this.dragStart = {x: data.snapPoint.x, y: data.snapPoint.y, screenX: e.screenX, screenY: e.screenY};
 		this.isDragging = false;
 		this.isMoving = false;
 

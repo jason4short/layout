@@ -26,6 +26,7 @@ import { ScaleTool } 					from "./ScaleTool.js";
 import { MirrorTool } 					from "./MirrorTool.js";
 import { RotateTool } 					from "./RotateTool.js";
 import { ImageTool } 					from "./ImageTool.js";
+import { DimensionTool } 				from "./DimensionTool.js";
 
 
 
@@ -68,6 +69,7 @@ class ToolManager extends EventDispatcher
 		this.mirrorTool					= new MirrorTool();
 		this.rotateTool					= new RotateTool();
 		this.imageTool					= new ImageTool();
+		this.dimensionTool				= new DimensionTool();
 
 		// Tool palette configuration: [tool, displayName, shortcut]
 		this.toolPaletteConfig = [
@@ -86,7 +88,7 @@ class ToolManager extends EventDispatcher
 			{ tool: this.threePointArcTool, 		name: '3-Point Arc', shortcut: 'A' },
 			{ tool: this.centerPointArcTool, 		name: 'Center Arc', shortcut: '1' },
 			{ tool: this.tangentPointArcTool, 		name: 'Tangent Arc', shortcut: '3' },
-			{ category: 'Modify' },	
+			{ category: 'Modify' },
 			{ tool: this.trimTool, 					name: 'Trim', shortcut: 'T' },
 			{ tool: this.filletTool, 				name: 'Fillet', shortcut: 'F' },
 			{ tool: this.chamferTool, 				name: 'Chamfer', shortcut: 'K' },
@@ -94,6 +96,8 @@ class ToolManager extends EventDispatcher
 			{ tool: this.scaleTool, 				name: 'Scale', shortcut: 'X' },
 			{ tool: this.mirrorTool, 				name: 'Mirror', shortcut: 'M' },
 			{ tool: this.rotateTool, 				name: 'Rotate', shortcut: 'R' },
+			{ category: 'Annotate' },
+			{ tool: this.dimensionTool, 			name: 'Dimension', shortcut: 'D' },
 		];
 
 		return ToolManager.instance;

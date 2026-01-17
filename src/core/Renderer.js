@@ -17,7 +17,8 @@ export class Renderer
 			[PenStyle.CENTERLINE]:   { color: '#00CC00', dash: [12, 3, 3, 3], width: 0.5 },
 			[PenStyle.HIDDEN]:       { color: '#666666', dash: [6, 3],       width: 0.5 },
 			[PenStyle.PHANTOM]:      { color: '#888888', dash: [12, 3, 2, 3, 2, 3], width: 0.5 },
-			[PenStyle.OUTLINE]:      { color: '#000000', dash: [],           width: 1.5 }
+			[PenStyle.OUTLINE]:      { color: '#000000', dash: [],           width: 1.5 },
+			[PenStyle.DIMENSION]:    { color: '#0000FF', dash: [],           width: 0.5 }
 		};
 	}
 
@@ -378,6 +379,9 @@ export class Renderer
 						ctx.stroke();
 					}
 				}
+
+			} else if(shape.geometry === Shape.DIMENSION){
+				this.drawDimension(ctx, shape);
 			}
 		}
 
@@ -502,6 +506,130 @@ export class Renderer
 		ctx.fillRect(topLeft.x, topLeft.y, width, height);
 	}
 
+	drawDimension(ctx, shape){
+		const color = shape.selected ? '#FF0000' : '#111111';
+		const arrowSize = 8;  // Screen pixels
+		const textOffset = 4; // Gap between line and text
+
+		// Convert all points to screen coordinates
+		const dimStart 		= this.toScreen(shape.dimLineStart.x, 	shape.dimLineStart.y);
+		const dimEnd 		= this.toScreen(shape.dimLineEnd.x, 	shape.dimLineEnd.y);
+		const textPos 		= this.toScreen(shape.textPosition.x, 	shape.textPosition.y);
+		const ext1Start 	= this.toScreen(shape.extLine1Start.x, 	shape.extLine1Start.y);
+		const ext1End 		= this.toScreen(shape.extLine1End.x, 	shape.extLine1End.y);
+		const ext2Start 	= this.toScreen(shape.extLine2Start.x, 	shape.extLine2Start.y);
+		const ext2End 		= this.toScreen(shape.extLine2End.x, 	shape.extLine2End.y);
+
+		ctx.strokeStyle 	= color;
+		ctx.fillStyle 		= color;
+		ctx.lineWidth 		= 0.5;
+
+		// Draw extension lines
+		ctx.beginPath();
+		ctx.moveTo(ext1Start.x, ext1Start.y);
+		ctx.lineTo(ext1End.x, 	ext1End.y);
+		ctx.moveTo(ext2Start.x, ext2Start.y);
+		ctx.lineTo(ext2End.x, 	ext2End.y);
+		ctx.stroke();
+
+		// Calculate direction vector for dimension line (for arrows)
+		const dx = dimEnd.x - dimStart.x;
+		const dy = dimEnd.y - dimStart.y;
+		const len = Math.sqrt(dx * dx + dy * dy);
+
+		if (len < 1) return; // Too small to draw
+
+		const unitX = dx / len;
+		const unitY = dy / len;
+
+		// Perpendicular for arrow heads
+		const perpX = -unitY;
+		const perpY = unitX;
+
+		// Get text dimensions for gap calculation
+		ctx.font = '12px Arial';
+		const displayText = shape.getDisplayText('', 2);
+		const textMetrics = ctx.measureText(displayText);
+		const textWidth = textMetrics.width + 8; // Add padding
+		const halfTextWidth = textWidth / 2;
+
+		// Calculate gap in dimension line for text
+		const gapStart = {
+			x: textPos.x - unitX * halfTextWidth,
+			y: textPos.y - unitY * halfTextWidth
+		};
+		const gapEnd = {
+			x: textPos.x + unitX * halfTextWidth,
+			y: textPos.y + unitY * halfTextWidth
+		};
+
+		// Draw dimension line with gap for text
+		ctx.beginPath();
+		ctx.moveTo(dimStart.x, dimStart.y);
+		ctx.lineTo(gapStart.x, gapStart.y);
+		ctx.moveTo(gapEnd.x, gapEnd.y);
+		ctx.lineTo(dimEnd.x, dimEnd.y);
+		ctx.stroke();
+
+		// Draw arrow at start (pointing inward toward text)
+		this.drawArrow(ctx, dimStart.x, dimStart.y, unitX, unitY, perpX, perpY, arrowSize);
+
+		// Draw arrow at end (pointing inward toward text)
+		this.drawArrow(ctx, dimEnd.x, dimEnd.y, -unitX, -unitY, perpX, perpY, arrowSize);
+
+		// Draw text
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		ctx.fillText(displayText, textPos.x, textPos.y);
+
+		// Draw control point handles when selected
+		if(shape.selected || shape.showControlPoints){
+			const handleRadius = 4;
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#666666';
+			ctx.fillStyle = '#FFFFFF';
+
+			// Start point
+			const startPt = this.toScreen(shape.start.x, shape.start.y);
+			ctx.beginPath();
+			ctx.arc(startPt.x, startPt.y, handleRadius, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.stroke();
+
+			// End point
+			const endPt = this.toScreen(shape.end.x, shape.end.y);
+			ctx.beginPath();
+			ctx.arc(endPt.x, endPt.y, handleRadius, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.stroke();
+
+			// Text/offset handle (diamond)
+			ctx.fillStyle = '#FFCC00';
+			ctx.beginPath();
+			ctx.moveTo(textPos.x, textPos.y - handleRadius);
+			ctx.lineTo(textPos.x + handleRadius, textPos.y);
+			ctx.lineTo(textPos.x, textPos.y + handleRadius);
+			ctx.lineTo(textPos.x - handleRadius, textPos.y);
+			ctx.closePath();
+			ctx.fill();
+			ctx.stroke();
+		}
+	}
+
+	drawArrow(ctx, x, y, dirX, dirY, perpX, perpY, size){
+		const arrowWidth = size * 0.4;
+
+		// Arrow tip is at (x, y), pointing in (dirX, dirY) direction
+		const baseX = x + dirX * size;
+		const baseY = y + dirY * size;
+
+		ctx.beginPath();
+		ctx.moveTo(x, y);
+		ctx.lineTo(baseX + perpX * arrowWidth, baseY + perpY * arrowWidth);
+		ctx.lineTo(baseX - perpX * arrowWidth, baseY - perpY * arrowWidth);
+		ctx.closePath();
+		ctx.fill();
+	}
 
 	getBounds(){
 

@@ -21,6 +21,8 @@ export class MirrorTool extends Tool
 		this.name 	= "Line";
 		this.usage 	= "Click to set start point, drag or click again to set end point. Press Escape to cancel.";
 
+		this.generateGuides 	= false; // Enable snapping for move operations
+
 		this.line 				= false;
 		this.prevLine 			= false;
 

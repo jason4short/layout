@@ -11,6 +11,7 @@ import {Ellipse} 			from '../geometry/Ellipse.js';
 import {EllipticalArc} 		from '../geometry/EllipticalArc.js';
 import {Spline} 			from '../geometry/Spline.js';
 import {Image} 				from '../geometry/Image.js';
+import {Dimension} 			from '../geometry/Dimension.js';
 
 
 import {Construction} from '../geometry/Construction.js';
@@ -112,6 +113,8 @@ class FileManager
 				return EllipticalArc.fromJSON(shapeData);
 			case Shape.IMAGE:
 				return Image.fromJSON(shapeData);
+			case Shape.DIMENSION:
+				return Dimension.fromJSON(shapeData);
 			default:
 				console.warn('Unknown geometry type:', shapeData.geometry);
 				return null;

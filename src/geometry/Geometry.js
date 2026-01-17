@@ -13,6 +13,7 @@ export const Shape = Object.freeze({
 	ELLIPTICAL_ARC: "elliptical_arc",
 	SPLINE: "spline",
 	IMAGE: "image",
+	DIMENSION: "dimension",
 
 	/*types*/
 	CONSTRUCTION: "construction",
@@ -28,7 +29,8 @@ export const PenStyle = Object.freeze({
 	CENTERLINE: "centerline",   // Long-short-long dash pattern
 	HIDDEN: "hidden",           // Dashed line for hidden edges
 	PHANTOM: "phantom",         // Long-dash-dot-dot pattern
-	OUTLINE: "outline"          // Thicker solid line
+	OUTLINE: "outline",          // Thicker solid line
+	DIMENSION: "dimension"        // blue solid line
 });
 
 export class Geometry

@@ -24,6 +24,8 @@ export class ParallelLineTool extends Tool
 		this.name 	= "Parallel Line";
 		this.usage 	= "Click a line, then drag to create a parallel copy at an offset distance.";
 
+		this.generateGuides 	= false; // Enable snapping for move operations
+
 		this.state 			= STATE.IDLE;
 		this.originalLine 	= null;
 		this.previewLine 	= null;
@@ -60,7 +62,8 @@ export class ParallelLineTool extends Tool
 			data.clearTempShapes();
 			this.previewLine = null;
 		}
-
+		data.resetSnaps();
+		data.clearGuides();
 		this.state 			= STATE.IDLE;
 		this.originalLine 	= null;
 		this.createdLine 	= null;

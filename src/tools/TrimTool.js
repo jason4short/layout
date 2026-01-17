@@ -64,7 +64,12 @@ export class TrimTool extends Tool
 		const boundaries = data.getSelected().filter(s => s !== clickedShape);
 
 		if(stage.optionKey){
-			this.extendLine(clickedShape, boundaries, e);
+			// Option key: extend OR trim-to-boundaries (keep only clicked segment)
+			if(clickedShape.geometry === Shape.LINE){
+				this.extendOrTrimToLine(clickedShape, boundaries, e);
+			}else{
+				this.extendLine(clickedShape, boundaries, e);
+			}
 		}else{
 			// Handle different shape types
 			if(clickedShape.geometry === Shape.LINE){
@@ -203,6 +208,89 @@ export class TrimTool extends Tool
 		}
 	}
 
+
+	// Option+click: Extend/trim line to boundaries on both ends
+	extendOrTrimToLine(line, boundaries, clickPoint){
+		if(boundaries.length === 0) return;
+
+		// Create an extended line for finding all possible intersections
+		const direction = {
+			x: line.end.x - line.start.x,
+			y: line.end.y - line.start.y
+		};
+		const len = Math.sqrt(direction.x * direction.x + direction.y * direction.y);
+		if(len === 0) return;
+
+		direction.x /= len;
+		direction.y /= len;
+
+		const extendedLine = new Line([
+			line.start.x - direction.x * 10000,
+			line.start.y - direction.y * 10000,
+			line.end.x + direction.x * 10000,
+			line.end.y + direction.y * 10000
+		]);
+
+		// Find all intersections with the extended line
+		const intersections = data.findIntersectionsWithBoundaries(extendedLine, boundaries);
+		if(intersections.length === 0) return;
+
+		// Convert intersections to t values relative to ORIGINAL line
+		const tPoints = intersections
+			.map(p => ({
+				t: line.getParametricT(p),
+				point: p
+			}))
+			.sort((a, b) => a.t - b.t);
+
+		// Separate intersections: before start (t<0), on line (0<=t<=1), after end (t>1)
+		const beforeStart = tPoints.filter(tp => tp.t < 0);
+		const onLine = tPoints.filter(tp => tp.t >= 0 && tp.t <= 1);
+		const afterEnd = tPoints.filter(tp => tp.t > 1);
+
+		// Determine new start and end points
+		let newStart = null;
+		let newEnd = null;
+
+		if (onLine.length >= 2) {
+			// Line crosses 2+ boundaries - trim to outermost intersections on line
+			newStart = onLine[0].point;
+			newEnd = onLine[onLine.length - 1].point;
+		} else if (onLine.length === 1) {
+			// Line crosses 1 boundary - extend the other end
+			if (beforeStart.length > 0) {
+				newStart = beforeStart[beforeStart.length - 1].point; // closest to t=0
+			}
+			if (afterEnd.length > 0) {
+				newEnd = afterEnd[0].point; // closest to t=1
+			}
+		} else {
+			// Line is entirely inside/outside boundaries - extend both ends if possible
+			if (beforeStart.length > 0) {
+				newStart = beforeStart[beforeStart.length - 1].point;
+			}
+			if (afterEnd.length > 0) {
+				newEnd = afterEnd[0].point;
+			}
+		}
+
+		// Apply changes if any
+		if (newStart || newEnd) {
+			this.originalStates.push(line.clone());
+			this.shapesRemoved.push(line);
+
+			if (newStart) {
+				line.start.x = newStart.x;
+				line.start.y = newStart.y;
+			}
+			if (newEnd) {
+				line.end.x = newEnd.x;
+				line.end.y = newEnd.y;
+			}
+			line.update();
+			this.shapesAdded.push(line);
+		}
+	}
 
 	// Extend line to nearest boundary in the direction of click
 	extendLine(line, boundaries, clickPoint){

@@ -81,13 +81,17 @@ export class StrokeTool extends Tool
 	deactivate(){
 // 		console.log("exit Stroke Tool");
 		this.active 		= false;
+		this.reset();
 	}
+	
 	reset(){
-		this.gestures 		= [];
-		this.screenStart 	= null;
-		this.screenCurrent 	= null;
-		this.worldStart 	= null;
-		this.worldCurrent 	= null;
+		this.gestures 			= [];
+		this.screenStart 		= null;
+		this.screenCurrent 		= null;
+		this.worldStart 		= null;
+		this.worldCurrent 		= null;
+		stage.renderer.zoomRect = null;
+		stage.render();
 	}
 
 	onMouseDown(e)
@@ -147,15 +151,10 @@ export class StrokeTool extends Tool
 
 	onMouseUp(e){
 		if(!this.screenStart) return;
-
-		this.worldCurrent = { x: e.x, y: e.y };
-
+		
+		//this.worldCurrent = { x: e.x, y: e.y };
 		const gesture = this.gestures.join('');
-
 		this.executeGesture(gesture);
-
-		stage.renderer.zoomRect = null;
-		stage.render();
 		this.reset();
 	}
 

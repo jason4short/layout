@@ -361,6 +361,8 @@ class Data
 				return [0, 1, 2, 3]; // all 4 control points are selectable
 			case Shape.IMAGE:
 				return [4]; // center only - corners are for resizing
+			case Shape.DIMENSION:
+				return [0, 1, 2]; // start, end, and offset/text position
 			default:
 				return [];
 		}
