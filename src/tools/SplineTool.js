@@ -50,7 +50,7 @@ export class SplineTool extends Tool
 		
 		this.spline 		= null;
 		this.linePreview 	= null;
-		data.removeTempShape();
+		data.clearTempShapes();
 	}
 	updateCursor(){
 		stage.setCursor('spline', 0, 0);
@@ -71,7 +71,7 @@ export class SplineTool extends Tool
 				break;
 
 			case 1:
-				data.removeTempShape();
+				data.clearTempShapes();
 					
 				// Second click: set end point (p3)
 				this.p3 = {x: snap.x, y: snap.y};

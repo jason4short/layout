@@ -42,7 +42,7 @@ export class OppositeCornerEllipseTool extends Tool
 	reset(){
 		this.startPt = null;
 		if(this.ellipse){
-			data.removeTempShape();
+			data.clearTempShapes();
 			this.ellipse = null;
 		}
 	}
@@ -86,7 +86,7 @@ export class OppositeCornerEllipseTool extends Tool
 
 		// Finalize ellipse
 		this.updateEllipse(this.startPt, snapPt);
-		data.removeTempShape();
+		data.clearTempShapes();
 		undoManager.execute(new AddShapeCommand(this.ellipse));
 
 		// Clear references

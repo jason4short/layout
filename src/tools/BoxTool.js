@@ -1,11 +1,12 @@
-import {Tool} 			from './Tool.js';
-import {Shape} 			from '../geometry/Geometry.js';
-import {Line} 			from '../geometry/Line.js';
-
-import toolManager 		from './ToolManager.js';
-import stage 			from '../core/Stage.js';
-import data 			from '../data/Data.js';
-import da 				from '../geometry/DraftingAssistant.js';
+import {Tool} 				from './Tool.js';
+import {Shape} 				from '../geometry/Geometry.js';
+import {Line} 				from '../geometry/Line.js';
+	
+import toolManager 			from './ToolManager.js';
+import stage 				from '../core/Stage.js';
+import data 				from '../data/Data.js';
+import da 					from '../geometry/DraftingAssistant.js';
+import draftingAssistant 	from '../geometry/DraftingAssistant.js';
 
 export class BoxTool extends Tool
 {
@@ -61,6 +62,8 @@ export class BoxTool extends Tool
 			this.previewLines.push(line);
 		}
 		data.setTempShapes(this.previewLines);
+		// create a guide reference from initial point
+		draftingAssistant.setCurrentSnapPoint(data.snapPoint, true);
 		stage.render();
 	}
 

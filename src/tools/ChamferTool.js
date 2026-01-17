@@ -63,7 +63,7 @@ export class ChamferTool extends Tool
 			this.firstLine.selected = false;
 		}
 		if (this.linePreview) {
-			data.removeTempShape();
+			data.clearTempShapes();
 			this.linePreview = null;
 		}
 

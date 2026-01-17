@@ -31,7 +31,7 @@ class Data
 		this.shapes 				= [];
 		this.constructions			= [];
 		this.guides					= []; // temp constructions, ephemeral, gen on snap points
-		this.shapePreview 			= null; // single preview shape
+		//this.shapePreview 			= null; // single preview shape
 		this.shapePreviews 			= []; // multiple preview shapes (for scale tool, etc.)
 
 		// store unique snap points in a ring buffer	
@@ -573,13 +573,12 @@ class Data
 	}
 	
 
-	/* 	for drawing Previews */
-	addTempShape(newShape){
-		this.shapePreview = newShape;
-	}
 
-	removeTempShape(){
-		this.shapePreview = null;
+	/* 	for drawing Previews */
+	// XXX combine into array so we can handle complex previews
+	addTempShape(newShape){
+		//this.shapePreview = newShape;
+		this.shapePreviews.push(newShape)
 	}
 
 	// Multiple preview shapes (for scale tool, etc.)
@@ -619,7 +618,7 @@ class Data
 	getShapesToRender(){
 		const images = this.shapes.filter(s => s.geometry === Shape.IMAGE);
 		const nonImages = this.shapes.filter(s => s.geometry !== Shape.IMAGE);
-		return [...images, ...nonImages, ...this.constructions, ...this.guides, ...this.shapePreviews, this.shapePreview].filter(Boolean);
+		return [...images, ...nonImages, ...this.constructions, ...this.guides, ...this.shapePreviews /*, this.shapePreview*/].filter(Boolean);
 	}
 
 	// Array of all intersection points we could snap to
@@ -690,12 +689,17 @@ class Data
 	}
 
 	resetSnaps(){
+		console.log("resetSnaps")
 		this.snapPoints			= []	
 		this.snapIndex 			= 0;
+
+		// XXX
+		//this.clearGuides();
 	}
 
 	// reset DA guides
 	clearGuides(){
+		console.log("clearGuides")
 		this.guideIntersections = [];
 		this.guides 			= [];
 	}

@@ -51,7 +51,7 @@ export class CenterPointArcTool extends Tool
 		this.radius = 0;
 		this.startAngle = 0;
 		this.step = 0;
-		data.removeTempShape();
+		data.clearTempShapes();
 	}
 
 	onMouseDown(e)
@@ -83,7 +83,7 @@ export class CenterPointArcTool extends Tool
 				this.startAngle,
 				this.startAngle
 			]);
-			data.removeTempShape();
+			data.clearTempShapes();
 			this.radiusLine = null;
 			data.addTempShape(this.arc);
 			this.step = 2;
@@ -92,7 +92,7 @@ export class CenterPointArcTool extends Tool
 			// Third click: commit the arc
 			if(this.arc && this.radius > 0){
 				this.arc.update();
-				data.removeTempShape();
+				data.clearTempShapes();
 				undoManager.execute(new AddShapeCommand(this.arc));
 			}
 			this.reset();

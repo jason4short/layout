@@ -57,7 +57,7 @@ export class ParallelLineTool extends Tool
 
 	reset() {
 		if (this.previewLine) {
-			data.removeTempShape();
+			data.clearTempShapes();
 			this.previewLine = null;
 		}
 
@@ -132,7 +132,7 @@ export class ParallelLineTool extends Tool
 		if (!this.previewLine) return;
 
 		// Commit the preview line
-		data.removeTempShape();
+		data.clearTempShapes();
 		this.previewLine.update();
 	
 		if(this.previewLine.type == Shape.CONSTRUCTION){

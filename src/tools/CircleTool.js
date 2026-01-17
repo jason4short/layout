@@ -50,7 +50,7 @@ export class CircleTool extends Tool
 		if(this.circle)
 			this.circle = false
 		data.resetSnaps();
-		data.removeTempShape();
+		data.clearTempShapes();
 		stage.render();
 	}
 	
@@ -106,7 +106,7 @@ export class CircleTool extends Tool
 		}else{
 			this.circle.update();
 			undoManager.execute(new AddShapeCommand(this.circle));
-			data.removeTempShape();
+			data.clearTempShapes();
 
 			// Store for diameter editing
 			this.prevCircle = this.circle;

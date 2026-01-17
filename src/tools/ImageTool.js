@@ -57,7 +57,7 @@ export class ImageTool extends Tool
 		this.imageElement = null;
 		this.imageSrc = null;
 		this.placing = false;
-		data.removeTempShape();
+		data.clearTempShapes();
 		this.preview = null;
 		stage.render();
 	}
@@ -149,7 +149,7 @@ export class ImageTool extends Tool
 		undoManager.execute(new AddShapeCommand(finalImage));
 
 		// Clean up
-		data.removeTempShape();
+		data.clearTempShapes();
 		this.preview = null;
 		this.placing = false;
 		this.imageElement = null;

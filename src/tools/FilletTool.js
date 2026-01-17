@@ -86,7 +86,7 @@ export class FilletTool extends Tool
 			this.firstShape.selected = false;
 		}
 		if (this.linePreview) {
-			data.removeTempShape();
+			data.clearTempShapes();
 			this.linePreview = null;
 		}
 

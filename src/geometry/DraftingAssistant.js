@@ -203,7 +203,7 @@ class DraftingAssistant
 	// snaps is a hash of keys and points
 	createGuides(snapPoint)
 	{
-		return;
+// 		return;
 		
 		const screenLength = stage.worldToScreenScale(1000);
 		

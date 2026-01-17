@@ -48,7 +48,7 @@ export class ThreePointArcTool extends Tool
 		this.startPoint 	= null;
 		this.endPoint 		= null;
 		this.step 			= 0;
-		data.removeTempShape();
+		data.clearTempShapes();
 	}
 
 	updateCursor(){
@@ -84,7 +84,7 @@ export class ThreePointArcTool extends Tool
 			// Third click: commit the arc
 			if(this.arc){
 				this.arc.update();
-				data.removeTempShape();
+				data.clearTempShapes();
 				undoManager.execute(new AddShapeCommand(this.arc));
 			}
 			this.reset();
@@ -122,7 +122,7 @@ export class ThreePointArcTool extends Tool
 				// Switch from line preview to arc preview
 				if(this.linePreview){
 					this.linePreview = null;
-					data.removeTempShape();
+					data.clearTempShapes();
 				}
 				this.arc = new Arc([
 					arcParams.cx,

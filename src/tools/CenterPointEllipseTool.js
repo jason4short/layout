@@ -44,7 +44,7 @@ export class CenterPointEllipseTool extends Tool
 
 		this.centerPt = null;
 		if(this.ellipse){
-			data.removeTempShape();
+			data.clearTempShapes();
 			this.ellipse = null;
 		}
 	}

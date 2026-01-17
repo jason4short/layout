@@ -1,44 +1,44 @@
-import {Tool} from './Tool.js';
+import {Tool} 				from './Tool.js';
+import { Shape, PenStyle } 	from '../geometry/Geometry.js';
+import {Line} 				from '../geometry/Line.js'
+import {AddShapesCommand, 
+		MirrorCommand} 		from '../core/Commands.js';
 
-import stage 		from '../core/Stage.js';
-import toolManager	from './ToolManager.js';
-import data 		from '../data/Data.js';
-import {Line} 		from '../geometry/Line.js';
-import undoManager	from '../core/UndoManager.js';
-import {AddShapesCommand, MirrorCommand} from '../core/Commands.js';
+import draftingAssistant 	from '../geometry/DraftingAssistant.js';
+import stage 				from '../core/Stage.js';
+import toolManager			from './ToolManager.js';
+import data 				from '../data/Data.js';
+import undoManager			from '../core/UndoManager.js';
 
 export class MirrorTool extends Tool
 {
+	// private members
+
 	constructor()
 	{
 		super();
 
-		this.name 	= "Mirror";
-		this.usage 	= "Select shapes first. Click two points to define mirror line. Hold Option to duplicate.";
+		this.name 	= "Line";
+		this.usage 	= "Click to set start point, drag or click again to set end point. Press Escape to cancel.";
 
-		this.generateGuides = false;
-
-		// 2-click state machine
-		this.state 			= 0;
-		this.lineStart 		= null;
-		this.lineEnd 		= null;
-
-		// Drag tracking
-		this.isDragging 	= false;
+		this.line 				= false;
+		this.prevLine 			= false;
 
 		// Preview
-		this.previewShapes 	= [];
+		this.previewShapes 		= [];
+		this.selected 			= [];
 
-		this.onMouseDown 	= this.onMouseDown.bind(this);
-		this.onMouseMove 	= this.onMouseMove.bind(this);
-		this.onMouseUp 		= this.onMouseUp.bind(this);
+		this.onMouseMove 		= this.onMouseMove.bind(this);
+		this.onMouseDown 		= this.onMouseDown.bind(this);
+		this.onMouseUp 			= this.onMouseUp.bind(this);
 	}
-
+	
 	begin(){
-		this.resetState();
+		//console.log("begin Line Tool");
 
-		const selected = data.getSelected();
-		if(selected.length === 0){
+
+		this.selected = data.getSelected();
+		if(this.selected.length === 0){
 			this.usage = "No shapes selected. Select shapes first, then use Mirror tool.";
 		} else {
 			this.usage = "Click first point of mirror line.";
@@ -47,129 +47,108 @@ export class MirrorTool extends Tool
 	}
 
 	exit(){
-		this.resetState();
+		//console.log("exit Line Tool");
 	}
 	
 	updateCursor(){
-		stage.setCursor('mirror', 0,0);
+		stage.setCursor('crosshair');
 	}
-
 
 	reset(){
-		this.resetState();
-		stage.render();
-	}
-
-	resetState(){
-		this.state 		= 0;
-		this.lineStart 	= null;
-		this.lineEnd 	= null;
-		this.isDragging = false;
-		this.previewShapes = [];
+		if(this.line)
+			this.line = false
+		data.resetSnaps();
 		data.clearTempShapes();
-	}
-
-	onMouseDown(e){
-		const selected = data.getSelected();
-		if(selected.length === 0){
-			return;
-		}
-
-		const snap = data.snapPoint;
-
-		if(this.state === 0){
-			this.lineStart = { x: snap.x, y: snap.y };
-			this.isDragging = false;
-			this.state = 1;
-			this.usage = "Drag or click second point. Hold Option to duplicate.";
-			toolManager.updateToolNameDisplay();
-
-		} else if(this.state === 1 && !this.isDragging){
-			// Click mode - set end and apply
-			this.lineEnd = { x: snap.x, y: snap.y };
-			data.clearTempShapes();
-			this.applyMirror();
-			this.resetState();
-			this.usage = "Click first point of mirror line.";
-			toolManager.updateToolNameDisplay();
-		}
-
+		this.usage = "Click first point of mirror line.";
 		stage.render();
 	}
 
-	onMouseMove(e){
-		if(this.state === 1 && this.lineStart){
-			const snap = data.snapPoint;
-			const dx = snap.x - this.lineStart.x;
-			const dy = snap.y - this.lineStart.y;
-			const dist = Math.sqrt(dx * dx + dy * dy);
-
-			// Mark as dragging if moved more than 5 units
-			if(dist > 5){
-				this.isDragging = true;
-				this.lineEnd = { x: snap.x, y: snap.y };
-				this.updatePreview();
-				stage.render();
-			}
+	onMouseDown(e)
+	{
+		data.resetSnaps();
+		this.selected = data.getSelected();
+		if(this.line){
+			// we're in 2-click mode
+		}else{
+			this.line = data.getNewShape(Shape.LINE);
+			this.line.penStyle = PenStyle.CENTERLINE
+			data.addTempShape(this.line);
+			// create a guide reference from initial point
+			draftingAssistant.setCurrentSnapPoint(data.snapPoint, true);
 		}
 	}
+	
+	onMouseMove(e){
+		//console.log("move!")
+		//console.log(data.snapPoint.x)
 
-	onMouseUp(e){
-		if(this.state === 1 && this.isDragging){
-			// Drag complete - apply mirror
-			const snap = data.snapPoint;
-			this.lineEnd = { x: snap.x, y: snap.y };
-			data.clearTempShapes();
-			this.applyMirror();
-			this.resetState();
-			this.usage = "Click first point of mirror line.";
-			toolManager.updateToolNameDisplay();
+		if(this.line){
+			this.line.end.x = data.snapPoint.x
+			this.line.end.y = data.snapPoint.y;
+			
+			this.updatePreview();
 			stage.render();
 		}
 	}
 
-	updatePreview(){
-		if(!this.lineStart || !this.lineEnd) return;
+	onMouseUp(e){
+		data.resetSnaps();
+		
+		if(!this.line)return;
+				
+		// Check minimum length in screen pixels (not world units)
+		const screenLength = stage.worldToScreenScale(this.line.length());
+		
+		if(screenLength < 5){
+			// do nothing, we're still defining the line
+		}else{
+			console.log("applyMirror")
+			this.applyMirror();
+			this.reset()
+		}
+	}
 
-		const selected = data.getSelected();
-		this.previewShapes = selected.map(shape => {
+	updatePreview(){
+		this.previewShapes = this.selected.map(shape => {
 			const clone = shape.clone();
-			clone.mirror(this.lineStart.x, this.lineStart.y, this.lineEnd.x, this.lineEnd.y);
+			clone.mirror(this.line.start.x, this.line.start.y, this.line.end.x, this.line.end.y);
 			return clone;
 		});
 
 		// Add mirror line to preview
-		const mirrorLine = new Line([
-			this.lineStart.x, this.lineStart.y,
-			this.lineEnd.x, this.lineEnd.y
-		]);
-		this.previewShapes.push(mirrorLine);
-
+// 		const mirrorLine = new Line([
+// 			this.line.start.x, this.line.start.y,
+// 			this.line.end.x, this.line.end.y
+// 		]);
 		data.setTempShapes(this.previewShapes);
+		data.addTempShape(this.line);
 	}
 
 	applyMirror(){
-		if(!this.lineStart || !this.lineEnd) return;
+		//if(!this.lineStart || !this.lineEnd) return;
 
-		const selected = data.getSelected();
 		const duplicate = stage.optionKey;
 
 		if(duplicate){
 			// Create mirrored copies
 			const clones = [];
-			for(const shape of selected){
+			for(const shape of this.selected){
 				const clone = shape.clone();
-				clone.mirror(this.lineStart.x, this.lineStart.y, this.lineEnd.x, this.lineEnd.y);
+				clone.mirror(this.line.start.x, this.line.start.y, this.line.end.x, this.line.end.y);
 				clones.push(clone);
 			}
 			undoManager.execute(new AddShapesCommand(clones));
 		} else {
 			// Mirror in place (use command for undo support)
 			undoManager.execute(new MirrorCommand(
-				[...selected],
-				this.lineStart.x, this.lineStart.y,
-				this.lineEnd.x, this.lineEnd.y
+				[...this.selected],
+				this.line.start.x, this.line.start.y,
+				this.line.end.x, this.line.end.y
 			));
 		}
 	}
+
+
+
 }
+

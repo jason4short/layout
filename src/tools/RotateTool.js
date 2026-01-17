@@ -1,9 +1,11 @@
 import {Tool} from './Tool.js';
 
-import stage 		from '../core/Stage.js';
-import toolManager	from './ToolManager.js';
-import data 		from '../data/Data.js';
-import undoManager	from '../core/UndoManager.js';
+import stage 				from '../core/Stage.js';
+import toolManager			from './ToolManager.js';
+import data 				from '../data/Data.js';
+import undoManager			from '../core/UndoManager.js';
+import draftingAssistant 	from '../geometry/DraftingAssistant.js';
+
 import {RotateCommand} from '../core/Commands.js';
 
 const STATE = {
@@ -87,6 +89,9 @@ export class RotateTool extends Tool
 				this.state = STATE.ANCHOR_SET;
 				this.usage = "Click or drag from reference to target angle.";
 				toolManager.updateToolNameDisplay();
+
+				// create a guide reference from initial point
+				draftingAssistant.setCurrentSnapPoint(snap, true);				
 				break;
 
 			case STATE.ANCHOR_SET:
@@ -138,6 +143,7 @@ export class RotateTool extends Tool
 			this.usage = "Click to set rotation center.";
 			toolManager.updateToolNameDisplay();
 			stage.render();
+			data.resetSnaps();
 		}
 	}
 

@@ -48,7 +48,7 @@ export class TangentPointArcTool extends Tool
 		this.startPoint = null;
 		this.tangentPoint = null;
 		this.step = 0;
-		data.removeTempShape();
+		data.clearTempShapes();
 	}
 
 	onMouseDown(e)
@@ -75,7 +75,7 @@ export class TangentPointArcTool extends Tool
 			// Third click: commit the arc
 			if(this.arc){
 				this.arc.update();
-				data.removeTempShape();
+				data.clearTempShapes();
 				undoManager.execute(new AddShapeCommand(this.arc));
 			}
 			this.reset();
@@ -102,7 +102,7 @@ export class TangentPointArcTool extends Tool
 			if(!this.arc){
 				// Switch from tangent line to arc
 				this.tangentLine = null;
-				data.removeTempShape();
+				data.clearTempShapes();
 				this.arc = new TangentArc([
 					this.startPoint.x, this.startPoint.y,
 					this.tangentPoint.x, this.tangentPoint.y,
