@@ -171,6 +171,7 @@ class Data
 
 	// Rebuild POIs for all shapes (called after shape deletion)
 	rebuildPOIs(){
+		console.log("rebuildPOIs");
 		this.shapePOIs = [];
 		for(const shape of this.shapes){
 			const points = shape.getSnapPOIs();
@@ -183,6 +184,7 @@ class Data
 
 	// add new POIs to our cache
 	storeShapePOIs(shape){
+		console.log("storeShapePOIs");
 		const points = shape.getSnapPOIs();
 		// Add shape reference to each POI for exclusion checking
 		for(const p of points){

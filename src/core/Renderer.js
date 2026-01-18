@@ -51,8 +51,12 @@ export class Renderer
 			return;
 		}
 
-		// Special handling for guide lines
-		if(shape.type === Shape.GUIDE/* && shape.active*/) {
+		// Special handling for guide lines - only render if active (snap point is on the guide)
+		if(shape.type === Shape.GUIDE) {
+			if(!shape.active) {
+				ctx.strokeStyle = 'transparent'; // Don't render inactive guides
+				return;
+			}
 			ctx.strokeStyle = '#ff0000';
 			ctx.lineWidth = 0.5;
 			ctx.setLineDash([1, 4]);

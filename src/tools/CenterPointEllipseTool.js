@@ -79,8 +79,10 @@ export class CenterPointEllipseTool extends Tool
 		const radiusX = Math.abs(snapPt.x - this.centerPt.x);
 		const radiusY = Math.abs(snapPt.y - this.centerPt.y);
 
-		// If ellipse is too small, cancel
-		if(radiusX < 5 && radiusY < 5){
+		// If ellipse is too small in screen pixels, cancel
+		const screenRadiusX = stage.worldToScreenScale(radiusX);
+		const screenRadiusY = stage.worldToScreenScale(radiusY);
+		if(screenRadiusX < 5 && screenRadiusY < 5){
 			this.reset();
 			stage.render();
 			return;

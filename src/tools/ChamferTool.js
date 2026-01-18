@@ -1,5 +1,5 @@
 import {Tool} 			from './Tool.js';
-import {Shape} 			from '../geometry/Geometry.js';
+import {Shape, PenStyle} from '../geometry/Geometry.js';
 import {GeometryUtils} 	from '../geometry/GeometryUtils.js';
 import {Line} 			from '../geometry/Line.js';
 import { ChamferCommand } from '../core/Commands.js';
@@ -98,6 +98,7 @@ export class ChamferTool extends Tool
 
 				// Create preview line
 				this.linePreview = new Line([snapPt.x, snapPt.y, snapPt.x, snapPt.y]);
+				this.linePreview.penStyle = PenStyle.HIDDEN;
 				data.addTempShape(this.linePreview);
 				stage.render();
 				break;
@@ -137,8 +138,9 @@ export class ChamferTool extends Tool
 		if (this.state !== STATE.DRAGGING) return;
 
 		const releasePt 	= da.getCurrentSnapPoint();
-		
+
 		const dragDist 		= GeometryUtils.distance(this.firstClickPt, releasePt);
+		const screenDragDist = stage.worldToScreenScale(dragDist);
 		const secondLine 	= releasePt.shape;
 		const isValidSecond = secondLine &&
 							  secondLine.geometry === Shape.LINE &&
@@ -148,7 +150,7 @@ export class ChamferTool extends Tool
 			// Released on a valid second line - create chamfer
 			this.completeChamfer(secondLine, releasePt);
 
-		} else if (dragDist < 5) {
+		} else if (screenDragDist < 5) {
 			// Small movement = click, wait for second click
 			this.state = STATE.FIRST_SELECTED;
 
@@ -262,12 +264,9 @@ export class ChamferTool extends Tool
 
 		this.lastChamfer.chamferLine = chamferLine;
 
-		// Trim lines
-		//GeometryUtils.trimLineAtPoint(line1, chamferPt1, dir1);
-		//GeometryUtils.trimLineAtPoint(line2, chamferPt2, dir2);
-
-		GeometryUtils.trimLineKeepClickSide(line1, chamferPt1, clickPt1);
-		GeometryUtils.trimLineKeepClickSide(line2, chamferPt2, clickPt2);
+		// Trim lines - keep the side the user clicked on
+		GeometryUtils.trimLineKeepClickSide(line1, intersection, clickPt1, chamferPt1);
+		GeometryUtils.trimLineKeepClickSide(line2, intersection, clickPt2, chamferPt2);
 
 		// Execute ChamferCommand to track everything for undo
 		undoManager.execute(new ChamferCommand(chamferLine, line1, line2, line1Original, line2Original));

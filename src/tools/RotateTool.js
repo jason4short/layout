@@ -124,7 +124,9 @@ export class RotateTool extends Tool
 			const dy = snap.y - this.reference.y;
 			const dist = Math.sqrt(dx * dx + dy * dy);
 
-			if (dist > 5) {
+			// Check threshold in screen pixels
+			const screenDist = stage.worldToScreenScale(dist);
+			if (screenDist > 5) {
 				this.isDragging = true;
 				this.target = { x: snap.x, y: snap.y };
 				this.updatePreview();

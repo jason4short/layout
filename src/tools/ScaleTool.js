@@ -83,8 +83,9 @@ export class ScaleTool extends Tool
 			const dy = snap.y - this.dragStart.y;
 			const dist = Math.sqrt(dx * dx + dy * dy);
 
-			// Mark as dragging if moved more than 5 units
-			if(dist > 5){
+			// Mark as dragging if moved more than 5 screen pixels
+			const screenDist = stage.worldToScreenScale(dist);
+			if(screenDist > 5){
 				this.isDragging = true;
 				this.target = { x: snap.x, y: snap.y };
 				this.updatePreview();

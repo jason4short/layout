@@ -18,6 +18,7 @@ export class Arc extends Circle
 		this.startPt	= null;
 		this.endPt 		= null;
 		this.midPt 		= null;
+		this.update()
 	}
 
 	clone(){
@@ -28,11 +29,29 @@ export class Arc extends Circle
 	}
 	
 	update(){
-	
-		this.startPt 	= this.getPointAtAngle(this.startAngle);
-		this.endPt 		= this.getPointAtAngle(this.endAngle);
-		this.midPt 		= this.getPointAtAngle(this.getMidAngle());
-	
+		this.POIs = [{ x: this.x, y: this.y }];  // center
+		this.POIs.push(this.getPointAtAngle(this.startAngle));
+		this.POIs.push(this.getPointAtAngle(this.endAngle));
+		this.POIs.push(this.getPointAtAngle(this.getMidAngle()));
+
+		// Only add quadrant points if they fall within the arc's angular range
+		// Right (0°)
+		if(this.containsAngle(0)){
+			this.POIs.push({ x: this.x + this.radius, y: this.y });
+		}
+		// Left (π)
+		if(this.containsAngle(Math.PI)){
+			this.POIs.push({ x: this.x - this.radius, y: this.y });
+		}
+		// Bottom (π/2) - Y increases downward in screen coords
+		if(this.containsAngle(Math.PI / 2)){
+			this.POIs.push({ x: this.x, y: this.y + this.radius });
+		}
+		// Top (3π/2 or -π/2)
+		if(this.containsAngle(-Math.PI / 2) || this.containsAngle(3 * Math.PI / 2)){
+			this.POIs.push({ x: this.x, y: this.y - this.radius });
+		}
+
 		super.update();
 	}
 	copyFrom(other) {
@@ -74,16 +93,7 @@ export class Arc extends Circle
 	}
 
 	getSnapPOIs() {
-		return [
-			{ x: this.x, y: this.y },  // center
-			this.startPt,
-			this.endPt,
-			this.midPt,
-			{ x: this.x + this.radius, y: this.y },
-			{ x: this.x - this.radius, y: this.y },
-			{ x: this.x, y: this.y + this.radius},
-			{ x: this.x, y: this.y - this.radius}
-		];
+		return this.POIs;
 	}
 
 	getGeoSnap(mouse, mouseRect, pixelTolerance)

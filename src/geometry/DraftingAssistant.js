@@ -28,11 +28,8 @@ class DraftingAssistant
 
 	// seek the nearest relevant snap point
 	snap(mouse, generateGuides = true){
-	
+
 		let snap = null;
-	
-		// are we on a guide? - clean up later with a test of active guides
-		//this.activateGuides(mouse, data.getGuides());
 
 		// 1: snap on features of real geometry (endpoints, quadrants, etc...)
 		snap = this.findNearestSnapPoint_Geometry(mouse, data.getPOICandidates());
@@ -77,16 +74,16 @@ class DraftingAssistant
 		// no snap, just return the mouse
 		// Floor to integers to reduce duplicate snap point calculations
 		this.setCurrentSnapPoint(new SnapPoint(mouse.x, mouse.y), false);
-// 		this.setCurrentSnapPoint(new SnapPoint(Math.floor(mouse.x), Math.floor(mouse.y)), false);	
+// 		this.setCurrentSnapPoint(new SnapPoint(Math.floor(mouse.x), Math.floor(mouse.y)), false);
 	}
 	
 	// tracks the current snapped point
-	setCurrentSnapPoint(p, store){ 
+	setCurrentSnapPoint(p, store){
 		data.snapPoint = p;
 
 		if(store){
 			data.addSnapPoint(p);
-			// generate DA guides for each point 
+			// generate DA guides for each point
 			// XXX - could be optimized but there aren't many guides?
 			// points with guides could be skipped
 			data.clearGuides();
@@ -94,6 +91,9 @@ class DraftingAssistant
 				this.createGuides(snapPoint);
 			}
 		}
+
+		// Mark guides as active only if the snap point is on them
+		this.activateGuides(p, data.getGuides());
 	}
 	
 	getCurrentSnapPoint(){ 
@@ -152,7 +152,7 @@ class DraftingAssistant
 	activateGuides(mouse, geoSet){
 		// Shape.getGeoSnap works in world space, so convert screen tolerance to world
 		const worldTolerance = MAX_SNAP_PX / stage.zoom;
-		
+
 		const mouseRect = new Rectangle(
 			mouse.x - worldTolerance,
 			mouse.y - worldTolerance,
@@ -162,7 +162,22 @@ class DraftingAssistant
 
 		for(const shape of geoSet) {
 			let snap = shape.getGeoSnap(mouse, mouseRect, worldTolerance);
-			shape.active = (snap != null);
+
+			if(snap){
+				// Check if snap point is at the guide's origin (midpoint)
+				// If so, don't activate - we only want guides where we're along the line, not at the origin
+				const originX = (shape.start.x + shape.end.x) / 2;
+				const originY = (shape.start.y + shape.end.y) / 2;
+				const distToOrigin = Math.sqrt(
+					(mouse.x - originX) * (mouse.x - originX) +
+					(mouse.y - originY) * (mouse.y - originY)
+				);
+
+				// Only activate if we're not at the origin point
+				shape.active = (distToOrigin > worldTolerance);
+			} else {
+				shape.active = false;
+			}
 		}
 	}
 

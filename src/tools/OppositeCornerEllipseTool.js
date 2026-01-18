@@ -77,8 +77,10 @@ export class OppositeCornerEllipseTool extends Tool
 		const width = Math.abs(snapPt.x - this.startPt.x);
 		const height = Math.abs(snapPt.y - this.startPt.y);
 
-		// If ellipse is too small, cancel
-		if(width < 5 && height < 5){
+		// If ellipse is too small in screen pixels, cancel
+		const screenWidth = stage.worldToScreenScale(width);
+		const screenHeight = stage.worldToScreenScale(height);
+		if(screenWidth < 5 && screenHeight < 5){
 			this.reset();
 			stage.render();
 			return;

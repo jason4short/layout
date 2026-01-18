@@ -269,41 +269,65 @@ export class CompositeCommand extends Command {
 
 // Chamfer command - creates chamfer line and trims two lines
 export class ChamferCommand extends Command {
-	constructor(chamferLine, line1, line2, line1Original, line2Original) {
+	constructor(chamferLine, shape1, shape2, shape1Original, shape2Original) {
 		super('Chamfer');
 		this.chamferLine = chamferLine;
-		this.line1 = line1;
-		this.line2 = line2;
-		// Store clones of original line states for undo
-		this.line1Original = line1Original;
-		this.line2Original = line2Original;
+		this.shape1 = shape1;
+		this.shape2 = shape2;
+		// Store clones of original shape states for undo
+		this.shape1Original = shape1Original;
+		this.shape2Original = shape2Original;
 		// Store trimmed states for redo (captured on first execute)
-		this.line1Trimmed = null;
-		this.line2Trimmed = null;
+		this.shape1Trimmed = null;
+		this.shape2Trimmed = null;
 		this.firstExecute = true;
 	}
 
 	execute() {
 		if (this.firstExecute) {
 			this.firstExecute = false;
-			// Capture trimmed states for later redo
-			this.line1Trimmed = this.line1.clone();
-			this.line2Trimmed = this.line2.clone();
+			// Capture trimmed states for later redo (only for shapes that were trimmed)
+			if (this.shape1Original) {
+				this.shape1Trimmed = this.shape1.clone();
+			}
+			if (this.shape2Original) {
+				this.shape2Trimmed = this.shape2.clone();
+			}
+			// Recalculate intersections for the trimmed shapes
+			const shapesToUpdate = [this.shape1, this.shape2].filter(s => s);
+			data.recalculateIntersectionsForShapes(shapesToUpdate);
+			data.rebuildPOIs();
 			return;
 		}
 
-		// Redo: add chamfer line and apply trimmed line states
+		// Redo: add chamfer line and apply trimmed shape states
 		data.addShape(this.chamferLine);
-		this.line1.copyFrom(this.line1Trimmed);
-		this.line2.copyFrom(this.line2Trimmed);
+		if (this.shape1Trimmed) {
+			this.shape1.copyFrom(this.shape1Trimmed);
+		}
+		if (this.shape2Trimmed) {
+			this.shape2.copyFrom(this.shape2Trimmed);
+		}
+		// Recalculate intersections for the modified shapes
+		const shapesToUpdate = [this.shape1, this.shape2].filter(s => s);
+		data.recalculateIntersectionsForShapes(shapesToUpdate);
+		data.rebuildPOIs();
 	}
 
 	undo() {
 		// Remove the chamfer line
 		data.deleteShape(this.chamferLine);
-		// Restore lines to original state
-		this.line1.copyFrom(this.line1Original);
-		this.line2.copyFrom(this.line2Original);
+		// Restore shapes to original state (only if they were trimmed)
+		if (this.shape1Original) {
+			this.shape1.copyFrom(this.shape1Original);
+		}
+		if (this.shape2Original) {
+			this.shape2.copyFrom(this.shape2Original);
+		}
+		// Recalculate intersections for the restored shapes
+		const shapesToUpdate = [this.shape1, this.shape2].filter(s => s);
+		data.recalculateIntersectionsForShapes(shapesToUpdate);
+		data.rebuildPOIs();
 	}
 }
 
@@ -334,6 +358,10 @@ export class FilletCommand extends Command {
 			if (this.shape2Original) {
 				this.shape2Trimmed = this.shape2.clone();
 			}
+			// Recalculate intersections for the trimmed shapes
+			const shapesToUpdate = [this.shape1, this.shape2].filter(s => s);
+			data.recalculateIntersectionsForShapes(shapesToUpdate);
+			data.rebuildPOIs();
 			return;
 		}
 
@@ -345,6 +373,10 @@ export class FilletCommand extends Command {
 		if (this.shape2Trimmed) {
 			this.shape2.copyFrom(this.shape2Trimmed);
 		}
+		// Recalculate intersections for the modified shapes
+		const shapesToUpdate = [this.shape1, this.shape2].filter(s => s);
+		data.recalculateIntersectionsForShapes(shapesToUpdate);
+		data.rebuildPOIs();
 	}
 
 	undo() {
@@ -357,6 +389,10 @@ export class FilletCommand extends Command {
 		if (this.shape2Original) {
 			this.shape2.copyFrom(this.shape2Original);
 		}
+		// Recalculate intersections for the restored shapes
+		const shapesToUpdate = [this.shape1, this.shape2].filter(s => s);
+		data.recalculateIntersectionsForShapes(shapesToUpdate);
+		data.rebuildPOIs();
 	}
 }
 

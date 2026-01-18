@@ -86,8 +86,10 @@ export class BoxTool extends Tool
 		const width = Math.abs(snapPt.x - this.startPt.x);
 		const height = Math.abs(snapPt.y - this.startPt.y);
 
-		// If box is big enough // world scale!
-		if(width > 5 && height > 5){
+		// Check minimum size in screen pixels (not world units)
+		const screenWidth = stage.worldToScreenScale(width);
+		const screenHeight = stage.worldToScreenScale(height);
+		if(screenWidth > 5 && screenHeight > 5){
 			// Update final positions and keep the lines
 			for(let i = 0; i < 4; i++){
 				data.addShape(this.previewLines[i]);
