@@ -131,35 +131,71 @@ export class Renderer
 			this.applyPenStyle(ctx, shape);
 
 			if(shape.geometry === Shape.LINE){
-				const start 	= this.toScreen(shape.start.x, shape.start.y);
-				const end 		= this.toScreen(shape.end.x, shape.end.y);
+				let start 	= this.toScreen(shape.start.x, shape.start.y);
+				let end 	= this.toScreen(shape.end.x, shape.end.y);
 
-				// Skip inactive guides
-				//if(shape.type === Shape.GUIDE && !shape.active) continue;
-
-				ctx.moveTo(start.x, start.y);
-				ctx.lineTo(end.x, end.y);
-				ctx.stroke();
+				// Clip line to viewport (important for dashed lines performance)
+				const clipped = this.clipLineToViewport(start, end);
+				if(clipped){
+					ctx.moveTo(clipped.x1, clipped.y1);
+					ctx.lineTo(clipped.x2, clipped.y2);
+					ctx.stroke();
+				}
 				this.resetPenStyle(ctx);
 
 			} else if(shape.geometry === Shape.CIRCLE){
 				const center 	= this.toScreen(shape.x, shape.y);
 				const radius 	= this.toScreenScale(shape.radius);
-				ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+
+				// Optimization: when radius is huge, only draw visible arc
+				if(radius > 2000){
+					const angles = this.getVisibleArcAngles(center, radius);
+					if(angles){
+						ctx.arc(center.x, center.y, radius, angles.start, angles.end);
+					}
+				} else {
+					ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+				}
 				ctx.stroke();
 				this.resetPenStyle(ctx);
 
 			} else if(shape.geometry === Shape.ARC){
 				const center 	= this.toScreen(shape.x, shape.y);
 				const radius 	= this.toScreenScale(shape.radius);
-				ctx.arc(center.x, center.y, radius, shape.startAngle, shape.endAngle);
+
+				// Optimization: when radius is huge, clip to visible portion
+				if(radius > 2000){
+					const visible = this.getVisibleArcAngles(center, radius);
+					if(visible){
+						const clampedStart = Math.max(shape.startAngle, visible.start);
+						const clampedEnd = Math.min(shape.endAngle, visible.end);
+						if(clampedEnd > clampedStart){
+							ctx.arc(center.x, center.y, radius, clampedStart, clampedEnd);
+						}
+					}
+				} else {
+					ctx.arc(center.x, center.y, radius, shape.startAngle, shape.endAngle);
+				}
 				ctx.stroke();
 				this.resetPenStyle(ctx);
 
 			} else if(shape.geometry === Shape.TANGENT_ARC){
 				const center 	= this.toScreen(shape.x, shape.y);
 				const radius 	= this.toScreenScale(shape.radius);
-				ctx.arc(center.x, center.y, radius, shape.startAngle, shape.endAngle);
+
+				// Optimization: when radius is huge, clip to visible portion
+				if(radius > 2000){
+					const visible = this.getVisibleArcAngles(center, radius);
+					if(visible){
+						const clampedStart = Math.max(shape.startAngle, visible.start);
+						const clampedEnd = Math.min(shape.endAngle, visible.end);
+						if(clampedEnd > clampedStart){
+							ctx.arc(center.x, center.y, radius, clampedStart, clampedEnd);
+						}
+					}
+				} else {
+					ctx.arc(center.x, center.y, radius, shape.startAngle, shape.endAngle);
+				}
 				ctx.stroke();
 				this.resetPenStyle(ctx);
 
@@ -482,6 +518,117 @@ export class Renderer
 		// Semi-transparent fill
 		ctx.fillStyle = 'rgba(0, 102, 204, 0.1)';
 		ctx.fillRect(topLeft.x, topLeft.y, width, height);
+	}
+
+	// Cohen-Sutherland line clipping to viewport (screen coords)
+	// Alt - try Liang Barsky Line Clipping Algorithm
+	clipLineToViewport(p1, p2){
+		const xmin = 0, ymin = 0;
+		const xmax = stage.canvas.width;
+		const ymax = stage.canvas.height;
+
+		// Region codes
+		const INSIDE = 0, LEFT = 1, RIGHT = 2, BOTTOM = 4, TOP = 8;
+
+		const computeCode = (x, y) => {
+			let code = INSIDE;
+			if(x < xmin) code |= LEFT;
+			else if(x > xmax) code |= RIGHT;
+			if(y < ymin) code |= TOP;
+			else if(y > ymax) code |= BOTTOM;
+			return code;
+		};
+
+		let x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
+		let code1 = computeCode(x1, y1);
+		let code2 = computeCode(x2, y2);
+
+		while(true){
+			if(!(code1 | code2)){
+				// Both inside
+				return {x1, y1, x2, y2};
+			} else if(code1 & code2){
+				// Both outside same region - no intersection
+				return null;
+			} else {
+				// Needs clipping
+				const codeOut = code1 ? code1 : code2;
+				let x, y;
+
+				if(codeOut & BOTTOM){
+					x = x1 + (x2 - x1) * (ymax - y1) / (y2 - y1);
+					y = ymax;
+				} else if(codeOut & TOP){
+					x = x1 + (x2 - x1) * (ymin - y1) / (y2 - y1);
+					y = ymin;
+				} else if(codeOut & RIGHT){
+					y = y1 + (y2 - y1) * (xmax - x1) / (x2 - x1);
+					x = xmax;
+				} else if(codeOut & LEFT){
+					y = y1 + (y2 - y1) * (xmin - x1) / (x2 - x1);
+					x = xmin;
+				}
+
+				if(codeOut === code1){
+					x1 = x; y1 = y;
+					code1 = computeCode(x1, y1);
+				} else {
+					x2 = x; y2 = y;
+					code2 = computeCode(x2, y2);
+				}
+			}
+		}
+	}
+
+	// Calculate visible arc angles for large circles (screen coords)
+	getVisibleArcAngles(center, radius){
+		const w = stage.canvas.width;
+		const h = stage.canvas.height;
+		const padding = 0.1; // Extra angle padding (radians)
+
+		// Collect angles where circle intersects viewport edges
+		const angles = [];
+
+		// Left edge (x = 0)
+		if(Math.abs(center.x) <= radius){
+			const dy = Math.sqrt(radius * radius - center.x * center.x);
+			angles.push(Math.atan2(center.y - dy - center.y, 0 - center.x));
+			angles.push(Math.atan2(center.y + dy - center.y, 0 - center.x));
+		}
+
+		// Right edge (x = w)
+		if(Math.abs(center.x - w) <= radius){
+			const dy = Math.sqrt(radius * radius - (center.x - w) * (center.x - w));
+			angles.push(Math.atan2(-dy, w - center.x));
+			angles.push(Math.atan2(dy, w - center.x));
+		}
+
+		// Top edge (y = 0)
+		if(Math.abs(center.y) <= radius){
+			const dx = Math.sqrt(radius * radius - center.y * center.y);
+			angles.push(Math.atan2(0 - center.y, center.x - dx - center.x));
+			angles.push(Math.atan2(0 - center.y, center.x + dx - center.x));
+		}
+
+		// Bottom edge (y = h)
+		if(Math.abs(center.y - h) <= radius){
+			const dx = Math.sqrt(radius * radius - (center.y - h) * (center.y - h));
+			angles.push(Math.atan2(h - center.y, -dx));
+			angles.push(Math.atan2(h - center.y, dx));
+		}
+
+		if(angles.length < 2) return null; // Circle doesn't cross viewport meaningfully
+
+		// Normalize angles to [0, 2PI]
+		const normalized = angles.map(a => a < 0 ? a + Math.PI * 2 : a);
+		const min = Math.min(...normalized);
+		const max = Math.max(...normalized);
+
+		// Add padding and return
+		return {
+			start: min - padding,
+			end: max + padding
+		};
 	}
 
 	drawZoomRect(ctx){

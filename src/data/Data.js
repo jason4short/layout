@@ -1,4 +1,4 @@
-const MAX_SNAP = 4; // intersections only snap if within 12px on screen
+const MAX_SNAP = 3; // intersections only snap if within 12px on screen
 
 import {Shape} 					from '../geometry/Geometry.js';
 import {Point} 					from '../geometry/Point.js';
