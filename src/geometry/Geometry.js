@@ -14,6 +14,7 @@ export const Shape = Object.freeze({
 	SPLINE: "spline",
 	IMAGE: "image",
 	DIMENSION: "dimension",
+	TEXT: "text",
 
 	/*types*/
 	CONSTRUCTION: "construction",

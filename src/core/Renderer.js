@@ -1,6 +1,7 @@
 import stage from './Stage.js';
 import data from '../data/Data.js';
 import {Shape, PenStyle} from '../geometry/Geometry.js';
+import toolManager from '../tools/ToolManager.js';
 
 export class Renderer
 {
@@ -418,6 +419,9 @@ export class Renderer
 
 			} else if(shape.geometry === Shape.DIMENSION){
 				this.drawDimension(ctx, shape);
+
+			} else if(shape.geometry === Shape.TEXT){
+				this.drawText(ctx, shape);
 			}
 		}
 
@@ -776,6 +780,156 @@ export class Renderer
 		ctx.lineTo(baseX - perpX * arrowWidth, baseY - perpY * arrowWidth);
 		ctx.closePath();
 		ctx.fill();
+	}
+
+	drawText(ctx, shape){
+		const color = '#111111'; // Text stays black even when selected
+
+		// Convert position to screen coordinates
+		const screenPos = this.toScreen(shape.x, shape.y);
+
+		// Scale font size with zoom for world-space text
+		const screenFontSize = shape.fontSize * stage.zoom;
+
+		// Build font string
+		const fontStyle = shape.fontStyle === 'italic' ? 'italic' : '';
+		const fontWeight = shape.fontWeight === 'bold' ? 'bold' : '';
+		ctx.font = `${fontStyle} ${fontWeight} ${screenFontSize}px ${shape.fontFamily}`.trim();
+		ctx.fillStyle = color;
+		ctx.textAlign = 'left'; // Always left for cursor positioning
+		ctx.textBaseline = 'top';
+
+		// Handle rotation
+		if(shape.rotation !== 0){
+			ctx.save();
+			ctx.translate(screenPos.x, screenPos.y);
+			ctx.rotate(shape.rotation);
+			this.drawTextContent(ctx, shape, 0, 0, screenFontSize);
+			ctx.restore();
+		} else {
+			this.drawTextContent(ctx, shape, screenPos.x, screenPos.y, screenFontSize);
+		}
+
+		// Draw cursor if this text is being edited
+		const cursorInfo = toolManager.textTool?.getCursorInfo?.();
+		if(cursorInfo && cursorInfo.text === shape){
+			this.drawTextCursor(ctx, shape, screenPos, screenFontSize, cursorInfo.position);
+		}
+
+		// Draw bounding box when selected
+		if(shape.selected || shape.showControlPoints){
+			this.drawTextBounds(ctx, shape, screenPos, screenFontSize);
+		}
+	}
+
+	drawTextContent(ctx, shape, x, y, fontSize){
+		const lineHeight = fontSize * 1.2;
+		const lines = shape.text.split('\n');
+
+		// Calculate bounding width in screen space
+		const screenBoxWidth = shape.boxWidth ? shape.boxWidth * stage.zoom : null;
+
+		for(let i = 0; i < lines.length; i++){
+			let line = lines[i];
+
+			// Word wrap if bounding box is set
+			if(screenBoxWidth){
+				const words = line.split(' ');
+				let currentLine = '';
+
+				for(const word of words){
+					const testLine = currentLine ? currentLine + ' ' + word : word;
+					const metrics = ctx.measureText(testLine);
+
+					if(metrics.width > screenBoxWidth && currentLine){
+						ctx.fillText(currentLine, x, y);
+						y += lineHeight;
+						currentLine = word;
+					} else {
+						currentLine = testLine;
+					}
+				}
+				if(currentLine){
+					ctx.fillText(currentLine, x, y);
+					y += lineHeight;
+				}
+			} else {
+				ctx.fillText(line, x, y);
+				y += lineHeight;
+			}
+		}
+	}
+
+	drawTextBounds(ctx, shape, screenPos, fontSize){
+		// Calculate bounds in screen space
+		let screenWidth = shape.textWidth * stage.zoom;
+		let screenHeight = shape.textHeight * stage.zoom;
+
+		// Measure actual text if needed
+		const lines = shape.text.split('\n');
+		let maxWidth = 0;
+		for(const line of lines){
+			const metrics = ctx.measureText(line);
+			maxWidth = Math.max(maxWidth, metrics.width);
+		}
+		if(!shape.boxWidth) screenWidth = maxWidth;
+		if(!shape.boxHeight) screenHeight = lines.length * fontSize * 1.2;
+
+		// Calculate left edge based on alignment
+		let left = screenPos.x;
+		if(shape.alignment === 'center') left = screenPos.x - screenWidth / 2;
+		else if(shape.alignment === 'right') left = screenPos.x - screenWidth;
+
+		// Draw bounding box
+		ctx.strokeStyle = '#2b6cb0';
+		ctx.lineWidth = 1;
+		ctx.setLineDash([4, 4]);
+		ctx.strokeRect(left, screenPos.y, screenWidth, screenHeight);
+		ctx.setLineDash([]);
+
+		// Draw corner control points
+		const corners = [
+			{ x: left, y: screenPos.y },
+			{ x: left + screenWidth, y: screenPos.y },
+			{ x: left + screenWidth, y: screenPos.y + screenHeight },
+			{ x: left, y: screenPos.y + screenHeight }
+		];
+
+		ctx.fillStyle = '#FFFFFF';
+		ctx.strokeStyle = '#2b6cb0';
+		for(const corner of corners){
+			ctx.beginPath();
+			ctx.arc(corner.x, corner.y, 4, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.stroke();
+		}
+
+		// Draw anchor point
+		ctx.fillStyle = '#2b6cb0';
+		ctx.beginPath();
+		ctx.arc(screenPos.x, screenPos.y, 4, 0, Math.PI * 2);
+		ctx.fill();
+	}
+
+	drawTextCursor(ctx, shape, screenPos, fontSize, cursorPos){
+		// Calculate cursor X position by measuring text up to cursor
+		const textBeforeCursor = shape.text.slice(0, cursorPos);
+		const lines = textBeforeCursor.split('\n');
+		const currentLineIndex = lines.length - 1;
+		const currentLineText = lines[currentLineIndex];
+
+		// Measure width of current line text
+		const cursorX = screenPos.x + ctx.measureText(currentLineText).width;
+		const lineHeight = fontSize * 1.2;
+		const cursorY = screenPos.y + (currentLineIndex * lineHeight);
+
+		// Draw cursor line
+		ctx.strokeStyle = '#000000';
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.moveTo(cursorX, cursorY);
+		ctx.lineTo(cursorX, cursorY + fontSize);
+		ctx.stroke();
 	}
 
 	getBounds(){

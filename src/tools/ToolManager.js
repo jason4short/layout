@@ -27,6 +27,7 @@ import { MirrorTool } 					from "./MirrorTool.js";
 import { RotateTool } 					from "./RotateTool.js";
 import { ImageTool } 					from "./ImageTool.js";
 import { DimensionTool } 				from "./DimensionTool.js";
+import { TextTool } 					from "./TextTool.js";
 
 
 
@@ -70,6 +71,7 @@ class ToolManager extends EventDispatcher
 		this.rotateTool					= new RotateTool();
 		this.imageTool					= new ImageTool();
 		this.dimensionTool				= new DimensionTool();
+		this.textTool					= new TextTool();
 
 		// Tool palette configuration: [tool, displayName, shortcut]
 		this.toolPaletteConfig = [
@@ -98,6 +100,7 @@ class ToolManager extends EventDispatcher
 			{ tool: this.rotateTool, 				name: 'Rotate', shortcut: 'R' },
 			{ category: 'Annotate' },
 			{ tool: this.dimensionTool, 			name: 'Dimension', shortcut: 'D' },
+			{ tool: this.textTool, 					name: 'Text', shortcut: 'N' },
 		];
 
 		return ToolManager.instance;

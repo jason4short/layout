@@ -511,6 +511,8 @@ class Data
 				return [4]; // center only - corners are for resizing
 			case Shape.DIMENSION:
 				return [0, 1, 2]; // start, end, and offset/text position
+			case Shape.TEXT:
+				return [0]; // anchor point only - corners are for resizing
 			default:
 				return [];
 		}

@@ -1,13 +1,14 @@
 import {Tool} 				from "./Tool.js";
 import {Rectangle} 			from '../geometry/Rectangle.js';
-	
+import {Shape} 				from '../geometry/Geometry.js';
+
 import stage 				from '../core/Stage.js';
 import toolManager			from './ToolManager.js';
 import data 				from '../data/Data.js';
 import undoManager			from '../core/UndoManager.js';
 import draftingAssistant 	from '../geometry/DraftingAssistant.js';
 
-import {AddShapesCommand, 
+import {AddShapesCommand,
 		MoveCommand} 	from '../core/Commands.js';
 
 export class PointerTool extends Tool
@@ -36,6 +37,12 @@ export class PointerTool extends Tool
 		this.moveStart			= null; // Snapped position when move started
 		this.originalPositions	= []; // Store original positions for delta calc
 		this.clonedShapes		= []; // Shapes created during clone operation
+
+		// Double-click tracking
+		this.lastClickTime		= 0;
+		this.lastClickPos		= null;
+		this.doubleClickThreshold = 300; // ms
+		this.doubleClickDistance = 5; // pixels
 
 		this.onMouseDown 		= this.onMouseDown.bind(this);
 		this.onMouseMove 		= this.onMouseMove.bind(this);
@@ -164,6 +171,30 @@ export class PointerTool extends Tool
 	onMouseDown(e)
 	{
 		data.resetSnaps();
+
+		// Check for double-click on text to edit
+		const now = Date.now();
+		const clickPos = { x: data.snapPoint.x, y: data.snapPoint.y };
+
+		if(this.lastClickPos){
+			const dx = clickPos.x - this.lastClickPos.x;
+			const dy = clickPos.y - this.lastClickPos.y;
+			const dist = Math.sqrt(dx * dx + dy * dy) * stage.zoom;
+
+			if(now - this.lastClickTime < this.doubleClickThreshold && dist < this.doubleClickDistance){
+				// Double-click detected - check if on text
+				const textShape = this.findTextAtPoint(clickPos);
+				if(textShape){
+					this.editText(textShape, clickPos);
+					this.lastClickTime = 0;
+					this.lastClickPos = null;
+					return;
+				}
+			}
+		}
+
+		this.lastClickTime = now;
+		this.lastClickPos = clickPos;
 
 		// Cmd+click toggles control point visibility
 		if(stage.commandKey){
@@ -307,5 +338,36 @@ export class PointerTool extends Tool
 	// Get the current marquee rect for rendering
 	getMarqueeRect(){
 		return this.marqueeRect;
+	}
+
+	findTextAtPoint(point){
+		for(const shape of data.shapes){
+			if(shape.geometry === Shape.TEXT){
+				const hit = shape.getGeoSnap(point, null, 5);
+				if(hit){
+					return shape;
+				}
+			}
+		}
+		return null;
+	}
+
+	editText(textShape, clickPos){
+		// Switch to text tool and start editing
+		toolManager.setTool(toolManager.textTool);
+
+		// Set up the text tool to edit this shape
+		const textTool = toolManager.textTool;
+		textTool.text = textShape;
+		textTool.cursorPos = textTool.getCursorPosFromClick(textShape, clickPos);
+		textTool.isEditingExisting = true;
+
+		// Remove from shapes and add to temp
+		data.deleteShape(textShape);
+		data.addTempShape(textShape);
+
+		textTool.state = 1; // STATE.EDITING
+		textTool.startCursorBlink();
+		stage.render();
 	}
 }
