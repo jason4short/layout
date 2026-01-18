@@ -810,10 +810,17 @@ export class Renderer
 			this.drawTextContent(ctx, shape, screenPos.x, screenPos.y, screenFontSize);
 		}
 
-		// Draw cursor if this text is being edited
+		// Draw cursor and selection if this text is being edited
 		const cursorInfo = toolManager.textTool?.getCursorInfo?.();
 		if(cursorInfo && cursorInfo.text === shape){
-			this.drawTextCursor(ctx, shape, screenPos, screenFontSize, cursorInfo.position);
+			// Draw selection highlight first (behind cursor)
+			if(cursorInfo.selectionStart !== undefined){
+				this.drawTextSelection(ctx, shape, screenPos, screenFontSize, cursorInfo.selectionStart, cursorInfo.selectionEnd);
+			}
+			// Draw cursor
+			if(cursorInfo.cursorVisible){
+				this.drawTextCursor(ctx, shape, screenPos, screenFontSize, cursorInfo.position);
+			}
 		}
 
 		// Draw bounding box when selected
@@ -930,6 +937,67 @@ export class Renderer
 		ctx.moveTo(cursorX, cursorY);
 		ctx.lineTo(cursorX, cursorY + fontSize);
 		ctx.stroke();
+	}
+
+	drawTextSelection(ctx, shape, screenPos, fontSize, selStart, selEnd){
+		const lineHeight = fontSize * 1.2;
+		const allLines = shape.text.split('\n');
+
+		// Find line and column for start and end positions
+		const getLineCol = (pos) => {
+			let charCount = 0;
+			for(let i = 0; i < allLines.length; i++){
+				const lineLen = allLines[i].length;
+				if(pos <= charCount + lineLen){
+					return { line: i, col: pos - charCount };
+				}
+				charCount += lineLen + 1; // +1 for newline
+			}
+			return { line: allLines.length - 1, col: allLines[allLines.length - 1].length };
+		};
+
+		const startLC = getLineCol(selStart);
+		const endLC = getLineCol(selEnd);
+
+		// Calculate max text width for extending selection to edge
+		let maxTextWidth = 0;
+		for(const line of allLines){
+			const w = ctx.measureText(line).width;
+			if(w > maxTextWidth) maxTextWidth = w;
+		}
+		// Use box width if set, otherwise use measured width + small padding
+		const selectionEdge = shape.boxWidth
+			? shape.boxWidth * stage.zoom
+			: maxTextWidth + fontSize * 0.5;
+
+		ctx.fillStyle = 'rgba(66, 133, 244, 0.3)'; // Light blue selection highlight
+
+		for(let lineIdx = startLC.line; lineIdx <= endLC.line; lineIdx++){
+			const line = allLines[lineIdx];
+			const lineY = screenPos.y + (lineIdx * lineHeight);
+
+			// Calculate start X for this line's selection
+			let startCol = 0;
+			if(lineIdx === startLC.line){
+				startCol = startLC.col;
+			}
+
+			// Measure start position
+			const startX = screenPos.x + ctx.measureText(line.slice(0, startCol)).width;
+
+			// Calculate end X - extend to edge if not the last selected line
+			let endX;
+			if(lineIdx === endLC.line){
+				// Last line of selection - stop at the end column
+				endX = screenPos.x + ctx.measureText(line.slice(0, endLC.col)).width;
+			} else {
+				// Not the last line - extend to the selection edge
+				endX = screenPos.x + selectionEdge;
+			}
+
+			// Draw selection rectangle for this line
+			ctx.fillRect(startX, lineY, endX - startX, lineHeight);
+		}
 	}
 
 	getBounds(){
