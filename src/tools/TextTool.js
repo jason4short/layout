@@ -176,8 +176,10 @@ export class TextTool extends Tool
 				this.state = STATE.EDITING;
 				this.startCursorBlink();
 				stage.render();
+			} else {
+				// Clicked on blank canvas - switch to pointer tool
+				toolManager.setTool(toolManager.pointerTool);
 			}
-			// Otherwise just return to idle (don't start new text)
 			return;
 		}
 
@@ -318,13 +320,6 @@ export class TextTool extends Tool
 
 		// Don't handle other keys if Cmd/Ctrl/Alt are pressed (except shift)
 		if(e.ctrlKey || e.metaKey || e.altKey) return;
-
-		if(key === 'Escape'){
-			// Finish editing, keep text, and switch to pointer tool
-			this.commitText();
-			toolManager.setTool(toolManager.pointerTool);
-			return;
-		}
 
 		if(key === 'Enter'){
 			// Delete selection first if any

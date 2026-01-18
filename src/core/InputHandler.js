@@ -1,3 +1,4 @@
+import toolManager from '../tools/ToolManager.js';
 
 export class InputHandler
 {
@@ -50,6 +51,8 @@ export class InputHandler
 		if(e.key === 'Escape'){
 			this.input.value = '';
 			this.input.blur();
+			// Switch to pointer tool
+			toolManager.setTool(toolManager.pointerTool);
 		}
 	}
 

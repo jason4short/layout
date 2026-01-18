@@ -422,7 +422,12 @@ class ToolManager extends EventDispatcher
 		// no modifier keys
 		switch(e.key){
 			case 'Escape':
+				// First let the tool handle escape (may commit work)
 				this.currentTool.reset();
+				// Then switch to pointer if not already there
+				if(this.currentTool !== this.pointerTool){
+					this.setTool(this.pointerTool);
+				}
 				stage.render();
 				break;
 			
