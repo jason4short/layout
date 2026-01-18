@@ -203,7 +203,7 @@ export function getParametricT(point, line) {
 		y: point.y - line.start.y
 	};
 	const lineLengthSq = lineVec.x * lineVec.x + lineVec.y * lineVec.y;
-	if (lineLengthSq === 0) return 0;
+	if (lineLengthSq < 1e-20) return 0; // Use epsilon for zero-length check
 	return (pointVec.x * lineVec.x + pointVec.y * lineVec.y) / lineLengthSq;
 }
 

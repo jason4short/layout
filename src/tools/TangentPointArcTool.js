@@ -1,13 +1,13 @@
-import {Tool} 			from './Tool.js';
-import {Shape} 			from '../geometry/Geometry.js';
-import {TangentArc} 	from '../geometry/TangentArc.js';
-import {Line} 			from '../geometry/Line.js';
-
-import stage 			from '../core/Stage.js';
-import toolManager		from './ToolManager.js';
-import data 			from '../data/Data.js';
-import undoManager		from '../core/UndoManager.js';
-import da 				from '../geometry/DraftingAssistant.js';
+import {Tool} 				from './Tool.js';
+import {Shape} 				from '../geometry/Geometry.js';
+import {TangentArc} 		from '../geometry/TangentArc.js';
+import {Line} 				from '../geometry/Line.js';
+	
+import stage 				from '../core/Stage.js';
+import toolManager			from './ToolManager.js';
+import data 				from '../data/Data.js';
+import undoManager			from '../core/UndoManager.js';
+import draftingAssistant 	from '../geometry/DraftingAssistant.js';
 
 import {AddShapeCommand} from '../core/Commands.js';
 
@@ -54,7 +54,7 @@ export class TangentPointArcTool extends Tool
 	onMouseDown(e)
 	{
 		data.resetSnaps();
-		const currentPoint = da.getCurrentSnapPoint();
+		const currentPoint = draftingAssistant.getCurrentSnapPoint();
 
 		if(this.step === 0){
 			// First click: set start point, show tangent line
@@ -65,6 +65,9 @@ export class TangentPointArcTool extends Tool
 			]);
 			data.addTempShape(this.tangentLine);
 			this.step = 1;
+			
+			// create a guide reference from initial point
+			draftingAssistant.setCurrentSnapPoint(currentPoint, true);
 
 		} else if(this.step === 1){
 			// Second click: set tangent direction, keep line visible for now
@@ -86,7 +89,7 @@ export class TangentPointArcTool extends Tool
 
 	onMouseMove(e)
 	{
-		const currentPoint = da.getCurrentSnapPoint();
+		const currentPoint = draftingAssistant.getCurrentSnapPoint();
 
 		if(this.step === 1 && this.tangentLine){
 			// Update tangent line preview

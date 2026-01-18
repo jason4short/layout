@@ -40,7 +40,7 @@ export class FilletTool extends Tool
 		super();
 
 		this.name 	= "Fillet";
-		this.usage 	= "Click two shapes (lines, arcs, or circles) to add a rounded corner. Shift+click near intersection for quick fillet.";
+		this.usage 	= "Click two shapes (lines, arcs, or circles) to add a rounded corner. Option+click near intersection for quick fillet.";
 
 		this.generateGuides = false;
 
@@ -95,7 +95,7 @@ export class FilletTool extends Tool
 		this.state 			= STATE.IDLE;
 		this.firstShape 	= null;
 		this.firstClickPt 	= null;
-		this.lastFillet 	= null;
+		//this.lastFillet 	= null;
 		stage.render();
 	}
 
@@ -103,7 +103,7 @@ export class FilletTool extends Tool
 		const snapPt 	= draftingAssistant.getCurrentSnapPoint();
 
 		// Option+click: quick fillet at nearest intersection
-		if (stage.shiftKey) {
+		if (stage.optionKey) {
 			const clickPt 	= { x: e.x, y: e.y };
 			this.quickFillet(clickPt);
 			return;
@@ -120,7 +120,7 @@ export class FilletTool extends Tool
 				this.firstShape 			= clickedShape;
 				this.firstClickPt 			= snapPt;
 				this.firstShape.selected 	= true;
-				this.state 					= STATE.DRAGGING;
+				this.state 					= STATE.FIRST_SELECTED;
 
 				// Create preview line
 				this.linePreview 			= new Line([snapPt.x, snapPt.y, snapPt.x, snapPt.y]);
@@ -140,7 +140,6 @@ export class FilletTool extends Tool
 
 				// Second shape clicked - create fillet
 				this.completeFillet(clickedShape, snapPt);
-				this.reset();
 				break;
 
 		}
@@ -148,6 +147,8 @@ export class FilletTool extends Tool
 
 	onMouseMove(e) {
 		if (this.state === STATE.DRAGGING || this.state === STATE.FIRST_SELECTED) {
+				this.state 	= STATE.DRAGGING;
+		
 			const snapPt = draftingAssistant.getCurrentSnapPoint();
 			if (this.linePreview) {
 				this.linePreview.end.x = snapPt.x;
@@ -169,7 +170,7 @@ export class FilletTool extends Tool
 		if (isValidSecond) {
 			this.completeFillet(secondShape, releasePt);
 		}
-
+		console.log("mouse up reset")
 		this.reset();
 	}
 
@@ -202,6 +203,7 @@ export class FilletTool extends Tool
 		}
 
 		if (arc) {
+			console.log("jason")
 			this.showRadiusInput();
 		}
 
@@ -245,7 +247,9 @@ export class FilletTool extends Tool
 	}
 
 	createFilletLineLine(line1, clickPt1, line2, clickPt2, radius) {
-	
+
+		// XXX radius can be zero - then it's a simple trim or extension. no need to create the arc. 
+		
 		const intersection = GeometryUtils.lineIntersection(line1, line2); // a point
 		
 		if (!intersection) {
@@ -593,8 +597,10 @@ export class FilletTool extends Tool
 	}
 
 	updateRadius(newRadius) {
+		console.log("updateRadius "+newRadius);
+		
 		const r = parseFloat(newRadius);
-		if (isNaN(r) || r <= 0) return;
+		if (isNaN(r) || r < 0) return;
 
 		if (!this.lastFillet || !this.lastFillet.arc) {
 			this.radius = r;

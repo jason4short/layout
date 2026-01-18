@@ -10,6 +10,9 @@ import data 				from '../data/Data.js';
 import undoManager			from '../core/UndoManager.js';
 import { TrimCommand }		from '../core/Commands.js';
 
+// Tolerance for floating-point comparisons
+const EPSILON = 1e-9;
+
 export class TrimTool extends Tool
 {
 	constructor()
@@ -135,11 +138,11 @@ export class TrimTool extends Tool
 		const clickT = line.getParametricT(clickPoint);
 
 		// Convert all intersections to t values and pair with points
-		// Filter to only intersections actually on the line segment (t between 0 and 1)
+		// Filter to only intersections actually on the line segment (t between 0 and 1, with epsilon tolerance)
 		const tPoints = intersections.map(p => ({
 			t: line.getParametricT(p),
 			point: p }))
-				.filter(tp => tp.t >= 0 && tp.t <= 1);
+				.filter(tp => tp.t >= -EPSILON && tp.t <= 1 + EPSILON);
 
 		if(tPoints.length === 0){
 			// Track removal
@@ -244,9 +247,10 @@ export class TrimTool extends Tool
 			.sort((a, b) => a.t - b.t);
 
 		// Separate intersections: before start (t<0), on line (0<=t<=1), after end (t>1)
-		const beforeStart = tPoints.filter(tp => tp.t < 0);
-		const onLine = tPoints.filter(tp => tp.t >= 0 && tp.t <= 1);
-		const afterEnd = tPoints.filter(tp => tp.t > 1);
+		// Use epsilon tolerance to handle floating-point precision
+		const beforeStart = tPoints.filter(tp => tp.t < -EPSILON);
+		const onLine = tPoints.filter(tp => tp.t >= -EPSILON && tp.t <= 1 + EPSILON);
+		const afterEnd = tPoints.filter(tp => tp.t > 1 + EPSILON);
 
 		// Determine new start and end points
 		let newStart = null;

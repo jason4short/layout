@@ -2,6 +2,8 @@ import stage from '../core/Stage.js';
 import data from '../data/Data.js';
 import {Shape} from '../geometry/Geometry.js';
 
+// Tolerance for floating-point comparisons
+const EPSILON = 1e-10;
 
 export class Intersections {
 
@@ -146,25 +148,27 @@ export class Intersections {
 		let y4 = line2.end.y;
 		
 	  // Check if none of the lines are of length 0
-		if ((x1 === x2 && y1 === y2) || (x3 === x4 && y3 === y4)) {
+		const len1Sq = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+		const len2Sq = (x4 - x3) * (x4 - x3) + (y4 - y3) * (y4 - y3);
+		if (len1Sq < EPSILON || len2Sq < EPSILON) {
 			return false
 		}
-				
+
 		let denominator = ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1))
-	
+
 	  // Lines are parallel
-		if (denominator === 0) {
+		if (Math.abs(denominator) < EPSILON) {
 			return false
 		}
-	
+
 		let ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denominator
 		let ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denominator
-	
-	  // is the intersection along the segments
-		if (ua < 0 || ua > 1 || ub < 0 || ub > 1) {
+
+	  // is the intersection along the segments (with epsilon tolerance)
+		if (ua < -EPSILON || ua > 1 + EPSILON || ub < -EPSILON || ub > 1 + EPSILON) {
 			return false
 		}
-	
+
 	  // Return a Point object with the x and y coordinates of the intersection
 		return [{x:x1 + ua * (x2 - x1), y:y1 + ua * (y2 - y1)}];
 	}
@@ -194,15 +198,15 @@ export class Intersections {
 
 		const intersections = [];
 
-		if (discriminant < 0) {
+		if (discriminant < -EPSILON) {
 			// No real solutions, no intersection
 			return intersections;
 
-		} else if (discriminant === 0) {
+		} else if (Math.abs(discriminant) < EPSILON) {
 			// One solution (tangent)
 			const t = -b / (2 * a);
-			// Only include if on the actual line segment
-			if (t >= 0 && t <= 1) {
+			// Only include if on the actual line segment (with epsilon tolerance)
+			if (t >= -EPSILON && t <= 1 + EPSILON) {
 				intersections.push({
 					x: x1 + t * dx,
 					y: y1 + t * dy
@@ -214,14 +218,14 @@ export class Intersections {
 			const t1 = (-b + Math.sqrt(discriminant)) / (2 * a);
 			const t2 = (-b - Math.sqrt(discriminant)) / (2 * a);
 
-			// Only include intersections on the actual line segment
-			if (t1 >= 0 && t1 <= 1) {
+			// Only include intersections on the actual line segment (with epsilon tolerance)
+			if (t1 >= -EPSILON && t1 <= 1 + EPSILON) {
 				intersections.push({
 					x: x1 + t1 * dx,
 					y: y1 + t1 * dy
 				});
 			}
-			if (t2 >= 0 && t2 <= 1) {
+			if (t2 >= -EPSILON && t2 <= 1 + EPSILON) {
 				intersections.push({
 					x: x1 + t2 * dx,
 					y: y1 + t2 * dy
