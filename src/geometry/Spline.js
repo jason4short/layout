@@ -197,6 +197,7 @@ export class Spline extends Geometry
 			this.p3.x, this.p3.y
 		]);
 		s.type = this.type;
+		s.groupId = this.groupId;
 		return s;
 	}
 

@@ -2,7 +2,7 @@ import stage 							from '../core/Stage.js';
 import data 							from '../data/Data.js';
 import undoManager						from '../core/UndoManager.js';
 import fileManager						from '../core/FileManager.js';
-import { AddShapesCommand }				from '../core/Commands.js';
+import { AddShapesCommand, GroupCommand, UngroupCommand }	from '../core/Commands.js';
 
 import { EventDispatcher } 				from '../core/EventDispatcher.js';
 
@@ -351,6 +351,35 @@ class ToolManager extends EventDispatcher
 	
 				case 'n':
 					fileManager.newDocument();
+					break;
+
+				case 'g':
+				case 'G':
+					if(stage.shiftKey){
+						// Cmd+Shift+G = Ungroup the root group(s) of selection
+						const selectedForUngroup = data.getSelected();
+						const groupsToUngroup = new Set();
+						for(const shape of selectedForUngroup){
+							if(shape.groupId){
+								// Find the root group, not the direct group
+								const rootGroupId = data.getRootGroupId(shape.groupId);
+								groupsToUngroup.add(rootGroupId);
+							}
+						}
+						if(groupsToUngroup.size > 0){
+							undoManager.execute(new UngroupCommand(groupsToUngroup));
+							console.log('Ungrouped selection');
+							stage.render();
+						}
+					} else {
+						// Cmd+G = Group selected shapes
+						const selected = data.getSelected();
+						if(selected.length > 1){
+							undoManager.execute(new GroupCommand(selected));
+							console.log('Created group');
+							stage.render();
+						}
+					}
 					break;
 
 				case 'l':

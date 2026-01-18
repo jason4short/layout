@@ -136,6 +136,7 @@ export class Dimension extends Geometry
 		d.type 		= this.type;
 		d.geometry	= this.geometry;
 		d.penStyle	= this.penStyle;
+		d.groupId	= this.groupId;
 		return d;
 	}
 

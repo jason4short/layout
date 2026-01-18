@@ -33,8 +33,19 @@ class FileManager
 	// Serialize all document data to JSON
 	toJSON()
 	{
-		const shapes = data.shapes.map(shape => shape.toJSON());
+		// Serialize shapes, including groupId
+		const shapes = data.shapes.map(shape => {
+			const json = shape.toJSON();
+			if(shape.groupId) json.groupId = shape.groupId;
+			return json;
+		});
 		const constructions = data.constructions.map(c => c.toJSON());
+
+		// Serialize groups
+		const groups = [];
+		for(const [id, group] of data.groups){
+			groups.push({ id: group.id, parentId: group.parentId });
+		}
 
 		return {
 			version: this.fileVersion,
@@ -44,7 +55,8 @@ class FileManager
 				zoom: stage.zoom
 			},
 			shapes: shapes,
-			constructions: constructions
+			constructions: constructions,
+			groups: groups
 		};
 	}
 
@@ -61,6 +73,8 @@ class FileManager
 		data.selectedPoints.clear();
 		data.resetSnaps();
 		data.clearGuides();
+		data.groups.clear();
+		data._nextGroupId = 1;
 		undoManager.clear();
 
 		// Restore viewport
@@ -70,11 +84,25 @@ class FileManager
 			stage.zoom = json.viewport.zoom || 1;
 		}
 
+		// Restore groups
+		if(json.groups){
+			let maxId = 0;
+			for(const groupData of json.groups){
+				data.groups.set(groupData.id, { id: groupData.id, parentId: groupData.parentId || null });
+				// Track highest group ID number for _nextGroupId
+				const match = groupData.id.match(/group_(\d+)/);
+				if(match) maxId = Math.max(maxId, parseInt(match[1]));
+			}
+			data._nextGroupId = maxId + 1;
+		}
+
 		// Recreate shapes
 		if(json.shapes){
 			for(const shapeData of json.shapes){
 				const shape = this.createShapeFromJSON(shapeData);
 				if(shape){
+					// Restore groupId if present
+					if(shapeData.groupId) shape.groupId = shapeData.groupId;
 					data.addShape(shape);
 				}
 			}

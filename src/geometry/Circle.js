@@ -30,6 +30,7 @@ export class Circle extends Geometry
 	clone(){
 		const c 	= new Circle([this.x, this.y, this.radius]);
 		c.type 		= this.type;
+		c.groupId	= this.groupId;
 		return c;
 	}
 

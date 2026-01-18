@@ -141,10 +141,12 @@ export class EllipticalArc extends Ellipse
 	}
 
 	clone() {
-		return new EllipticalArc([
+		const e = new EllipticalArc([
 			this.x, this.y, this.radiusX, this.radiusY,
 			this.rotation, this.startAngle, this.endAngle
 		]);
+		e.groupId = this.groupId;
+		return e;
 	}
 
 	// Update a specific control point by index

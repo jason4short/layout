@@ -109,6 +109,7 @@ export class Ellipse extends Geometry
 	clone() {
 		let e = new Ellipse([this.x, this.y, this.radiusX, this.radiusY, this.rotation]);
 		e.type = this.type;
+		e.groupId = this.groupId;
 		return e;
 	}
 

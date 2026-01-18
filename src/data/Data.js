@@ -68,6 +68,10 @@ class Data
 		// Stable shape ID counter
 		this._nextShapeId = 1;
 
+		// Groups: Map<groupId, { id, parentId }> - parentId is null for top-level groups
+		this.groups					= new Map();
+		this._nextGroupId			= 1;
+
 		// This is a singleton class
         return Data.instance;
 	}
@@ -280,13 +284,30 @@ class Data
 			return;
 		}
 
-		if(this.snapPoint.shape.locked || this.snapPoint.shape.type == Shape.GUIDE) return;
-		
+		const shape = this.snapPoint.shape;
+		if(shape.locked || shape.type == Shape.GUIDE) return;
+
 		if(shiftKey){
-			this.snapPoint.shape.selected = !this.snapPoint.shape.selected;
+			// Shift+click: toggle selection
+			if(shape.groupId){
+				// Toggle entire group
+				const rootId = this.getRootGroupId(shape.groupId);
+				const groupShapes = this.getGroupShapes(rootId);
+				const shouldSelect = !shape.selected;
+				for(const s of groupShapes){
+					if(!s.locked) s.selected = shouldSelect;
+				}
+			} else {
+				shape.selected = !shape.selected;
+			}
 		}else{
 			this.selectNone();
-			this.snapPoint.shape.selected = true;
+			if(shape.groupId){
+				// Select entire group hierarchy
+				this.selectGroup(shape);
+			} else {
+				shape.selected = true;
+			}
 		}
 	}
 		
@@ -323,6 +344,133 @@ class Data
 			}
 		}
 		this.selectedPoints.clear(); // Clear partial selections when selecting all
+	}
+
+	// --------------------------------------------------------------------------------
+	// Group Management
+	// --------------------------------------------------------------------------------
+
+	// Create a new group from selected shapes, returns the group ID
+	createGroup(shapes){
+		if(!shapes || shapes.length === 0) return null;
+
+		const groupId = `group_${this._nextGroupId++}`;
+
+		// Check if any selected shapes are already in groups - if so, this becomes a parent group
+		const childGroupIds = new Set();
+		for(const shape of shapes){
+			if(shape.groupId){
+				childGroupIds.add(shape.groupId);
+			}
+		}
+
+		// Create the group
+		this.groups.set(groupId, { id: groupId, parentId: null });
+
+		// If there are child groups, update their parentId
+		for(const childId of childGroupIds){
+			const childGroup = this.groups.get(childId);
+			if(childGroup){
+				childGroup.parentId = groupId;
+			}
+		}
+
+		// Assign ungrouped shapes to this new group
+		for(const shape of shapes){
+			if(!shape.groupId){
+				shape.groupId = groupId;
+			}
+		}
+
+		return groupId;
+	}
+
+	// Ungroup: move shapes up one level (to parent group or ungrouped)
+	ungroupSelection(){
+		const selected = this.getSelected();
+		const groupsToUngroup = new Set();
+
+		// Find all groups that are fully selected
+		for(const shape of selected){
+			if(shape.groupId){
+				groupsToUngroup.add(shape.groupId);
+			}
+		}
+
+		for(const groupId of groupsToUngroup){
+			const group = this.groups.get(groupId);
+			if(!group) continue;
+
+			const parentId = group.parentId;
+
+			// Move all shapes in this group to parent (or null)
+			for(const shape of this.shapes){
+				if(shape.groupId === groupId){
+					shape.groupId = parentId;
+				}
+			}
+
+			// Move child groups to parent
+			for(const [id, g] of this.groups){
+				if(g.parentId === groupId){
+					g.parentId = parentId;
+				}
+			}
+
+			// Delete the group
+			this.groups.delete(groupId);
+		}
+	}
+
+	// Get all shapes in a group (including nested groups)
+	getGroupShapes(groupId){
+		const result = [];
+		if(!groupId) return result;
+
+		// Get direct members
+		for(const shape of this.shapes){
+			if(shape.groupId === groupId){
+				result.push(shape);
+			}
+		}
+
+		// Get shapes from child groups (recursively)
+		for(const [id, group] of this.groups){
+			if(group.parentId === groupId){
+				result.push(...this.getGroupShapes(id));
+			}
+		}
+
+		return result;
+	}
+
+	// Get the root group ID for a shape (walks up parent chain)
+	getRootGroupId(groupId){
+		if(!groupId) return null;
+
+		const group = this.groups.get(groupId);
+		if(!group) return groupId;
+
+		if(group.parentId){
+			return this.getRootGroupId(group.parentId);
+		}
+		return groupId;
+	}
+
+	// Select all shapes in the same group hierarchy as the given shape
+	selectGroup(shape){
+		if(!shape.groupId) return;
+
+		// Find root group
+		const rootId = this.getRootGroupId(shape.groupId);
+
+		// Select all shapes in the root group and its descendants
+		const groupShapes = this.getGroupShapes(rootId);
+		for(const s of groupShapes){
+			if(!s.locked){
+				s.selected = true;
+			}
+		}
 	}
 
 	// Get the selectedPoints Map
@@ -466,11 +614,36 @@ class Data
 		const offsetX = viewCenterX - this.clipboardCentroid.x;
 		const offsetY = viewCenterY - this.clipboardCentroid.y;
 
-		// Clone and offset each shape
+		// Build mapping from old groupIds to new groupIds
+		const groupIdMap = new Map();
+		for(const shape of this.clipboard){
+			if(shape.groupId && !groupIdMap.has(shape.groupId)){
+				// Walk up the group hierarchy to capture all ancestor groups
+				let currentId = shape.groupId;
+				while(currentId && !groupIdMap.has(currentId)){
+					const newId = `group_${this._nextGroupId++}`;
+					groupIdMap.set(currentId, newId);
+					const group = this.groups.get(currentId);
+					currentId = group ? group.parentId : null;
+				}
+			}
+		}
+
+		// Create new groups with remapped parentIds
+		for(const [oldId, newId] of groupIdMap){
+			const oldGroup = this.groups.get(oldId);
+			const newParentId = oldGroup && oldGroup.parentId ? groupIdMap.get(oldGroup.parentId) : null;
+			this.groups.set(newId, { id: newId, parentId: newParentId });
+		}
+
+		// Clone and offset each shape, remapping groupId
 		const pastedShapes = [];
 		for(const shape of this.clipboard){
 			const clone = shape.clone();
 			clone.translate(offsetX, offsetY);
+			if(clone.groupId){
+				clone.groupId = groupIdMap.get(clone.groupId) || null;
+			}
 			pastedShapes.push(clone);
 		}
 
@@ -691,7 +864,6 @@ class Data
 	}
 
 	resetSnaps(){
-		console.log("resetSnaps")
 		this.snapPoints			= []	
 		this.snapIndex 			= 0;
 
@@ -701,7 +873,6 @@ class Data
 
 	// reset DA guides
 	clearGuides(){
-		console.log("clearGuides")
 		this.guideIntersections = [];
 		this.guides 			= [];
 	}

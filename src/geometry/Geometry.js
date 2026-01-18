@@ -43,6 +43,7 @@ export class Geometry
 		this.stroke 			= '#000';
 		this.bounds 			= new Rectangle();
 		this.penStyle 			= PenStyle.VISIBLE;  // Default pen style
+		this.groupId 			= null;  // ID of group this shape belongs to (null = ungrouped)
 	}
 
 	/**

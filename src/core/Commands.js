@@ -427,3 +427,127 @@ export class TrimCommand extends Command {
 		}
 	}
 }
+
+// Group shapes together
+export class GroupCommand extends Command {
+	constructor(shapes) {
+		super(`Group ${shapes.length} shapes`);
+		this.shapes = shapes;
+		this.groupId = null;
+		// Store previous groupIds for undo
+		this.previousGroupIds = shapes.map(s => s.groupId);
+		// Store child groups that got reparented
+		this.reparentedGroups = [];
+	}
+
+	execute() {
+		// Find existing groups in selection that will become children
+		const childGroupIds = new Set();
+		for(const shape of this.shapes){
+			if(shape.groupId){
+				childGroupIds.add(shape.groupId);
+			}
+		}
+
+		// Create new group
+		this.groupId = `group_${data._nextGroupId++}`;
+		data.groups.set(this.groupId, { id: this.groupId, parentId: null });
+
+		// Reparent child groups
+		for(const childId of childGroupIds){
+			const childGroup = data.groups.get(childId);
+			if(childGroup){
+				this.reparentedGroups.push({ id: childId, oldParentId: childGroup.parentId });
+				childGroup.parentId = this.groupId;
+			}
+		}
+
+		// Assign ungrouped shapes to new group
+		for(const shape of this.shapes){
+			if(!shape.groupId){
+				shape.groupId = this.groupId;
+			}
+		}
+	}
+
+	undo() {
+		// Restore previous groupIds
+		for(let i = 0; i < this.shapes.length; i++){
+			this.shapes[i].groupId = this.previousGroupIds[i];
+		}
+
+		// Restore reparented groups
+		for(const {id, oldParentId} of this.reparentedGroups){
+			const group = data.groups.get(id);
+			if(group){
+				group.parentId = oldParentId;
+			}
+		}
+
+		// Delete the group
+		data.groups.delete(this.groupId);
+	}
+}
+
+// Ungroup shapes (move up one level)
+export class UngroupCommand extends Command {
+	constructor(groupIds) {
+		super(`Ungroup ${groupIds.size || groupIds.length} groups`);
+		this.groupIds = [...groupIds];
+		// Store state for undo
+		this.groupData = []; // { id, parentId, shapes: [{shape, oldGroupId}], childGroups: [{id, oldParentId}] }
+	}
+
+	execute() {
+		for(const groupId of this.groupIds){
+			const group = data.groups.get(groupId);
+			if(!group) continue;
+
+			const parentId = group.parentId;
+			const groupInfo = {
+				id: groupId,
+				parentId: parentId,
+				shapes: [],
+				childGroups: []
+			};
+
+			// Move shapes to parent group
+			for(const shape of data.shapes){
+				if(shape.groupId === groupId){
+					groupInfo.shapes.push({ shape, oldGroupId: groupId });
+					shape.groupId = parentId;
+				}
+			}
+
+			// Move child groups to parent
+			for(const [id, g] of data.groups){
+				if(g.parentId === groupId){
+					groupInfo.childGroups.push({ id, oldParentId: groupId });
+					g.parentId = parentId;
+				}
+			}
+
+			this.groupData.push(groupInfo);
+			data.groups.delete(groupId);
+		}
+	}
+
+	undo() {
+		// Restore groups in reverse order
+		for(const groupInfo of this.groupData.reverse()){
+			// Recreate group
+			data.groups.set(groupInfo.id, { id: groupInfo.id, parentId: groupInfo.parentId });
+
+			// Restore shape groupIds
+			for(const {shape, oldGroupId} of groupInfo.shapes){
+				shape.groupId = oldGroupId;
+			}
+
+			// Restore child group parentIds
+			for(const {id, oldParentId} of groupInfo.childGroups){
+				const g = data.groups.get(id);
+				if(g) g.parentId = oldParentId;
+			}
+		}
+	}
+}

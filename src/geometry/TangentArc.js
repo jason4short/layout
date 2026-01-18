@@ -188,6 +188,7 @@ export class TangentArc extends Geometry
 			this.endPoint.x, this.endPoint.y
 		]);
 		t.type = this.type;
+		t.groupId = this.groupId;
 		return t;
 	}
 

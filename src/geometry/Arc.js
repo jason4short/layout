@@ -23,6 +23,7 @@ export class Arc extends Circle
 	clone(){
 		const a 	= new Arc([this.x, this.y, this.radius, this.startAngle, this.endAngle]);
 		a.type 		= this.type;
+		a.groupId	= this.groupId;
 		return a;
 	}
 	
