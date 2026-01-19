@@ -170,6 +170,8 @@ export class PointerTool extends Tool
 
 	onMouseDown(e)
 	{
+		this.generateGuides 	= true; // Enable snapping for move operations
+	
 		data.resetSnaps();
 
 		// Check for double-click on text to edit
@@ -289,6 +291,7 @@ export class PointerTool extends Tool
 	}
 
 	onMouseUp(e){
+		this.generateGuides 	= false; // Enable snapping for move operations
 		data.resetSnaps();
 		if(this.isMoving){
 			// Move operation complete - rebuild POI cache

@@ -1,4 +1,4 @@
-import {Shape, Geometry} 	from './Geometry.js';
+import {Shape, Geometry, GuideType} 	from './Geometry.js';
 import {Line} 				from './Line.js';
 import {Construction} 		from './Construction.js';
 
@@ -10,27 +10,33 @@ export class Guide extends Line
 		const y 			= params[1];
 		const angleDeg 		= params[2];
 		const guideLength 	= params[3];
-		let dx, dy; 
-		
+		const guideType 	= params[4] || null;  // Optional guide type
+		let dx, dy;
+		let inferredType 	= guideType;
+
 		switch (angleDeg){
 			case 90:
 				dx = 0;
 				dy = -guideLength;
+				if (!inferredType) inferredType = GuideType.VERTICAL;
 				break;
-						
+
 			case 0:
 				dx = guideLength;
 				dy = 0;
+				if (!inferredType) inferredType = GuideType.HORIZONTAL;
 				break;
-			
+
 			case -45:
 				dx = .707 * guideLength;
 				dy = -.707 * guideLength;
+				if (!inferredType) inferredType = GuideType.DIAGONAL_NEG45;
 				break;
-			
+
 			case 45:
 				dx = .707 * guideLength;
 				dy = .707 * guideLength;
+				if (!inferredType) inferredType = GuideType.DIAGONAL_45;
 				break;
 
 			default:
@@ -38,12 +44,15 @@ export class Guide extends Line
 				dx = Math.cos(angleRad) * guideLength;
 				dy = -Math.sin(angleRad) * guideLength; // Negative because Y is flipped in canvas
 		}
-		
+
 		super([		x - dx,
 				 	y - dy,
 				 	x + dx,
 				 	y + dy]);
-				 	
-		this.type 		= Shape.GUIDE
+
+		this.type 				= Shape.GUIDE;
+		this.guideType 			= inferredType;
+		this.active 			= false;  // Whether this guide is currently snapped to
+		this.sourceSnapPoint 	= null;  // The snap point that generated this guide
 	}
 }

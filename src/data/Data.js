@@ -175,8 +175,9 @@ class Data
 		this.shapePOIs = [];
 		for(const shape of this.shapes){
 			const points = shape.getSnapPOIs();
-			for(const p of points){
-				p.shape = shape;
+			for(let i = 0; i < points.length; i++){
+				points[i].shape = shape;
+				points[i].poiIndex = i;
 			}
 			this.shapePOIs.push(...points);
 		}
@@ -186,9 +187,10 @@ class Data
 	storeShapePOIs(shape){
 		console.log("storeShapePOIs");
 		const points = shape.getSnapPOIs();
-		// Add shape reference to each POI for exclusion checking
-		for(const p of points){
-			p.shape = shape;
+		// Add shape reference and index to each POI
+		for(let i = 0; i < points.length; i++){
+			points[i].shape = shape;
+			points[i].poiIndex = i;
 		}
 		this.shapePOIs.push(...points);
 	}

@@ -23,6 +23,32 @@ export const Shape = Object.freeze({
 	PLAIN: "plain"
 });
 
+// Snap types for labeling snap points
+export const SnapType = Object.freeze({
+	ENDPOINT: "endpoint",
+	MIDPOINT: "midpoint",
+	CENTER: "center",
+	QUADRANT: "quadrant",
+	ON: "on",
+	INTERSECT: "intersect",
+	ALIGN_X: "align:x",
+	ALIGN_Y: "align:y",
+	ALIGN_45: "align:45°",
+	ALIGN_NEG45: "align:45°",
+	TANGENT: "tangent",
+	PERPENDICULAR: "perpendicular"
+});
+
+// Guide types for drafting assistant guides
+export const GuideType = Object.freeze({
+	HORIZONTAL: "align:x",   // align:y
+	VERTICAL: "align:y",       // align:x
+	DIAGONAL_45: "align:45°",
+	DIAGONAL_NEG45: "align:45°",
+	TANGENT: "tangent",
+	PERPENDICULAR: "perpendicular"
+});
+
 // Pen styles control visual appearance (color, dash pattern, width)
 export const PenStyle = Object.freeze({
 	VISIBLE: "visible",         // Default solid line
@@ -55,9 +81,10 @@ export class Geometry
 		return VectorUtils.vectorBetweenPoints(startPoint, endPoint);
 	}
 
-	/**
-	 * Return the dot product of two vectors.
-	 */
+	getTangentAngle(point) {
+		return null;
+	}
+
 	dotProduct(vectorA, vectorB)
 	{
 		return VectorUtils.dotProduct(vectorA, vectorB);

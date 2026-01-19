@@ -1,6 +1,7 @@
 import stage from '../core/Stage.js';
 import data from '../data/Data.js';
 import {Shape} from '../geometry/Geometry.js';
+import {Intersection} from './Intersection.js';
 
 // Tolerance for floating-point comparisons
 const EPSILON = 1e-10;
@@ -170,7 +171,8 @@ export class Intersections {
 		}
 
 	  // Return a Point object with the x and y coordinates of the intersection
-		return [{x:x1 + ua * (x2 - x1), y:y1 + ua * (y2 - y1)}];
+ 		return [new Intersection(line1, line2, {x:x1 + ua * (x2 - x1), y:y1 + ua * (y2 - y1)})];
+//		return [{x:x1 + ua * (x2 - x1), y:y1 + ua * (y2 - y1)}];
 	}
 
 	intersect_line_cirlce(line, circle)
@@ -207,10 +209,8 @@ export class Intersections {
 			const t = -b / (2 * a);
 			// Only include if on the actual line segment (with epsilon tolerance)
 			if (t >= -EPSILON && t <= 1 + EPSILON) {
-				intersections.push({
-					x: x1 + t * dx,
-					y: y1 + t * dy
-				});
+				intersections.push(new Intersection(line, circle, {x: x1 + t * dx,y: y1 + t * dy}));
+				//intersections.push({x: x1 + t * dx, y: y1 + t * dy});
 			}
 
 		} else {
@@ -220,16 +220,12 @@ export class Intersections {
 
 			// Only include intersections on the actual line segment (with epsilon tolerance)
 			if (t1 >= -EPSILON && t1 <= 1 + EPSILON) {
-				intersections.push({
-					x: x1 + t1 * dx,
-					y: y1 + t1 * dy
-				});
+				intersections.push(new Intersection(line, circle, {x: x1 + t1 * dx,y: y1 + t1 * dy}));
+				//intersections.push({x: x1 + t1 * dx,y: y1 + t1 * dy});
 			}
 			if (t2 >= -EPSILON && t2 <= 1 + EPSILON) {
-				intersections.push({
-					x: x1 + t2 * dx,
-					y: y1 + t2 * dy
-				});
+				intersections.push(new Intersection(line, circle, {x: x1 + t2 * dx,y: y1 + t2 * dy}));
+				//intersections.push({x: x1 + t2 * dx,y: y1 + t2 * dy});
 			}
 		}
 		return intersections;
@@ -400,10 +396,8 @@ export class Intersections {
 			const t = -b / (2 * a);
 			// Only include if on the actual line segment
 			if (t >= 0 && t <= 1) {
-				intersections.push({
-					x: line.start.x + t * (line.end.x - line.start.x),
-					y: line.start.y + t * (line.end.y - line.start.y)
-				});
+				intersections.push(new Intersection(line, ellipse, {x: line.start.x + t * (line.end.x - line.start.x), y: line.start.y + t * (line.end.y - line.start.y)}));
+				//intersections.push({x: line.start.x + t * (line.end.x - line.start.x), y: line.start.y + t * (line.end.y - line.start.y)});
 			}
 		} else {
 			const sqrtDisc = Math.sqrt(discriminant);
@@ -412,16 +406,12 @@ export class Intersections {
 
 			// Only include intersections on the actual line segment
 			if (t1 >= 0 && t1 <= 1) {
-				intersections.push({
-					x: line.start.x + t1 * (line.end.x - line.start.x),
-					y: line.start.y + t1 * (line.end.y - line.start.y)
-				});
+				intersections.push(new Intersection(line, ellipse, {x: line.start.x + t1 * (line.end.x - line.start.x),y: line.start.y + t1 * (line.end.y - line.start.y)}));
+				//intersections.push({x: line.start.x + t1 * (line.end.x - line.start.x),y: line.start.y + t1 * (line.end.y - line.start.y)});
 			}
 			if (t2 >= 0 && t2 <= 1) {
-				intersections.push({
-					x: line.start.x + t2 * (line.end.x - line.start.x),
-					y: line.start.y + t2 * (line.end.y - line.start.y)
-				});
+				intersections.push(new Intersection(line, ellipse, {x: line.start.x + t2 * (line.end.x - line.start.x),y: line.start.y + t2 * (line.end.y - line.start.y)}));
+				//intersections.push({x: line.start.x + t2 * (line.end.x - line.start.x),y: line.start.y + t2 * (line.end.y - line.start.y)});
 			}
 		}
 
@@ -744,7 +734,8 @@ export class Intersections {
 					}
 				}
 
-				const intersection = spline.evaluate((lo + hi) / 2);
+				const ix = spline.evaluate((lo + hi) / 2);
+				const intersection = new Intersection(line, spline, ix);
 
 				// Check if intersection is within line segment
 				if (isOnSegment(intersection)) {

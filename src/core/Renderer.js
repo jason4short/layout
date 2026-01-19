@@ -451,15 +451,20 @@ export class Renderer
 			ctx.stroke();
 		}
 */
-		// Draw snap point indicators
-		for(const intersection of data.snapPoints)
+		// Draw snap point indicators and their labels
+		for(const snapPoint of data.snapPoints)
 		{
-			const pt = this.toScreen(intersection.x, intersection.y);
+			const pt = this.toScreen(snapPoint.x, snapPoint.y);
 			ctx.beginPath();
 			ctx.strokeStyle = '#2b6cb0';
 			ctx.lineWidth = 0.5;
 			ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
 			ctx.stroke();
+
+			// Draw label for this snap point if it has any
+			if(snapPoint.label){
+				this.drawSnapLabel(ctx, pt, snapPoint.label);
+			}
 		}
 
 
@@ -472,6 +477,9 @@ export class Renderer
 		ctx.beginPath(); ctx.moveTo(s.x + cs, s.y + cs); ctx.lineTo(s.x - cs, s.y - cs); ctx.stroke();
 		ctx.beginPath(); ctx.moveTo(s.x - cs, s.y + cs); ctx.lineTo(s.x + cs, s.y - cs); ctx.stroke();
 
+		// Draw snap label
+		this.drawSnapLabel(ctx, s, data.snapPoint.label);
+
 		// Draw selected control points
 		this.drawSelectedControlPoints(ctx);
 
@@ -480,6 +488,46 @@ export class Renderer
 
 		// Draw zoom box preview
 		this.drawZoomRect(ctx);
+	}
+
+	// Draw snap type label next to the snap point
+	drawSnapLabel(ctx, screenPos, label){
+		if(!label) return;
+
+
+		// XXX why is labels an array - should only be ONE label!
+		//const labelText = labels.join(' ');
+		const offsetX = 8;  // Offset from snap point
+		const offsetY = -8;
+
+		ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+		ctx.textAlign = 'left';
+		ctx.textBaseline = 'bottom';
+		const x = screenPos.x + offsetX;
+		const y = screenPos.y + offsetY;
+
+/*
+// removed BG for now...
+
+		// Measure text for background
+		const metrics = ctx.measureText(labelText);
+		const textWidth = metrics.width;
+		const textHeight = 12;
+		const padding = 2;
+
+
+		// Draw semi-transparent background
+		ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+		ctx.fillRect(
+			x - padding,
+			y - textHeight - padding,
+			textWidth + padding * 2,
+			textHeight + padding * 2
+		);
+*/
+		// Draw text
+		ctx.fillStyle = '#333';
+		ctx.fillText(label, x, y);
 	}
 
 	drawSelectedControlPoints(ctx){

@@ -226,11 +226,12 @@ export function getPointAtT(t, line) {
  * @returns {number} Angle in degrees
  */
 export function getAngleDeg(line) {
-	const dx = line.end.x - line.start.x;
-	const dy = line.end.y - line.start.y;
+	const dx		= line.end.x - line.start.x;
+	const dy		= line.end.y - line.start.y;
 	// canvas is flipped Y
-	const angleRad = Math.atan2(-dy, dx);
-	let angleDeg = angleRad * (180 / Math.PI);
+	const angleRad 	= Math.atan2(-dy, dx);
+	
+	let angleDeg 	= angleRad * (180 / Math.PI);
 	if (angleDeg < 0) angleDeg += 360;
 	return angleDeg;
 }

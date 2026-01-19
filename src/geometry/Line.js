@@ -91,6 +91,7 @@ export class Line extends Geometry
 	// Get tangent angle (in degrees) at any point on the line
 	// For a line, tangent is just the line's angle
 	getTangentAngle(point) {
+		if(this.tangent == 0||this.tangent == 90|| this.tangent == 180|| this.tangent == 270) return null;
 		return this.tangent;
 	}
 
