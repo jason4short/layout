@@ -210,8 +210,10 @@ export class PointerTool extends Tool
 
 		// Check if clicking on something already selected
 		this.moveTarget = data.getTargetShape();
+		
 		// create a guide reference from initial point
-		draftingAssistant.setCurrentSnapPoint(data.snapPoint, true);
+		if(this.moveTarget)
+			draftingAssistant.setCurrentSnapPoint(data.snapPoint, true);
 	}
 
 	onMouseMove(e){

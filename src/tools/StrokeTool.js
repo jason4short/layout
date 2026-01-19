@@ -38,7 +38,7 @@ export class StrokeTool extends Tool
 		this.worldCurrent		= null;
 
 		// Tunable thresholds
-		this.segmentThreshold	= 100;  // pixels before registering a gesture segment
+		this.segmentThreshold	= 60;  // pixels before registering a gesture segment
 		this.directionTolerance	= 2;    // minimum sector difference to register change
 
 		// Gesture registry: gesture string -> action function

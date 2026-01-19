@@ -36,6 +36,7 @@ export class LineTool extends Tool
 
 	exit(){
 		//console.log("exit Line Tool");
+		this.reset();
 	}
 	
 	updateCursor(){

@@ -22,12 +22,15 @@
 			.hidden { display:none; }
 
 			/* Tool Palette - Floating */
-			.tool-palette { position:absolute; left:.5rem; top:.5rem; bottom:.5rem; width:130px; background:rgba(255,255,255,.95); border:1px solid var(--border); border-radius:.5rem; padding:.5rem; overflow-y:auto; box-shadow:0 2px 8px rgba(0,0,0,.08); z-index:10; }
-			.tool-palette h3 { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin:0 0 .5rem 0; padding:0 .25rem; }
-			.tool-btn { display:block; width:100%; text-align:left; font-size:13px; padding:.4rem .5rem; margin-bottom:2px; border:1px solid transparent; border-radius:.35rem; background:transparent; cursor:pointer; color:#333; }
+			.tool-palette { position:absolute; left:.5rem; top:.5rem; bottom:.5rem; width:76px; background:rgba(255,255,255,.95); border:1px solid var(--border); border-radius:.5rem; padding:.5rem; overflow-y:auto; box-shadow:0 2px 8px rgba(0,0,0,.08); z-index:10; }
+			.tool-palette h3 { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin:.5rem 0 .25rem 0; padding:0 .25rem; }
+			.tool-palette h3:first-child { margin-top:0; }
+			.tool-btn { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:4px; margin:2px; border:1px solid transparent; border-radius:.35rem; background:transparent; cursor:pointer; vertical-align:top; }
 			.tool-btn:hover { background:#f0f0f0; }
-			.tool-btn.active { background:var(--light-blue); border-color:#93c5fd; color:#1e40af; }
-			.tool-btn .shortcut { float:right; color:var(--muted); font-size:11px; }
+			.tool-btn.active { background:var(--light-blue); border-color:#93c5fd; }
+			.tool-icon { width:20px; height:20px; opacity:0.8; }
+			.tool-btn:hover .tool-icon { opacity:1; }
+			.tool-btn.active .tool-icon { opacity:1; filter:brightness(0) saturate(100%) invert(18%) sepia(89%) saturate(1557%) hue-rotate(212deg) brightness(96%) contrast(92%); }
 
 			/* Inspector Panel */
 			.inspector-empty { color:var(--muted); font-size:13px; padding:1rem; text-align:center; }
@@ -50,7 +53,8 @@
 			}
 			@media (max-width: 500px) {
 				.sidebar { display:none; }
-				.tool-palette { width:110px; }
+				.tool-btn { width:28px; height:28px; }
+				.tool-icon { width:16px; height:16px; }
 			}
 
 			.canvas-default {cursor: crosshair;}

@@ -189,18 +189,18 @@ export class Renderer
 				const radius 	= this.toScreenScale(shape.radius);
 
 				// Optimization: when radius is huge, clip to visible portion
-				if(radius > 2000){
-					const visible = this.getVisibleArcAngles(center, radius);
-					if(visible){
-						const clampedStart = Math.max(shape.startAngle, visible.start);
-						const clampedEnd = Math.min(shape.endAngle, visible.end);
-						if(clampedEnd > clampedStart){
-							ctx.arc(center.x, center.y, radius, clampedStart, clampedEnd);
-						}
-					}
-				} else {
+// 				if(radius > 2000){
+// 					const visible = this.getVisibleArcAngles(center, radius);
+// 					if(visible){
+// 						const clampedStart = Math.max(shape.startAngle, visible.start);
+// 						const clampedEnd = Math.min(shape.endAngle, visible.end);
+// 						if(clampedEnd > clampedStart){
+// 							ctx.arc(center.x, center.y, radius, clampedStart, clampedEnd);
+// 						}
+// 					}
+// 				} else {
 					ctx.arc(center.x, center.y, radius, shape.startAngle, shape.endAngle);
-				}
+// 				}
 				ctx.stroke();
 				this.resetPenStyle(ctx);
 

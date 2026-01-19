@@ -73,34 +73,34 @@ class ToolManager extends EventDispatcher
 		this.dimensionTool				= new DimensionTool();
 		this.textTool					= new TextTool();
 
-		// Tool palette configuration: [tool, displayName, shortcut]
+		// Tool palette configuration: [tool, displayName, shortcut, icon]
 		this.toolPaletteConfig = [
 			{ category: 'Select' },
-			{ tool: this.pointerTool, 				name: 'Pointer', shortcut: 'V' },
-			{ tool: this.handTool, 					name: 'Hand', shortcut: 'H' },
+			{ tool: this.pointerTool, 				name: 'Pointer', shortcut: 'V', icon: 'pointer' },
+			{ tool: this.handTool, 					name: 'Hand', shortcut: 'H', icon: 'hand' },
 			{ category: 'Draw' },
-			{ tool: this.lineTool, 					name: 'Line', shortcut: 'L' },
-			{ tool: this.boxTool, 					name: 'Box', shortcut: 'B' },
-			{ tool: this.imageTool, 				name: 'Image', shortcut: 'I' },
-			{ tool: this.circleTool,				name: 'Circle', shortcut: 'C' },
-			{ tool: this.oppositeCornerEllipseTool, name: 'Ellipse', shortcut: 'E' },
-			{ tool: this.centerPointEllipseTool, 	name: 'Ellipse (Center)', shortcut: '4' },
-			{ tool: this.splineTool, 				name: 'Spline', shortcut: 'S' },
-			{ category: 'Arcs' },	
-			{ tool: this.threePointArcTool, 		name: '3-Point Arc', shortcut: 'A' },
-			{ tool: this.centerPointArcTool, 		name: 'Center Arc', shortcut: '1' },
-			{ tool: this.tangentPointArcTool, 		name: 'Tangent Arc', shortcut: '3' },
+			{ tool: this.lineTool, 					name: 'Line', shortcut: 'L', icon: 'line' },
+			{ tool: this.boxTool, 					name: 'Box', shortcut: 'B', icon: 'box' },
+			{ tool: this.imageTool, 				name: 'Image', shortcut: 'I', icon: 'image' },
+			{ tool: this.circleTool,				name: 'Circle', shortcut: 'C', icon: 'circle' },
+			{ tool: this.oppositeCornerEllipseTool, name: 'Ellipse', shortcut: 'E', icon: 'ellipse' },
+			{ tool: this.centerPointEllipseTool, 	name: 'Ellipse (Center)', shortcut: '4', icon: 'ellipse-center' },
+			{ tool: this.splineTool, 				name: 'Spline', shortcut: 'S', icon: 'spline' },
+			{ category: 'Arcs' },
+			{ tool: this.threePointArcTool, 		name: '3-Point Arc', shortcut: 'A', icon: 'arc-3point' },
+			{ tool: this.centerPointArcTool, 		name: 'Center Arc', shortcut: '1', icon: 'arc-center' },
+			{ tool: this.tangentPointArcTool, 		name: 'Tangent Arc', shortcut: '3', icon: 'arc-tangent' },
 			{ category: 'Modify' },
-			{ tool: this.trimTool, 					name: 'Trim', shortcut: 'T' },
-			{ tool: this.filletTool, 				name: 'Fillet', shortcut: 'F' },
-			{ tool: this.chamferTool, 				name: 'Chamfer', shortcut: 'K' },
-			{ tool: this.parallelLineTool, 			name: 'Parallel', shortcut: 'P' },
-			{ tool: this.scaleTool, 				name: 'Scale', shortcut: 'X' },
-			{ tool: this.mirrorTool, 				name: 'Mirror', shortcut: 'M' },
-			{ tool: this.rotateTool, 				name: 'Rotate', shortcut: 'R' },
+			{ tool: this.trimTool, 					name: 'Trim', shortcut: 'T', icon: 'trim' },
+			{ tool: this.filletTool, 				name: 'Fillet', shortcut: 'F', icon: 'fillet' },
+			{ tool: this.chamferTool, 				name: 'Chamfer', shortcut: 'K', icon: 'chamfer' },
+			{ tool: this.parallelLineTool, 			name: 'Parallel', shortcut: 'P', icon: 'parallel' },
+			{ tool: this.scaleTool, 				name: 'Scale', shortcut: 'X', icon: 'scale' },
+			{ tool: this.mirrorTool, 				name: 'Mirror', shortcut: 'M', icon: 'mirror' },
+			{ tool: this.rotateTool, 				name: 'Rotate', shortcut: 'R', icon: 'rotate' },
 			{ category: 'Annotate' },
-			{ tool: this.dimensionTool, 			name: 'Dimension', shortcut: 'D' },
-			{ tool: this.textTool, 					name: 'Text', shortcut: 'N' },
+			{ tool: this.dimensionTool, 			name: 'Dimension', shortcut: 'D', icon: 'dimension' },
+			{ tool: this.textTool, 					name: 'Text', shortcut: 'N', icon: 'text' },
 		];
 
 		return ToolManager.instance;
@@ -139,11 +139,19 @@ class ToolManager extends EventDispatcher
 				header.textContent = item.category;
 				palette.appendChild(header);
 			} else {
-				// Tool button
+				// Tool button with icon
 				const btn = document.createElement('button');
 				btn.className = 'tool-btn';
 				btn.dataset.toolId = item.tool.constructor.name;
-				btn.innerHTML = `${item.name}`;
+				btn.title = `${item.name} (${item.shortcut})`;
+
+				// Create icon image
+				const icon = document.createElement('img');
+				icon.src = `src/assets/tools/${item.icon}.svg`;
+				icon.alt = item.name;
+				icon.className = 'tool-icon';
+				btn.appendChild(icon);
+
 				btn.addEventListener('click', () => this.setTool(item.tool));
 				palette.appendChild(btn);
 			}
