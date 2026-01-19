@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <ellipse cx="12" cy="12" rx="10" ry="6"/>
-  <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-  <line x1="12" y1="12" x2="22" y2="12" stroke-dasharray="2,2"/>
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M11 14C12.1046 14 13 13.1046 13 12C13 10.8954 12.1046 10 11 10C9.89543 10 9 10.8954 9 12C9 13.1046 9.89543 14 11 14Z" fill="#FF0000"/>
+<path d="M22 5C23.1046 5 24 4.10457 24 3C24 1.89543 23.1046 1 22 1C20.8954 1 20 1.89543 20 3C20 4.10457 20.8954 5 22 5Z" fill="#FF0000"/>
+<path d="M4 3H22V19" stroke="#FF0000" stroke-dasharray="2 2"/>
+<path d="M11 20C16.5228 20 21 16.4183 21 12C21 7.58172 16.5228 4 11 4C5.47715 4 1 7.58172 1 12C1 16.4183 5.47715 20 11 20Z" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

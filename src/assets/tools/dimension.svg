@@ -1,7 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <line x1="4" y1="12" x2="20" y2="12"/>
-  <line x1="4" y1="8" x2="4" y2="16"/>
-  <line x1="20" y1="8" x2="20" y2="16"/>
-  <polygon points="4,12 8,10 8,14" fill="currentColor"/>
-  <polygon points="20,12 16,10 16,14" fill="currentColor"/>
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_69_231)">
+<path d="M7 7L17 17" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M7.65674 1L1 7" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M22.6567 17L16 23" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M4.41416 4.41421L9.35357 5.13165L5.13159 9.35363L4.41416 4.41421Z" fill="black"/>
+<path d="M19.2427 19.2428L18.6479 14.1807L14.1806 18.648L19.2427 19.2428Z" fill="black"/>
+</g>
+<defs>
+<clipPath id="clip0_69_231">
+<rect width="24" height="24" fill="white"/>
+</clipPath>
+</defs>
 </svg>
