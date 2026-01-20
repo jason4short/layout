@@ -85,6 +85,18 @@ export class Geometry
 		return null;
 	}
 
+	/**
+	 * Returns the inspector schema for this geometry.
+	 * Override in subclasses to define inspectable properties.
+	 * @returns {Object} Schema with name and sections array
+	 */
+	getInspectorSchema() {
+		return {
+			name: 'Shape',
+			sections: []
+		};
+	}
+
 	dotProduct(vectorA, vectorB)
 	{
 		return VectorUtils.dotProduct(vectorA, vectorB);

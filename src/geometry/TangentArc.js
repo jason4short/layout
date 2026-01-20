@@ -244,6 +244,54 @@ export class TangentArc extends Geometry
 		this.recalculate();
 	}
 
+	getInspectorSchema() {
+		return {
+			name: 'Tangent Arc',
+			sections: [
+				{
+					title: 'Dimensions',
+					fields: [
+						{
+							key: 'radius',
+							label: 'Radius',
+							type: 'readonly',
+							get: () => this.radius,
+							precision: 2
+						},
+						{
+							key: 'arcLength',
+							label: 'Arc Length',
+							type: 'readonly',
+							get: () => this.length(),
+							precision: 2
+						}
+					]
+				},
+				{
+					title: 'Start Point',
+					fields: [
+						{ key: 'startPoint.x', label: 'X', type: 'number', precision: 2, step: 1 },
+						{ key: 'startPoint.y', label: 'Y', type: 'number', precision: 2, step: 1 }
+					]
+				},
+				{
+					title: 'Tangent Handle',
+					fields: [
+						{ key: 'tangentPoint.x', label: 'X', type: 'number', precision: 2, step: 1 },
+						{ key: 'tangentPoint.y', label: 'Y', type: 'number', precision: 2, step: 1 }
+					]
+				},
+				{
+					title: 'End Point',
+					fields: [
+						{ key: 'endPoint.x', label: 'X', type: 'number', precision: 2, step: 1 },
+						{ key: 'endPoint.y', label: 'Y', type: 'number', precision: 2, step: 1 }
+					]
+				}
+			]
+		};
+	}
+
 	// Update control point by index
 	// POI indices: 0=start, 1=tangent handle, 2=end
 	updateControlPoint(index, newX, newY) {

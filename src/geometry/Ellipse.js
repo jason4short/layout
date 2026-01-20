@@ -177,6 +177,64 @@ export class Ellipse extends Geometry
 		this.update();
 	}
 
+	getInspectorSchema() {
+		return {
+			name: 'Ellipse',
+			sections: [
+				{
+					title: 'Dimensions',
+					fields: [
+						{
+							key: 'radiusX',
+							label: 'Radius X',
+							type: 'number',
+							precision: 2,
+							step: 1,
+							min: 0.1
+						},
+						{
+							key: 'radiusY',
+							label: 'Radius Y',
+							type: 'number',
+							precision: 2,
+							step: 1,
+							min: 0.1
+						},
+						{
+							key: 'perimeter',
+							label: 'Perimeter',
+							type: 'readonly',
+							get: () => this.length(),
+							precision: 2
+						}
+					]
+				},
+				{
+					title: 'Center',
+					fields: [
+						{ key: 'x', label: 'X', type: 'number', precision: 2, step: 1 },
+						{ key: 'y', label: 'Y', type: 'number', precision: 2, step: 1 }
+					]
+				},
+				{
+					title: 'Rotation',
+					fields: [
+						{
+							key: 'rotationDeg',
+							label: 'Angle',
+							type: 'number',
+							get: () => this.rotation * 180 / Math.PI,
+							set: (v) => { this.rotation = v * Math.PI / 180; },
+							precision: 1,
+							step: 1,
+							suffix: '°'
+						}
+					]
+				}
+			]
+		};
+	}
+
 	// Update a specific control point by index
 	// POI indices: 0=center, 1=right, 2=left, 3=bottom, 4=top
 	updateControlPoint(index, newX, newY){

@@ -10,6 +10,7 @@ class Inspector {
 
 		this.container = null;
 		this.currentShape = null;
+		this.currentSchema = null;
 		this.lastMultiCount = 0;
 
 		Inspector.instance = this;
@@ -32,6 +33,7 @@ class Inspector {
 		if (selected.length === 0) {
 			if (this.currentShape !== null) {
 				this.currentShape = null;
+				this.currentSchema = null;
 				this.container.innerHTML = '<div class="inspector-empty">No selection</div>';
 			}
 			return;
@@ -40,6 +42,7 @@ class Inspector {
 		if (selected.length > 1) {
 			if (this.currentShape !== null || this.lastMultiCount !== selected.length) {
 				this.currentShape = null;
+				this.currentSchema = null;
 				this.lastMultiCount = selected.length;
 				this.buildMultiPanel(selected);
 			}
@@ -55,6 +58,7 @@ class Inspector {
 		}
 
 		this.currentShape = shape;
+		this.currentSchema = shape.getInspectorSchema ? shape.getInspectorSchema() : null;
 		this.lastMultiCount = 0;
 		this.buildPanel(shape);
 	}
@@ -74,17 +78,23 @@ class Inspector {
 	}
 
 	buildPanel(shape) {
+		const schema = this.currentSchema;
+
 		let html = '<div class="inspector-panel">';
 
 		// Header with geometry type
-		const typeName = this.getTypeName(shape);
+		const typeName = schema ? schema.name : 'Shape';
 		html += `<div class="inspector-header">${typeName}</div>`;
 
 		// Pen Style (common to all)
 		html += this.buildPenStyleField(shape);
 
-		// Geometry-specific fields
-		html += this.buildGeometryFields(shape);
+		// Schema-driven fields
+		if (schema && schema.sections) {
+			for (const section of schema.sections) {
+				html += this.buildSection(section, shape);
+			}
+		}
 
 		html += '</div>';
 		this.container.innerHTML = html;
@@ -139,18 +149,6 @@ class Inspector {
 		}
 	}
 
-	getTypeName(shape) {
-		switch (shape.geometry) {
-			case Shape.LINE: return 'Line';
-			case Shape.CIRCLE: return 'Circle';
-			case Shape.ARC: return 'Arc';
-			case Shape.TANGENT_ARC: return 'Tangent Arc';
-			case Shape.ELLIPSE: return 'Ellipse';
-			case Shape.SPLINE: return 'Spline';
-			default: return 'Shape';
-		}
-	}
-
 	buildPenStyleField(shape) {
 		const options = Object.entries(PenStyle).map(([key, value]) => {
 			const selected = shape.penStyle === value ? 'selected' : '';
@@ -169,594 +167,189 @@ class Inspector {
 		`;
 	}
 
-	buildGeometryFields(shape) {
-		switch (shape.geometry) {
-			case Shape.LINE:
-				return this.buildLineFields(shape);
-			case Shape.CIRCLE:
-				return this.buildCircleFields(shape);
-			case Shape.ARC:
-				return this.buildArcFields(shape);
-			case Shape.TANGENT_ARC:
-				return this.buildTangentArcFields(shape);
-			case Shape.ELLIPSE:
-				return this.buildEllipseFields(shape);
-			case Shape.SPLINE:
-				return this.buildSplineFields(shape);
-			default:
-				return '';
+	buildSection(section, shape) {
+		let html = `<div class="inspector-section">`;
+		html += `<div class="inspector-section-title">${section.title}</div>`;
+
+		for (const field of section.fields) {
+			html += this.buildField(field, shape);
 		}
+
+		html += `</div>`;
+		return html;
 	}
 
-	buildLineFields(shape) {
-		const length = shape.length().toFixed(2);
-		const angle = shape.getAngleDeg().toFixed(1);
+	buildField(field, shape) {
+		const value = this.getFieldValue(field, shape);
+		const displayValue = field.precision !== undefined && value !== null && value !== undefined
+			? Number(value).toFixed(field.precision)
+			: value;
 
-		return `
-			<div class="inspector-section">
-				<div class="inspector-section-title">Dimensions</div>
-				<div class="inspector-row">
-					<label>Length</label>
-					<input type="number" id="prop-length" value="${length}" step="0.1">
-				</div>
-				<div class="inspector-row">
-					<label>Angle</label>
-					<span class="inspector-value">${angle}°</span>
-				</div>
-			</div>
-			<div class="inspector-section">
-				<div class="inspector-section-title">Start Point</div>
-				<div class="inspector-row">
-					<label>X</label>
-					<input type="number" id="prop-startX" value="${shape.start.x.toFixed(2)}" step="1">
-				</div>
-				<div class="inspector-row">
-					<label>Y</label>
-					<input type="number" id="prop-startY" value="${shape.start.y.toFixed(2)}" step="1">
-				</div>
-			</div>
-			<div class="inspector-section">
-				<div class="inspector-section-title">End Point</div>
-				<div class="inspector-row">
-					<label>X</label>
-					<input type="number" id="prop-endX" value="${shape.end.x.toFixed(2)}" step="1">
-				</div>
-				<div class="inspector-row">
-					<label>Y</label>
-					<input type="number" id="prop-endY" value="${shape.end.y.toFixed(2)}" step="1">
-				</div>
-			</div>
-		`;
+		if (field.type === 'readonly') {
+			const suffix = field.suffix || '';
+			return `<div class="inspector-row">
+				<label>${field.label}</label>
+				<span class="inspector-value" data-field="${field.key}">${displayValue}${suffix}</span>
+			</div>`;
+		}
+
+		if (field.type === 'number') {
+			const attrs = [
+				`type="number"`,
+				`id="prop-${field.key}"`,
+				`value="${displayValue}"`,
+				field.min !== undefined ? `min="${field.min}"` : '',
+				field.max !== undefined ? `max="${field.max}"` : ''
+			].filter(Boolean).join(' ');
+
+			return `<div class="inspector-row">
+				<label>${field.label}</label>
+				<input ${attrs}>
+			</div>`;
+		}
+
+		if (field.type === 'select' && field.options) {
+			const currentValue = this.getFieldValue(field, shape);
+			const optionsHtml = field.options.map(opt => {
+				const selected = opt.value === currentValue ? 'selected' : '';
+				return `<option value="${opt.value}" ${selected}>${opt.label}</option>`;
+			}).join('');
+
+			return `<div class="inspector-row">
+				<label>${field.label}</label>
+				<select id="prop-${field.key}">${optionsHtml}</select>
+			</div>`;
+		}
+
+		return '';
 	}
 
-	buildCircleFields(shape) {
-		const circumference = (2 * Math.PI * shape.radius).toFixed(2);
-
-		return `
-			<div class="inspector-section">
-				<div class="inspector-section-title">Dimensions</div>
-				<div class="inspector-row">
-					<label>Radius</label>
-					<input type="number" id="prop-radius" value="${shape.radius.toFixed(2)}" step="1" min="0.1">
-				</div>
-				<div class="inspector-row">
-					<label>Diameter</label>
-					<input type="number" id="prop-diameter" value="${(shape.radius * 2).toFixed(2)}" step="1" min="0.1">
-				</div>
-				<div class="inspector-row">
-					<label>Circumference</label>
-					<span class="inspector-value">${circumference}</span>
-				</div>
-			</div>
-			<div class="inspector-section">
-				<div class="inspector-section-title">Center</div>
-				<div class="inspector-row">
-					<label>X</label>
-					<input type="number" id="prop-centerX" value="${shape.x.toFixed(2)}" step="1">
-				</div>
-				<div class="inspector-row">
-					<label>Y</label>
-					<input type="number" id="prop-centerY" value="${shape.y.toFixed(2)}" step="1">
-				</div>
-			</div>
-		`;
+	getFieldValue(field, shape) {
+		if (field.get) {
+			return field.get.call(shape);
+		}
+		return this.getNestedValue(shape, field.key);
 	}
 
-	buildArcFields(shape) {
-		const arcLength = shape.length().toFixed(2);
-		const startDeg = (shape.startAngle * 180 / Math.PI).toFixed(1);
-		const endDeg = (shape.endAngle * 180 / Math.PI).toFixed(1);
+	setFieldValue(field, shape, value) {
+		const numValue = parseFloat(value);
 
-		return `
-			<div class="inspector-section">
-				<div class="inspector-section-title">Dimensions</div>
-				<div class="inspector-row">
-					<label>Radius</label>
-					<input type="number" id="prop-radius" value="${shape.radius.toFixed(2)}" step="1" min="0.1">
-				</div>
-				<div class="inspector-row">
-					<label>Arc Length</label>
-					<span class="inspector-value">${arcLength}</span>
-				</div>
-			</div>
-			<div class="inspector-section">
-				<div class="inspector-section-title">Angles</div>
-				<div class="inspector-row">
-					<label>Start</label>
-					<input type="number" id="prop-startAngle" value="${startDeg}" step="1">
-				</div>
-				<div class="inspector-row">
-					<label>End</label>
-					<input type="number" id="prop-endAngle" value="${endDeg}" step="1">
-				</div>
-			</div>
-			<div class="inspector-section">
-				<div class="inspector-section-title">Center</div>
-				<div class="inspector-row">
-					<label>X</label>
-					<input type="number" id="prop-centerX" value="${shape.x.toFixed(2)}" step="1">
-				</div>
-				<div class="inspector-row">
-					<label>Y</label>
-					<input type="number" id="prop-centerY" value="${shape.y.toFixed(2)}" step="1">
-				</div>
-			</div>
-		`;
+		if (field.set) {
+			field.set.call(shape, numValue);
+		} else {
+			this.setNestedValue(shape, field.key, numValue);
+		}
+		shape.update();
+		data.rebuildPOIs();
+		data.recalculateIntersectionsForShape(shape);
+		stage.render();
 	}
 
-	buildTangentArcFields(shape) {
-		const arcLength = shape.length().toFixed(2);
-
-		return `
-			<div class="inspector-section">
-				<div class="inspector-section-title">Dimensions</div>
-				<div class="inspector-row">
-					<label>Radius</label>
-					<span class="inspector-value">${shape.radius.toFixed(2)}</span>
-				</div>
-				<div class="inspector-row">
-					<label>Arc Length</label>
-					<span class="inspector-value">${arcLength}</span>
-				</div>
-			</div>
-			<div class="inspector-section">
-				<div class="inspector-section-title">Start Point</div>
-				<div class="inspector-row">
-					<label>X</label>
-					<input type="number" id="prop-startX" value="${shape.startPoint.x.toFixed(2)}" step="1">
-				</div>
-				<div class="inspector-row">
-					<label>Y</label>
-					<input type="number" id="prop-startY" value="${shape.startPoint.y.toFixed(2)}" step="1">
-				</div>
-			</div>
-			<div class="inspector-section">
-				<div class="inspector-section-title">Tangent Point</div>
-				<div class="inspector-row">
-					<label>X</label>
-					<input type="number" id="prop-tangentX" value="${shape.tangentPoint.x.toFixed(2)}" step="1">
-				</div>
-				<div class="inspector-row">
-					<label>Y</label>
-					<input type="number" id="prop-tangentY" value="${shape.tangentPoint.y.toFixed(2)}" step="1">
-				</div>
-			</div>
-			<div class="inspector-section">
-				<div class="inspector-section-title">End Point</div>
-				<div class="inspector-row">
-					<label>X</label>
-					<input type="number" id="prop-endX" value="${shape.endPoint.x.toFixed(2)}" step="1">
-				</div>
-				<div class="inspector-row">
-					<label>Y</label>
-					<input type="number" id="prop-endY" value="${shape.endPoint.y.toFixed(2)}" step="1">
-				</div>
-			</div>
-		`;
+	getNestedValue(obj, path) {
+		return path.split('.').reduce((o, k) => o?.[k], obj);
 	}
 
-	buildEllipseFields(shape) {
-		const rotationDeg = (shape.rotation * 180 / Math.PI).toFixed(1);
-
-		return `
-			<div class="inspector-section">
-				<div class="inspector-section-title">Dimensions</div>
-				<div class="inspector-row">
-					<label>Radius X</label>
-					<input type="number" id="prop-radiusX" value="${shape.radiusX.toFixed(2)}" step="1" min="0.1">
-				</div>
-				<div class="inspector-row">
-					<label>Radius Y</label>
-					<input type="number" id="prop-radiusY" value="${shape.radiusY.toFixed(2)}" step="1" min="0.1">
-				</div>
-				<div class="inspector-row">
-					<label>Rotation</label>
-					<input type="number" id="prop-rotation" value="${rotationDeg}" step="1">
-				</div>
-			</div>
-			<div class="inspector-section">
-				<div class="inspector-section-title">Center</div>
-				<div class="inspector-row">
-					<label>X</label>
-					<input type="number" id="prop-centerX" value="${shape.x.toFixed(2)}" step="1">
-				</div>
-				<div class="inspector-row">
-					<label>Y</label>
-					<input type="number" id="prop-centerY" value="${shape.y.toFixed(2)}" step="1">
-				</div>
-			</div>
-		`;
-	}
-
-	buildSplineFields(shape) {
-		const length = shape.length().toFixed(2);
-
-		return `
-			<div class="inspector-section">
-				<div class="inspector-section-title">Dimensions</div>
-				<div class="inspector-row">
-					<label>Length</label>
-					<span class="inspector-value">${length}</span>
-				</div>
-			</div>
-			<div class="inspector-section">
-				<div class="inspector-section-title">P0 (Start)</div>
-				<div class="inspector-row">
-					<label>X</label>
-					<input type="number" id="prop-p0x" value="${shape.p0.x.toFixed(2)}" step="1">
-				</div>
-				<div class="inspector-row">
-					<label>Y</label>
-					<input type="number" id="prop-p0y" value="${shape.p0.y.toFixed(2)}" step="1">
-				</div>
-			</div>
-			<div class="inspector-section">
-				<div class="inspector-section-title">P1 (Handle)</div>
-				<div class="inspector-row">
-					<label>X</label>
-					<input type="number" id="prop-p1x" value="${shape.p1.x.toFixed(2)}" step="1">
-				</div>
-				<div class="inspector-row">
-					<label>Y</label>
-					<input type="number" id="prop-p1y" value="${shape.p1.y.toFixed(2)}" step="1">
-				</div>
-			</div>
-			<div class="inspector-section">
-				<div class="inspector-section-title">P2 (Handle)</div>
-				<div class="inspector-row">
-					<label>X</label>
-					<input type="number" id="prop-p2x" value="${shape.p2.x.toFixed(2)}" step="1">
-				</div>
-				<div class="inspector-row">
-					<label>Y</label>
-					<input type="number" id="prop-p2y" value="${shape.p2.y.toFixed(2)}" step="1">
-				</div>
-			</div>
-			<div class="inspector-section">
-				<div class="inspector-section-title">P3 (End)</div>
-				<div class="inspector-row">
-					<label>X</label>
-					<input type="number" id="prop-p3x" value="${shape.p3.x.toFixed(2)}" step="1">
-				</div>
-				<div class="inspector-row">
-					<label>Y</label>
-					<input type="number" id="prop-p3y" value="${shape.p3.y.toFixed(2)}" step="1">
-				</div>
-			</div>
-		`;
+	setNestedValue(obj, path, value) {
+		const parts = path.split('.');
+		const last = parts.pop();
+		const target = parts.reduce((o, k) => o[k], obj);
+		if (target && last) {
+			target[last] = value;
+		}
 	}
 
 	attachListeners(shape) {
-		// Pen Style
-		this.attachListener('prop-penStyle', 'change', (value) => {
-			shape.penStyle = value;
-			stage.render();
-		});
-
-		switch (shape.geometry) {
-			case Shape.LINE:
-				this.attachLineListeners(shape);
-				break;
-			case Shape.CIRCLE:
-				this.attachCircleListeners(shape);
-				break;
-			case Shape.ARC:
-				this.attachArcListeners(shape);
-				break;
-			case Shape.TANGENT_ARC:
-				this.attachTangentArcListeners(shape);
-				break;
-			case Shape.ELLIPSE:
-				this.attachEllipseListeners(shape);
-				break;
-			case Shape.SPLINE:
-				this.attachSplineListeners(shape);
-				break;
-		}
-	}
-
-	attachListener(id, event, callback) {
-		const el = document.getElementById(id);
-		if (el) {
-			el.addEventListener(event, (e) => {
-				callback(e.target.value);
-				this.updateFieldValues(this.currentShape);
-			});
-		}
-	}
-
-	attachLineListeners(shape) {
-		this.attachListener('prop-length', 'input', (value) => {
-			shape.scaleToDim(parseFloat(value));
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-startX', 'input', (value) => {
-			shape.start.x = parseFloat(value);
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-startY', 'input', (value) => {
-			shape.start.y = parseFloat(value);
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-endX', 'input', (value) => {
-			shape.end.x = parseFloat(value);
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-endY', 'input', (value) => {
-			shape.end.y = parseFloat(value);
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-	}
-
-	attachCircleListeners(shape) {
-		this.attachListener('prop-radius', 'input', (value) => {
-			shape.radius = Math.max(0.1, parseFloat(value));
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-diameter', 'input', (value) => {
-			shape.radius = Math.max(0.1, parseFloat(value) / 2);
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-centerX', 'input', (value) => {
-			shape.x = parseFloat(value);
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-centerY', 'input', (value) => {
-			shape.y = parseFloat(value);
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-	}
-
-	attachArcListeners(shape) {
-		this.attachListener('prop-radius', 'input', (value) => {
-			shape.radius = Math.max(0.1, parseFloat(value));
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-startAngle', 'input', (value) => {
-			shape.startAngle = parseFloat(value) * Math.PI / 180;
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-endAngle', 'input', (value) => {
-			shape.endAngle = parseFloat(value) * Math.PI / 180;
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-centerX', 'input', (value) => {
-			shape.x = parseFloat(value);
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-centerY', 'input', (value) => {
-			shape.y = parseFloat(value);
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-	}
-
-	attachTangentArcListeners(shape) {
-		this.attachListener('prop-startX', 'input', (value) => {
-			shape.startPoint.x = parseFloat(value);
-			shape.recalculate();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-startY', 'input', (value) => {
-			shape.startPoint.y = parseFloat(value);
-			shape.recalculate();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-tangentX', 'input', (value) => {
-			shape.tangentPoint.x = parseFloat(value);
-			shape.recalculate();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-tangentY', 'input', (value) => {
-			shape.tangentPoint.y = parseFloat(value);
-			shape.recalculate();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-endX', 'input', (value) => {
-			shape.endPoint.x = parseFloat(value);
-			shape.recalculate();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-endY', 'input', (value) => {
-			shape.endPoint.y = parseFloat(value);
-			shape.recalculate();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-	}
-
-	attachEllipseListeners(shape) {
-		this.attachListener('prop-radiusX', 'input', (value) => {
-			shape.radiusX = Math.max(0.1, parseFloat(value));
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-radiusY', 'input', (value) => {
-			shape.radiusY = Math.max(0.1, parseFloat(value));
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-rotation', 'input', (value) => {
-			shape.rotation = parseFloat(value) * Math.PI / 180;
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-centerX', 'input', (value) => {
-			shape.x = parseFloat(value);
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-
-		this.attachListener('prop-centerY', 'input', (value) => {
-			shape.y = parseFloat(value);
-			shape.update();
-			data.rebuildPOIs();
-			data.recalculateIntersectionsForShape(shape);
-			stage.render();
-		});
-	}
-
-	attachSplineListeners(shape) {
-		['p0', 'p1', 'p2', 'p3'].forEach(pt => {
-			this.attachListener(`prop-${pt}x`, 'input', (value) => {
-				shape[pt].x = parseFloat(value);
-				shape.update();
-				data.rebuildPOIs();
-				data.recalculateIntersectionsForShape(shape);
+		// Pen Style (common to all)
+		const penStyleEl = document.getElementById('prop-penStyle');
+		if (penStyleEl) {
+			penStyleEl.addEventListener('change', (e) => {
+				shape.penStyle = e.target.value;
 				stage.render();
 			});
+		}
 
-			this.attachListener(`prop-${pt}y`, 'input', (value) => {
-				shape[pt].y = parseFloat(value);
-				shape.update();
-				data.rebuildPOIs();
-				data.recalculateIntersectionsForShape(shape);
-				stage.render();
-			});
-		});
+		// Schema-driven listeners
+		const schema = this.currentSchema;
+		if (!schema || !schema.sections) return;
+
+		for (const section of schema.sections) {
+			for (const field of section.fields) {
+				if (field.type === 'readonly') continue;
+
+				const el = document.getElementById(`prop-${field.key}`);
+				if (!el) continue;
+
+				const eventType = field.type === 'select' ? 'change' : 'input';
+				el.addEventListener(eventType, (e) => {
+					this.setFieldValue(field, shape, e.target.value);
+					this.updateFieldValues(shape);
+				});
+
+				// Handle arrow keys manually for number fields
+				if (field.type === 'number' && field.step !== undefined) {
+					el.addEventListener('keydown', (e) => {
+						if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+							e.preventDefault();
+							e.stopPropagation();
+
+							const currentValue = parseFloat(el.value) || 0;
+							const delta = e.key === 'ArrowUp' ? field.step : -field.step;
+							let newValue = currentValue + delta;
+
+							// Apply min/max constraints
+							if (field.min !== undefined && newValue < field.min) newValue = field.min;
+							if (field.max !== undefined && newValue > field.max) newValue = field.max;
+
+							// Update input directly to prevent input event from overwriting
+							const displayValue = field.precision !== undefined
+								? newValue.toFixed(field.precision)
+								: newValue;
+							el.value = displayValue;
+
+							this.setFieldValue(field, shape, newValue);
+							this.updateFieldValues(shape);
+						}
+					});
+				}
+			}
+		}
 	}
 
 	// Update displayed values (when shape changes externally)
 	updateFieldValues(shape) {
 		if (!shape) return;
 
-		// Only update computed/derived values to avoid cursor jumping in active input
+		const schema = this.currentSchema;
+		if (!schema || !schema.sections) return;
+
 		const activeId = document.activeElement?.id;
 
-		switch (shape.geometry) {
-			case Shape.LINE:
-				if (activeId !== 'prop-length') {
-					this.setFieldValue('prop-length', shape.length().toFixed(2));
-				}
-				this.setTextValue('.inspector-value', `${shape.getAngleDeg().toFixed(1)}°`);
-				break;
+		for (const section of schema.sections) {
+			for (const field of section.fields) {
+				const elementId = `prop-${field.key}`;
 
-			case Shape.CIRCLE:
-				if (activeId !== 'prop-diameter') {
-					this.setFieldValue('prop-diameter', (shape.radius * 2).toFixed(2));
-				}
-				if (activeId !== 'prop-radius') {
-					this.setFieldValue('prop-radius', shape.radius.toFixed(2));
-				}
-				break;
+				// Skip if this field is currently being edited
+				if (activeId === elementId) continue;
 
-			case Shape.TANGENT_ARC:
-				// Update computed radius display
-				const radiusEl = this.container.querySelector('.inspector-value');
-				if (radiusEl) radiusEl.textContent = shape.radius.toFixed(2);
-				break;
+				const value = this.getFieldValue(field, shape);
+				const displayValue = field.precision !== undefined && value !== null && value !== undefined
+					? Number(value).toFixed(field.precision)
+					: value;
+
+				if (field.type === 'readonly') {
+					const el = this.container.querySelector(`[data-field="${field.key}"]`);
+					if (el) {
+						const suffix = field.suffix || '';
+						el.textContent = `${displayValue}${suffix}`;
+					}
+				} else {
+					const el = document.getElementById(elementId);
+					if (el) {
+						el.value = displayValue;
+					}
+				}
+			}
 		}
-	}
-
-	setFieldValue(id, value) {
-		const el = document.getElementById(id);
-		if (el && document.activeElement !== el) {
-			el.value = value;
-		}
-	}
-
-	setTextValue(selector, value) {
-		const el = this.container.querySelector(selector);
-		if (el) el.textContent = value;
 	}
 }
 

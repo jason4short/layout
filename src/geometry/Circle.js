@@ -92,6 +92,51 @@ export class Circle extends Geometry
 		return CircleUtils.circumference(this.radius);
 	}
 
+	getInspectorSchema() {
+		return {
+			name: 'Circle',
+			sections: [
+				{
+					title: 'Dimensions',
+					fields: [
+						{
+							key: 'radius',
+							label: 'Radius',
+							type: 'number',
+							precision: 2,
+							step: 1,
+							min: 0.1
+						},
+						{
+							key: 'diameter',
+							label: 'Diameter',
+							type: 'number',
+							get: () => this.radius * 2,
+							set: (v) => { this.radius = v / 2; },
+							precision: 2,
+							step: 1,
+							min: 0.1
+						},
+						{
+							key: 'circumference',
+							label: 'Circumference',
+							type: 'readonly',
+							get: () => this.length(),
+							precision: 2
+						}
+					]
+				},
+				{
+					title: 'Center',
+					fields: [
+						{ key: 'x', label: 'X', type: 'number', precision: 2, step: 1 },
+						{ key: 'y', label: 'Y', type: 'number', precision: 2, step: 1 }
+					]
+				}
+			]
+		};
+	}
+
 	// Get tangent angle (in degrees) at a point on the circle
 	// Tangent is perpendicular to the radius at that point
 	getTangentAngle(point) {

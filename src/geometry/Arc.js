@@ -141,6 +141,66 @@ export class Arc extends Circle
 		return CircleUtils.arcLength(this.radius, this.startAngle, this.endAngle);
 	}
 
+	getInspectorSchema() {
+		return {
+			name: 'Arc',
+			sections: [
+				{
+					title: 'Dimensions',
+					fields: [
+						{
+							key: 'radius',
+							label: 'Radius',
+							type: 'number',
+							precision: 2,
+							step: 1,
+							min: 0.1
+						},
+						{
+							key: 'arcLength',
+							label: 'Arc Length',
+							type: 'readonly',
+							get: () => this.length(),
+							precision: 2
+						}
+					]
+				},
+				{
+					title: 'Angles',
+					fields: [
+						{
+							key: 'startAngleDeg',
+							label: 'Start',
+							type: 'number',
+							get: () => this.startAngle * 180 / Math.PI,
+							set: (v) => { this.startAngle = v * Math.PI / 180; },
+							precision: 1,
+							step: 1,
+							suffix: '°'
+						},
+						{
+							key: 'endAngleDeg',
+							label: 'End',
+							type: 'number',
+							get: () => this.endAngle * 180 / Math.PI,
+							set: (v) => { this.endAngle = v * Math.PI / 180; },
+							precision: 1,
+							step: 1,
+							suffix: '°'
+						}
+					]
+				},
+				{
+					title: 'Center',
+					fields: [
+						{ key: 'x', label: 'X', type: 'number', precision: 2, step: 1 },
+						{ key: 'y', label: 'Y', type: 'number', precision: 2, step: 1 }
+					]
+				}
+			]
+		};
+	}
+
 	// Static factory: Calculate arc parameters from 3 points
 	static calculateArcFrom3Points(p1, p2, p3) {
 		return CircleUtils.calculateArcFrom3Points(p1, p2, p3);

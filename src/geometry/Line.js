@@ -100,6 +100,51 @@ export class Line extends Geometry
 		return this.tangent;
 	}
 
+	getInspectorSchema() {
+		return {
+			name: 'Line',
+			sections: [
+				{
+					title: 'Dimensions',
+					fields: [
+						{
+							key: 'length',
+							label: 'Length',
+							type: 'number',
+							get: () => this.length(),
+							set: (v) => this.scaleToDim(v),
+							precision: 2,
+							step: 1,
+							min: 0.1
+						},
+						{
+							key: 'angle',
+							label: 'Angle',
+							type: 'readonly',
+							get: () => this.getAngleDeg(),
+							precision: 1,
+							suffix: '°'
+						}
+					]
+				},
+				{
+					title: 'Start Point',
+					fields: [
+						{ key: 'start.x', label: 'X', type: 'number', precision: 2, step: 1 },
+						{ key: 'start.y', label: 'Y', type: 'number', precision: 2, step: 1 }
+					]
+				},
+				{
+					title: 'End Point',
+					fields: [
+						{ key: 'end.x', label: 'X', type: 'number', precision: 2, step: 1 },
+						{ key: 'end.y', label: 'Y', type: 'number', precision: 2, step: 1 }
+					]
+				}
+			]
+		};
+	}
+
 	getGeoSnap(mouse, mouseRect, pixelTolerance)
 	{
 		// Quick reject

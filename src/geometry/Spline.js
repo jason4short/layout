@@ -237,6 +237,54 @@ export class Spline extends Geometry
 		this.update();
 	}
 
+	getInspectorSchema() {
+		return {
+			name: 'Spline',
+			sections: [
+				{
+					title: 'Dimensions',
+					fields: [
+						{
+							key: 'arcLength',
+							label: 'Length',
+							type: 'readonly',
+							get: () => this.length(),
+							precision: 2
+						}
+					]
+				},
+				{
+					title: 'Start Point (P0)',
+					fields: [
+						{ key: 'p0.x', label: 'X', type: 'number', precision: 2, step: 1 },
+						{ key: 'p0.y', label: 'Y', type: 'number', precision: 2, step: 1 }
+					]
+				},
+				{
+					title: 'Handle 1 (P1)',
+					fields: [
+						{ key: 'p1.x', label: 'X', type: 'number', precision: 2, step: 1 },
+						{ key: 'p1.y', label: 'Y', type: 'number', precision: 2, step: 1 }
+					]
+				},
+				{
+					title: 'Handle 2 (P2)',
+					fields: [
+						{ key: 'p2.x', label: 'X', type: 'number', precision: 2, step: 1 },
+						{ key: 'p2.y', label: 'Y', type: 'number', precision: 2, step: 1 }
+					]
+				},
+				{
+					title: 'End Point (P3)',
+					fields: [
+						{ key: 'p3.x', label: 'X', type: 'number', precision: 2, step: 1 },
+						{ key: 'p3.y', label: 'Y', type: 'number', precision: 2, step: 1 }
+					]
+				}
+			]
+		};
+	}
+
 	// Update a specific control point by index
 	// POI indices: 0=p0, 1=p1, 2=p2, 3=p3
 	updateControlPoint(index, newX, newY){
