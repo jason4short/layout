@@ -517,6 +517,8 @@ class Data
 				return [0, 1, 2]; // start, end, and offset/text position
 			case Shape.TEXT:
 				return [0]; // anchor point only - corners are for resizing
+			case Shape.PAPER:
+				return [4]; // center only - corners are for resizing
 			default:
 				return [];
 		}
@@ -795,11 +797,12 @@ class Data
 	}
 
 	// Array of all geometry to render
-	// Images render first (behind everything else)
+	// Paper renders first (background), then images, then other shapes
 	getShapesToRender(){
+		const papers = this.shapes.filter(s => s.geometry === Shape.PAPER);
 		const images = this.shapes.filter(s => s.geometry === Shape.IMAGE);
-		const nonImages = this.shapes.filter(s => s.geometry !== Shape.IMAGE);
-		return [...images, ...nonImages, ...this.constructions, ...this.guides, ...this.shapePreviews /*, this.shapePreview*/].filter(Boolean);
+		const other = this.shapes.filter(s => s.geometry !== Shape.IMAGE && s.geometry !== Shape.PAPER);
+		return [...papers, ...images, ...other, ...this.constructions, ...this.guides, ...this.shapePreviews].filter(Boolean);
 	}
 
 	// Array of all intersection points we could snap to

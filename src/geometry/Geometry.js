@@ -15,6 +15,7 @@ export const Shape = Object.freeze({
 	IMAGE: "image",
 	DIMENSION: "dimension",
 	TEXT: "text",
+	PAPER: "paper",
 
 	/*types*/
 	CONSTRUCTION: "construction",

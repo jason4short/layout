@@ -80,10 +80,11 @@ export class PointerTool extends Tool
 		stage.renderer.marqueeRect 	= null;
 		this.originalPositions 		= [];
 		this.clonedShapes 			= [];
+		this.cornerResize 			= null;
 
 		data.clearExcludeFromSnap();
 		data.resetSnaps();
-		data.clearGuides();		
+		data.clearGuides();
 	}
 
 
@@ -143,6 +144,21 @@ export class PointerTool extends Tool
 	// Store original positions of all selected items
 	storeOriginalPositions(){
 		this.originalPositions = [];
+
+		// If corner resize, only store that corner
+		if(this.cornerResize){
+			const pois = this.cornerResize.shape.getSnapPOIs();
+			const poi = pois[this.cornerResize.cornerIndex];
+			if(poi){
+				this.originalPositions.push({
+					x: poi.x,
+					y: poi.y,
+					shape: this.cornerResize.shape,
+					index: this.cornerResize.cornerIndex
+				});
+			}
+			return;
+		}
 
 		// Store positions for whole-shape selections
 		for(const shape of data.getSelected()){
@@ -212,7 +228,29 @@ export class PointerTool extends Tool
 
 		// Check if clicking on something already selected
 		this.moveTarget = data.getTargetShape();
-		
+
+		// Check if clicking on a corner of Image for resizing
+		// Corners are POI indices 0-3, center is 4
+		// Note: Paper no longer supports corner resize - use Scale property instead
+		if(this.moveTarget &&
+		   this.moveTarget.geometry === Shape.IMAGE &&
+		   data.snapPoint.poiIndex !== undefined &&
+		   data.snapPoint.poiIndex >= 0 &&
+		   data.snapPoint.poiIndex <= 3) {
+			// Clicked on a corner - set up for corner resize
+			this.cornerResize = {
+				shape: this.moveTarget,
+				cornerIndex: data.snapPoint.poiIndex
+			};
+			// Select the shape for corner resize
+			if(!this.moveTarget.selected){
+				data.selectNone();
+				this.moveTarget.selected = true;
+			}
+		} else {
+			this.cornerResize = null;
+		}
+
 		// create a guide reference from initial point
 		if(this.moveTarget)
 			draftingAssistant.setCurrentSnapPoint(data.snapPoint, true);
@@ -239,8 +277,8 @@ export class PointerTool extends Tool
 				const snap = draftingAssistant.getCurrentSnapPoint();
 				this.moveStart = {x: snap.x, y: snap.y};
 
-				// Option+drag = clone shapes
-				if(stage.optionKey){
+				// Option+drag = clone shapes (but not for corner resize)
+				if(stage.optionKey && !this.cornerResize){
 					this.cloneSelectedShapes();
 				}
 

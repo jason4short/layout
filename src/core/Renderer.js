@@ -135,7 +135,26 @@ export class Renderer
 			ctx.beginPath();
 			this.applyPenStyle(ctx, shape);
 
-			if(shape.geometry === Shape.LINE){
+			if(shape.geometry === Shape.PAPER){
+				// Scale factor: 50% scale means paper displays 2x size (inverse)
+				const displayScale = 100 / (shape.scale || 100);
+				const displayWidth = shape.width * displayScale;
+				const displayHeight = shape.height * displayScale;
+
+				const topLeft = this.toScreen(shape.x, shape.y);
+				const width = this.toScreenScale(displayWidth);
+				const height = this.toScreenScale(displayHeight);
+
+				// White fill
+				//ctx.fillStyle = '#FFFFFF';
+				//ctx.fillRect(topLeft.x, topLeft.y, width, height);
+
+				// Border
+				ctx.strokeStyle = shape.selected ? '#2563eb' : '#CCCCCC';
+				ctx.lineWidth 	= shape.selected ? 1 : .5;
+				ctx.strokeRect(topLeft.x, topLeft.y, width, height);
+
+			} else if(shape.geometry === Shape.LINE){
 				let start 	= this.toScreen(shape.start.x, shape.start.y);
 				let end 	= this.toScreen(shape.end.x, shape.end.y);
 

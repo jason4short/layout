@@ -1,0 +1,131 @@
+import { Tool } from './Tool.js';
+import { Shape } from '../geometry/Geometry.js';
+import { Paper, PaperSizes } from '../geometry/Paper.js';
+
+import stage from '../core/Stage.js';
+import data from '../data/Data.js';
+import undoManager from '../core/UndoManager.js';
+import { AddShapeCommand, MoveCommand } from '../core/Commands.js';
+
+export class PaperTool extends Tool
+{
+	constructor()
+	{
+		super();
+		this.name = "Paper";
+		this.usage = "Click to place paper. Drag to position. Click again to reposition.";
+
+		this.generateGuides = false;
+
+		// Default paper size
+		this.defaultSize = 'LETTER';
+
+		// Drag state
+		this.isDragging = false;
+		this.paper = null;
+		this.isNewPaper = false;
+		this.startPos = null; // Original position for undo
+
+		this.onMouseDown = this.onMouseDown.bind(this);
+		this.onMouseMove = this.onMouseMove.bind(this);
+		this.onMouseUp = this.onMouseUp.bind(this);
+	}
+
+	begin() {
+		this.reset();
+	}
+
+	exit() {
+		this.reset();
+	}
+
+	updateCursor() {
+		stage.setCursor('crosshair');
+	}
+
+	reset() {
+		this.isDragging = false;
+		this.paper = null;
+		this.isNewPaper = false;
+		this.startPos = null;
+		data.clearTempShapes();
+	}
+
+	onMouseDown(e) {
+		data.resetSnaps();
+
+		// Check if paper already exists
+		const existingPaper = data.shapes.find(s => s.geometry === Shape.PAPER);
+
+		if (existingPaper) {
+			// Move existing paper to new position
+			this.paper = existingPaper;
+			this.isNewPaper = false;
+			this.startPos = { x: existingPaper.x, y: existingPaper.y };
+
+			// Move paper so click point becomes top-left
+			this.paper.x = data.snapPoint.x;
+			this.paper.y = data.snapPoint.y;
+			this.paper.update();
+
+			data.selectNone();
+			this.paper.selected = true;
+		} else {
+			// Create new paper
+			const size = PaperSizes[this.defaultSize];
+			this.paper = new Paper([
+				data.snapPoint.x,
+				data.snapPoint.y,
+				size.width,
+				size.height,
+				this.defaultSize.toLowerCase()
+			]);
+			this.isNewPaper = true;
+			this.startPos = null;
+
+			// Add as temp shape while dragging
+			data.addTempShape(this.paper);
+			this.paper.selected = true;
+		}
+
+		this.isDragging = true;
+		stage.render();
+	}
+
+	onMouseMove(e) {
+		if (!this.isDragging || !this.paper) return;
+
+		// Update paper position to follow mouse (top-left at cursor)
+		this.paper.x = data.snapPoint.x;
+		this.paper.y = data.snapPoint.y;
+		this.paper.update();
+
+		stage.render();
+	}
+
+	onMouseUp(e) {
+		if (!this.isDragging || !this.paper) return;
+
+		if (this.isNewPaper) {
+			// Remove from temp and add permanently
+			data.clearTempShapes();
+			undoManager.execute(new AddShapeCommand(this.paper));
+			this.paper.selected = true;
+		} else {
+			// Record move for undo
+			const moveData = [{
+				shape: this.paper,
+				index: 4, // center point
+				oldX: this.startPos.x + this.paper.width / 2,
+				oldY: this.startPos.y + this.paper.height / 2,
+				newX: this.paper.x + this.paper.width / 2,
+				newY: this.paper.y + this.paper.height / 2
+			}];
+			undoManager.record(new MoveCommand(moveData));
+			data.rebuildPOIs();
+		}
+
+		this.isDragging = false;
+		stage.render();
+	}
+}

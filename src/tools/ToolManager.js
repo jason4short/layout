@@ -28,6 +28,7 @@ import { RotateTool } 					from "./RotateTool.js";
 import { ImageTool } 					from "./ImageTool.js";
 import { DimensionTool } 				from "./DimensionTool.js";
 import { TextTool } 					from "./TextTool.js";
+import { PaperTool } 					from "./PaperTool.js";
 
 
 
@@ -72,6 +73,7 @@ class ToolManager extends EventDispatcher
 		this.imageTool					= new ImageTool();
 		this.dimensionTool				= new DimensionTool();
 		this.textTool					= new TextTool();
+		this.paperTool					= new PaperTool();
 
 		// Tool palette configuration: [tool, displayName, shortcut, icon]
 		this.toolPaletteConfig = [
@@ -101,6 +103,8 @@ class ToolManager extends EventDispatcher
 			{ category: 'Annotate' },
 			{ tool: this.dimensionTool, 			name: 'Dimension', shortcut: 'D', icon: 'dimension' },
 			{ tool: this.textTool, 					name: 'Text', shortcut: 'N', icon: 'text' },
+			{ category: 'Layout' },
+			{ tool: this.paperTool, 				name: 'Paper', shortcut: 'O', icon: 'paper' },
 		];
 
 		return ToolManager.instance;
