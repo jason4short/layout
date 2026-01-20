@@ -448,6 +448,45 @@ export class Renderer
 			}
 		}
 
+		// Draw symbol selection boxes and unlinked placeholders
+		if (data._symbolInstances) {
+			for (const symbol of data._symbolInstances) {
+				if (!symbol.definition) {
+					// Draw placeholder for unlinked symbol
+					const screenPos = this.toScreen(symbol.x, symbol.y);
+					ctx.strokeStyle = '#FF0000';
+					ctx.lineWidth = 1;
+					ctx.setLineDash([]);
+					ctx.strokeRect(screenPos.x - 10, screenPos.y - 10, 20, 20);
+					ctx.beginPath();
+					ctx.moveTo(screenPos.x - 10, screenPos.y - 10);
+					ctx.lineTo(screenPos.x + 10, screenPos.y + 10);
+					ctx.moveTo(screenPos.x + 10, screenPos.y - 10);
+					ctx.lineTo(screenPos.x - 10, screenPos.y + 10);
+					ctx.stroke();
+				} else if (symbol.selected) {
+					// Draw selection bounding box
+					const b = symbol.bounds;
+					const tl = this.toScreen(b.x, b.y);
+					const w = this.toScreenScale(b.width);
+					const h = this.toScreenScale(b.height);
+
+					ctx.strokeStyle = '#2563eb';
+					ctx.lineWidth = 1;
+					ctx.setLineDash([4, 4]);
+					ctx.strokeRect(tl.x, tl.y, w, h);
+					ctx.setLineDash([]);
+
+					// Draw anchor point
+					const anchorScreen = this.toScreen(symbol.x, symbol.y);
+					ctx.fillStyle = '#2563eb';
+					ctx.beginPath();
+					ctx.arc(anchorScreen.x, anchorScreen.y, 4, 0, Math.PI * 2);
+					ctx.fill();
+				}
+			}
+		}
+
 /* debugging - disabled for performance
 		// Draw snap point indicators
 		for(const intersection of data.getIntersectionCandidates())

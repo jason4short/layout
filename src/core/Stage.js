@@ -498,6 +498,40 @@ class Stage extends View
 		this.render();
 	}
 
+	// Zoom to fit all shapes (or selected shapes) in viewport
+	zoomToFit(selectedOnly = false) {
+		const shapes = selectedOnly ? data.getSelected() : data.shapes;
+		if (shapes.length === 0) return;
+
+		// Calculate combined bounding box
+		let minX = Infinity, minY = Infinity;
+		let maxX = -Infinity, maxY = -Infinity;
+
+		for (const shape of shapes) {
+			if (shape.bounds) {
+				minX = Math.min(minX, shape.bounds.x);
+				minY = Math.min(minY, shape.bounds.y);
+				maxX = Math.max(maxX, shape.bounds.x + shape.bounds.width);
+				maxY = Math.max(maxY, shape.bounds.y + shape.bounds.height);
+			}
+		}
+
+		if (minX === Infinity) return; // No valid bounds
+
+		const rect = {
+			x: minX,
+			y: minY,
+			width: maxX - minX,
+			height: maxY - minY
+		};
+
+		// Ensure minimum size
+		if (rect.width < 10) rect.width = 10;
+		if (rect.height < 10) rect.height = 10;
+
+		this.zoomToRect(rect);
+	}
+
 	// Convert world coordinates to screen coordinates
 	worldToScreen(worldX, worldY) {
 		return {

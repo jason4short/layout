@@ -221,6 +221,12 @@ class Inspector {
 			</div>`;
 		}
 
+		if (field.type === 'button') {
+			return `<div class="inspector-row inspector-button-row">
+				<button id="prop-${field.key}" class="inspector-button">${field.label}</button>
+			</div>`;
+		}
+
 		return '';
 	}
 
@@ -278,6 +284,15 @@ class Inspector {
 
 				const el = document.getElementById(`prop-${field.key}`);
 				if (!el) continue;
+
+				// Handle button clicks
+				if (field.type === 'button' && field.action) {
+					el.addEventListener('click', () => {
+						field.action.call(shape, shape);
+						this.update(); // Refresh inspector after action
+					});
+					continue;
+				}
 
 				const eventType = field.type === 'select' ? 'change' : 'input';
 				el.addEventListener(eventType, (e) => {

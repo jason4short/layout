@@ -1,6 +1,7 @@
 import data from '../data/Data.js';
 import stage from './Stage.js';
 import undoManager from './UndoManager.js';
+import symbolLibrary from './SymbolLibrary.js';
 
 import {Shape} 				from '../geometry/Geometry.js';
 import {Line} 				from '../geometry/Line.js';
@@ -14,6 +15,7 @@ import {Image} 				from '../geometry/Image.js';
 import {Dimension} 			from '../geometry/Dimension.js';
 import {Text} 				from '../geometry/Text.js';
 import {Paper} 				from '../geometry/Paper.js';
+import {SymbolInstance} 	from '../geometry/Symbol.js';
 
 import {Construction} from '../geometry/Construction.js';
 
@@ -27,6 +29,11 @@ class FileManager
 
 		this.currentFileName = null;
 		this.fileVersion = '1.0';
+
+		// Initialize symbol library with shape factory (deferred to avoid circular dep issues)
+		setTimeout(() => {
+			symbolLibrary.setShapeFactory((shapeData) => this.createShapeFromJSON(shapeData));
+		}, 0);
 
 		return FileManager.instance;
 	}
@@ -48,6 +55,21 @@ class FileManager
 			groups.push({ id: group.id, parentId: group.parentId });
 		}
 
+		// Collect symbol definitions used by symbol instances in this document
+		const usedDefinitionIds = new Set();
+		for(const shape of data.shapes){
+			if(shape.geometry === Shape.SYMBOL && shape.definitionId){
+				usedDefinitionIds.add(shape.definitionId);
+			}
+		}
+		const symbolDefinitions = [];
+		for(const id of usedDefinitionIds){
+			const def = symbolLibrary.getDefinition(id);
+			if(def){
+				symbolDefinitions.push(def.toJSON());
+			}
+		}
+
 		return {
 			version: this.fileVersion,
 			viewport: {
@@ -57,7 +79,8 @@ class FileManager
 			},
 			shapes: shapes,
 			constructions: constructions,
-			groups: groups
+			groups: groups,
+			symbolDefinitions: symbolDefinitions
 		};
 	}
 
@@ -119,6 +142,20 @@ class FileManager
 			}
 		}
 
+		// Load symbol definitions embedded in the file
+		if(json.symbolDefinitions){
+			for(const defData of json.symbolDefinitions){
+				symbolLibrary.importDefinition(defData);
+			}
+		}
+
+		// Link symbol instances to their definitions
+		for(const shape of data.shapes){
+			if(shape.geometry === Shape.SYMBOL){
+				symbolLibrary.linkInstance(shape);
+			}
+		}
+
 		stage.render();
 	}
 
@@ -148,6 +185,8 @@ class FileManager
 				return Text.fromJSON(shapeData);
 			case Shape.PAPER:
 				return Paper.fromJSON(shapeData);
+			case Shape.SYMBOL:
+				return SymbolInstance.fromJSON(shapeData);
 			default:
 				console.warn('Unknown geometry type:', shapeData.geometry);
 				return null;

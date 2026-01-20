@@ -519,6 +519,8 @@ class Data
 				return [0]; // anchor point only - corners are for resizing
 			case Shape.PAPER:
 				return [4]; // center only - corners are for resizing
+			case Shape.SYMBOL:
+				return [4]; // anchor point
 			default:
 				return [];
 		}
@@ -799,9 +801,29 @@ class Data
 	// Array of all geometry to render
 	// Paper renders first (background), then images, then other shapes
 	getShapesToRender(){
-		const papers = this.shapes.filter(s => s.geometry === Shape.PAPER);
-		const images = this.shapes.filter(s => s.geometry === Shape.IMAGE);
-		const other = this.shapes.filter(s => s.geometry !== Shape.IMAGE && s.geometry !== Shape.PAPER);
+		const papers = [];
+		const images = [];
+		const symbols = [];  // Keep track of symbol instances for selection boxes
+		const other = [];
+
+		for (const s of this.shapes) {
+			if (s.geometry === Shape.PAPER) {
+				papers.push(s);
+			} else if (s.geometry === Shape.IMAGE) {
+				images.push(s);
+			} else if (s.geometry === Shape.SYMBOL) {
+				// Expand symbol into its transformed shapes
+				symbols.push(s);
+				const symbolShapes = s.getShapesForRender();
+				other.push(...symbolShapes);
+			} else {
+				other.push(s);
+			}
+		}
+
+		// Store symbols for selection box rendering (accessed by renderer)
+		this._symbolInstances = symbols;
+
 		return [...papers, ...images, ...other, ...this.constructions, ...this.guides, ...this.shapePreviews].filter(Boolean);
 	}
 
