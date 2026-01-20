@@ -2,7 +2,7 @@ import stage 							from '../core/Stage.js';
 import data 							from '../data/Data.js';
 import undoManager						from '../core/UndoManager.js';
 import fileManager						from '../core/FileManager.js';
-import { AddShapesCommand, GroupCommand, UngroupCommand }	from '../core/Commands.js';
+import { AddShapesCommand, GroupCommand, UngroupCommand, MoveCommand }	from '../core/Commands.js';
 
 import { EventDispatcher } 				from '../core/EventDispatcher.js';
 
@@ -498,7 +498,64 @@ class ToolManager extends EventDispatcher
 				// Toggle performance monitor
 				stage.togglePerfMonitor();
 				break;
+
+			case 'ArrowUp':
+			case 'ArrowDown':
+			case 'ArrowLeft':
+			case 'ArrowRight':
+				this.nudgeSelection(e.key, stage.shiftKey);
+				e.preventDefault();
+				break;
 		}
+	}
+
+	// Nudge selected shapes by arrow keys
+	nudgeSelection(key, shift) {
+		const selected = data.getSelected();
+		if (selected.length === 0) return;
+
+		const amount = shift ? 10 : 1;
+		let dx = 0, dy = 0;
+
+		switch (key) {
+			case 'ArrowUp':    dy = -amount; break;
+			case 'ArrowDown':  dy = amount;  break;
+			case 'ArrowLeft':  dx = -amount; break;
+			case 'ArrowRight': dx = amount;  break;
+		}
+
+		// Build move data for undo
+		const moveData = [];
+		for (const shape of selected) {
+			const pois = shape.getSnapPOIs();
+			const selectableIndices = data.getSelectableIndices(shape);
+			for (const index of selectableIndices) {
+				const poi = pois[index];
+				if (poi) {
+					moveData.push({
+						shape,
+						index,
+						oldX: poi.x,
+						oldY: poi.y,
+						newX: poi.x + dx,
+						newY: poi.y + dy
+					});
+				}
+			}
+		}
+
+		// Apply the move
+		for (const shape of selected) {
+			shape.translate(dx, dy);
+		}
+
+		data.rebuildPOIs();
+		data.recalculateIntersectionsForShapes(selected);
+
+		// Record for undo
+		undoManager.record(new MoveCommand(moveData));
+
+		stage.render();
 	}
 	
 	
