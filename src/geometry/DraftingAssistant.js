@@ -134,8 +134,9 @@ class DraftingAssistant
 				break;
 
 			case Shape.CIRCLE:
-				// Circle POIs: 0=center, 1-4=quadrants
+				// Circle POIs: 0=center, 1=radius control, 2-5=quadrants
 				if(poiIndex === 0) return SnapType.CENTER;
+				if(poiIndex === 1) return SnapType.RADIUS;
 				return SnapType.QUADRANT;
 
 			case Shape.ARC:

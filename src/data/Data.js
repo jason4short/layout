@@ -500,7 +500,7 @@ class Data
 			case Shape.LINE:
 				return [0, 1]; // start, end (not midpoint at index 2)
 			case Shape.CIRCLE:
-				return [0]; // center only (not quadrants at 1-4)
+				return [0, 1]; // center + right quadrant for resizing
 			case Shape.ARC:
 				return [0, 1, 2]; // center, start, end (not midpoint at index 3)
 			case Shape.TANGENT_ARC:

@@ -31,6 +31,7 @@ export const SnapType = Object.freeze({
 	MIDPOINT: "midpoint",
 	CENTER: "center",
 	QUADRANT: "quadrant",
+	RADIUS: "radius",
 	ON: "on",
 	INTERSECT: "intersect",
 	ALIGN_X: "align:x",

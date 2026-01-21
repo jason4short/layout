@@ -15,6 +15,7 @@ export class Circle extends Geometry
 		this.x 				= params[0];
 		this.y 				= params[1];
 		this.radius 		= params[2];
+		this.radiusAngle	= params[3] !== undefined ? params[3] : 0; // Angle of radius control point (radians)
 		this.update();
 	}
 
@@ -28,9 +29,10 @@ export class Circle extends Geometry
 	}
 
 	clone(){
-		const c 	= new Circle([this.x, this.y, this.radius]);
+		const c 	= new Circle([this.x, this.y, this.radius, this.radiusAngle]);
 		c.type 		= this.type;
 		c.groupId	= this.groupId;
+		c.penStyle	= this.penStyle;
 		return c;
 	}
 
@@ -38,6 +40,7 @@ export class Circle extends Geometry
 		this.x = other.x;
 		this.y = other.y;
 		this.radius = other.radius;
+		this.radiusAngle = other.radiusAngle;
 		this.type = other.type;
 		this.geometry = other.geometry;
 		this.penStyle = other.penStyle;
@@ -45,13 +48,19 @@ export class Circle extends Geometry
 	}
 
 	getSnapPOIs() {
+		// POI 0 = center
+		// POI 1 = radius control point at stored angle (selectable)
+		// POI 2-5 = quadrant points for snapping (right, left, bottom, top)
 		return [
 			{ x: this.x, y: this.y },
-			{ x: this.x + this.radius, y: this.y },
-			{ x: this.x - this.radius, y: this.y },
-			{ x: this.x, y: this.y + this.radius},
-			{ x: this.x, y: this.y - this.radius}
-
+			{
+				x: this.x + Math.cos(this.radiusAngle) * this.radius,
+				y: this.y + Math.sin(this.radiusAngle) * this.radius
+			},
+			{ x: this.x + this.radius, y: this.y },      // right
+			{ x: this.x - this.radius, y: this.y },      // left
+			{ x: this.x, y: this.y + this.radius },      // bottom
+			{ x: this.x, y: this.y - this.radius }       // top
 		];
 	}
 
@@ -174,7 +183,8 @@ export class Circle extends Geometry
 		const rotated = TransformUtils.rotatePoint(this.x, this.y, anchorX, anchorY, angleRad);
 		this.x = rotated.x;
 		this.y = rotated.y;
-		// radius stays the same
+		// Rotate the radius control point angle too
+		this.radiusAngle += angleRad;
 		this.update();
 	}
 
@@ -183,24 +193,23 @@ export class Circle extends Geometry
 		const mirrored = TransformUtils.mirrorPoint(this.x, this.y, x1, y1, x2, y2);
 		this.x = mirrored.x;
 		this.y = mirrored.y;
-		// radius stays the same
+		// Mirror the radius angle across the mirror line
+		const lineAngle = Math.atan2(y2 - y1, x2 - x1);
+		this.radiusAngle = 2 * lineAngle - this.radiusAngle;
 		this.update();
 	}
 
 	// Update a specific control point by index
-	// POI indices: 0=center, 1=right, 2=left, 3=bottom, 4=top
+	// POI indices: 0=center, 1=radius control point
 	updateControlPoint(index, newX, newY){
 		switch(index){
 			case 0: // center - move the circle
 				this.x = newX;
 				this.y = newY;
 				break;
-			case 1: // right quadrant
-			case 2: // left quadrant
-			case 3: // bottom quadrant
-			case 4: // top quadrant
-				// Calculate new radius from center to new point
+			case 1: // radius control point - update radius and angle
 				this.radius = VectorUtils.distance({x: this.x, y: this.y}, {x: newX, y: newY});
+				this.radiusAngle = Math.atan2(newY - this.y, newX - this.x);
 				break;
 		}
 		this.update();
@@ -213,12 +222,13 @@ export class Circle extends Geometry
 			penStyle: this.penStyle,
 			x: this.x,
 			y: this.y,
-			radius: this.radius
+			radius: this.radius,
+			radiusAngle: this.radiusAngle
 		};
 	}
 
 	static fromJSON(data) {
-		const circle = new Circle([data.x, data.y, data.radius]);
+		const circle = new Circle([data.x, data.y, data.radius, data.radiusAngle || 0]);
 		circle.type = data.type;
 		if(data.penStyle) circle.penStyle = data.penStyle;
 		return circle;

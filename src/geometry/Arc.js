@@ -258,13 +258,21 @@ export class Arc extends Circle
 				this.x = newX;
 				this.y = newY;
 				break;
-			case 1: // start endpoint - change startAngle
+			case 1: // start endpoint - change startAngle and radius
 				this.startAngle = Math.atan2(newY - this.y, newX - this.x);
+				this.radius = Math.sqrt(
+					Math.pow(newX - this.x, 2) +
+					Math.pow(newY - this.y, 2)
+				);
 				break;
-			case 2: // end endpoint - change endAngle
+			case 2: // end endpoint - change endAngle and radius
 				this.endAngle = Math.atan2(newY - this.y, newX - this.x);
+				this.radius = Math.sqrt(
+					Math.pow(newX - this.x, 2) +
+					Math.pow(newY - this.y, 2)
+				);
 				break;
-			case 3: // midpoint - change radius
+			case 3: // midpoint - change radius only
 				this.radius = Math.sqrt(
 					Math.pow(newX - this.x, 2) +
 					Math.pow(newY - this.y, 2)

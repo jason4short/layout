@@ -85,6 +85,8 @@ export class CircleTool extends Tool
 		}
 		const currentPoint = da.getCurrentSnapPoint();
 		this.circle.radius = this.distanceBetweenPoints(this.circle, currentPoint);
+		// Update angle to current drag direction
+		this.circle.radiusAngle = Math.atan2(currentPoint.y - this.circle.y, currentPoint.x - this.circle.x);
 
 		stage.render();
 	}
@@ -94,9 +96,10 @@ export class CircleTool extends Tool
 		data.resetSnaps();
 		if(!this.circle) return;
 
-		// Update radius from current snap point before checking (like LineTool updates end point)
+		// Update radius and angle from current snap point
 		const currentPoint = da.getCurrentSnapPoint();
 		this.circle.radius = this.distanceBetweenPoints(this.circle, currentPoint);
+		this.circle.radiusAngle = Math.atan2(currentPoint.y - this.circle.y, currentPoint.x - this.circle.x);
 
 		// Check minimum radius in screen space for consistent UX at any zoom level
 		const screenRadius = stage.worldToScreenScale(this.circle.radius);
