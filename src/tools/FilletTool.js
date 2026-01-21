@@ -384,9 +384,20 @@ export class FilletTool extends Tool
 				}
 
 				// Score by distance from tangent points to click points
-				// This better reflects "is the fillet in the right corner"
-				const score = GeometryUtils.distance(tangentOnLine, lineClickPt) +
-							  GeometryUtils.distance(tangentOnArc, arcClickPt);
+				let score = GeometryUtils.distance(tangentOnLine, lineClickPt) +
+							GeometryUtils.distance(tangentOnArc, arcClickPt);
+
+				// Penalize if the fillet center is on the wrong side of the line relative to click
+				// (helps pick the correct corner when there are multiple candidates)
+				const lineDir = GeometryUtils.lineDirection(line);
+				const toClick = { x: lineClickPt.x - tangentOnLine.x, y: lineClickPt.y - tangentOnLine.y };
+				const toCenter = { x: center.x - tangentOnLine.x, y: center.y - tangentOnLine.y };
+				const crossClick = lineDir.x * toClick.y - lineDir.y * toClick.x;
+				const crossCenter = lineDir.x * toCenter.y - lineDir.y * toCenter.x;
+				// If click and fillet center are on opposite sides of the line, penalize
+				if (crossClick * crossCenter < 0) {
+					score += 1000;
+				}
 
 				if (score < bestScore) {
 					bestScore = score;

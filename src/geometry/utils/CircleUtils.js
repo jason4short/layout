@@ -180,18 +180,28 @@ export function trimArcKeepClickSide(arc, trimPoint, clickPt) {
 	const trimAngle = Math.atan2(trimPoint.y - arc.y, trimPoint.x - arc.x);
 	const clickAngle = Math.atan2(clickPt.y - arc.y, clickPt.x - arc.x);
 
-	const startPt = getPointAtAngle(arc.x, arc.y, arc.radius, arc.startAngle);
-	const endPt = getPointAtAngle(arc.x, arc.y, arc.radius, arc.endAngle);
+	// Compute parametric position along the arc (0 = start, 1 = end)
+	// This tells us where along the arc each point falls
+	const arcSweep = AngleUtils.getAngularSweep(arc.startAngle, arc.endAngle);
+	const normStart = AngleUtils.normalizeAngle(arc.startAngle);
 
-	// Project click onto arc perimeter for distance comparison
-	const projectedClick = getPointAtAngle(arc.x, arc.y, arc.radius, clickAngle);
+	// Where is the click along the arc? (as fraction 0-1)
+	let clickDelta = AngleUtils.normalizeAngle(clickAngle) - normStart;
+	if (clickDelta < 0) clickDelta += Math.PI * 2;
+	const clickT = clickDelta / arcSweep;
 
-	const distStartToClick = VectorUtils.distance(startPt, projectedClick);
-	const distEndToClick = VectorUtils.distance(endPt, projectedClick);
+	// Where is the trim point along the arc? (as fraction 0-1)
+	let trimDelta = AngleUtils.normalizeAngle(trimAngle) - normStart;
+	if (trimDelta < 0) trimDelta += Math.PI * 2;
+	const trimT = trimDelta / arcSweep;
 
-	if (distStartToClick < distEndToClick) {
+	// If click comes before trim along the arc, keep start→trim
+	// If click comes after trim along the arc, keep trim→end
+	if (clickT < trimT) {
+		// Click is in first portion (start → trim), keep it
 		arc.endAngle = trimAngle;
 	} else {
+		// Click is in second portion (trim → end), keep it
 		arc.startAngle = trimAngle;
 	}
 
