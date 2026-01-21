@@ -276,4 +276,14 @@ export class Ellipse extends Geometry
 		if(data.penStyle) ellipse.penStyle = data.penStyle;
 		return ellipse;
 	}
+
+	draw(ctx, renderer) {
+		const center = renderer.toScreen(this.x, this.y);
+		const radiusX = renderer.toScreenScale(this.radiusX);
+		const radiusY = renderer.toScreenScale(this.radiusY);
+
+		ctx.ellipse(center.x, center.y, radiusX, radiusY, this.rotation, 0, Math.PI * 2);
+		ctx.stroke();
+		renderer.resetPenStyle(ctx);
+	}
 }

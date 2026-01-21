@@ -206,4 +206,14 @@ export class EllipticalArc extends Ellipse
 
 		return ellipse;
 	}
+
+	draw(ctx, renderer) {
+		const center = renderer.toScreen(this.x, this.y);
+		const radiusX = renderer.toScreenScale(this.radiusX);
+		const radiusY = renderer.toScreenScale(this.radiusY);
+
+		ctx.ellipse(center.x, center.y, radiusX, radiusY, this.rotation, this.startAngle, this.endAngle);
+		ctx.stroke();
+		renderer.resetPenStyle(ctx);
+	}
 }

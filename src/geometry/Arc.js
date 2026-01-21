@@ -301,4 +301,25 @@ export class Arc extends Circle
 		if(data.penStyle) arc.penStyle = data.penStyle;
 		return arc;
 	}
+
+	draw(ctx, renderer) {
+		const center = renderer.toScreen(this.x, this.y);
+		const radius = renderer.toScreenScale(this.radius);
+
+		// Optimization: when radius is huge, clip to visible portion
+		if (radius > 2000) {
+			const visible = renderer.getVisibleArcAngles(center, radius);
+			if (visible) {
+				const clampedStart = Math.max(this.startAngle, visible.start);
+				const clampedEnd = Math.min(this.endAngle, visible.end);
+				if (clampedEnd > clampedStart) {
+					ctx.arc(center.x, center.y, radius, clampedStart, clampedEnd);
+				}
+			}
+		} else {
+			ctx.arc(center.x, center.y, radius, this.startAngle, this.endAngle);
+		}
+		ctx.stroke();
+		renderer.resetPenStyle(ctx);
+	}
 }

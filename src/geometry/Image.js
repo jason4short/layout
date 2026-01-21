@@ -2,6 +2,7 @@ import {Shape, Geometry} from './Geometry.js';
 import {Point} from './Point.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
+import stage from '../core/Stage.js';
 
 export class Image extends Geometry
 {
@@ -444,5 +445,100 @@ export class Image extends Geometry
 		}
 
 		return img;
+	}
+
+	draw(ctx, renderer) {
+		const topLeft = renderer.toScreen(this.x, this.y);
+		const width = renderer.toScreenScale(this.width);
+		const height = renderer.toScreenScale(this.height);
+
+		ctx.save();
+
+		// Apply opacity
+		if (this.opacity !== undefined && this.opacity < 1) {
+			ctx.globalAlpha = this.opacity;
+		}
+
+		// Draw the image if loaded
+		if (this.loaded && this.imageElement) {
+			const img = this.imageElement;
+			const needsTransform = this.rotation !== 0 || this.flipX || this.flipY;
+
+			if (needsTransform) {
+				const centerX = topLeft.x + width / 2;
+				const centerY = topLeft.y + height / 2;
+				ctx.translate(centerX, centerY);
+				if (this.rotation !== 0) ctx.rotate(this.rotation);
+				if (this.flipX || this.flipY) ctx.scale(this.flipX ? -1 : 1, this.flipY ? -1 : 1);
+				ctx.translate(-centerX, -centerY);
+				ctx.drawImage(img, topLeft.x, topLeft.y, width, height);
+			} else {
+				// Optimized partial draw for high zoom
+				const canvasW = stage.canvas.clientWidth;
+				const canvasH = stage.canvas.clientHeight;
+
+				const dstLeft = Math.max(0, topLeft.x);
+				const dstTop = Math.max(0, topLeft.y);
+				const dstRight = Math.min(canvasW, topLeft.x + width);
+				const dstBottom = Math.min(canvasH, topLeft.y + height);
+
+				if (dstRight > dstLeft && dstBottom > dstTop) {
+					const srcLeft = ((dstLeft - topLeft.x) / width) * img.naturalWidth;
+					const srcTop = ((dstTop - topLeft.y) / height) * img.naturalHeight;
+					const srcRight = ((dstRight - topLeft.x) / width) * img.naturalWidth;
+					const srcBottom = ((dstBottom - topLeft.y) / height) * img.naturalHeight;
+
+					ctx.drawImage(img,
+						srcLeft, srcTop, srcRight - srcLeft, srcBottom - srcTop,
+						dstLeft, dstTop, dstRight - dstLeft, dstBottom - dstTop
+					);
+				}
+			}
+		} else {
+			// Placeholder rectangle
+			ctx.fillStyle = this.error ? '#FFEEEE' : '#F0F0F0';
+			ctx.fillRect(topLeft.x, topLeft.y, width, height);
+
+			if (this.error) {
+				ctx.strokeStyle = '#CC0000';
+				ctx.lineWidth = 1;
+				ctx.beginPath();
+				ctx.moveTo(topLeft.x, topLeft.y);
+				ctx.lineTo(topLeft.x + width, topLeft.y + height);
+				ctx.moveTo(topLeft.x + width, topLeft.y);
+				ctx.lineTo(topLeft.x, topLeft.y + height);
+				ctx.stroke();
+			}
+		}
+
+		// Draw border
+		ctx.strokeStyle = this.selected ? '#FF0000' : (this.locked ? '#999999' : '#666666');
+		ctx.lineWidth = 0.5;
+		if (this.locked && !this.selected) {
+			ctx.setLineDash([4, 4]);
+		}
+		ctx.strokeRect(topLeft.x, topLeft.y, width, height);
+		ctx.setLineDash([]);
+
+		ctx.restore();
+	}
+
+	drawHandles(ctx, renderer) {
+		if (!this.selected || this.locked) return;
+
+		const handleRadius = 4;
+		ctx.lineWidth = 0.5;
+		ctx.strokeStyle = '#666666';
+		ctx.fillStyle = '#FFFFFF';
+
+		const pois = this.getSnapPOIs();
+		const corners = pois.slice(0, 4).map(p => renderer.toScreen(p.x, p.y));
+
+		for (const corner of corners) {
+			ctx.beginPath();
+			ctx.arc(corner.x, corner.y, handleRadius, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.stroke();
+		}
 	}
 }

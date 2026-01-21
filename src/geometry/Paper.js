@@ -282,4 +282,20 @@ export class Paper extends Geometry
 		if (data.penStyle) paper.penStyle = data.penStyle;
 		return paper;
 	}
+
+	draw(ctx, renderer) {
+		// Scale factor: 50% scale means paper displays 2x size (inverse)
+		const displayScale = 100 / (this.scale || 100);
+		const displayWidth = this.width * displayScale;
+		const displayHeight = this.height * displayScale;
+
+		const topLeft = renderer.toScreen(this.x, this.y);
+		const width = renderer.toScreenScale(displayWidth);
+		const height = renderer.toScreenScale(displayHeight);
+
+		// Border
+		ctx.strokeStyle = this.selected ? '#2563eb' : '#CCCCCC';
+		ctx.lineWidth = this.selected ? 1 : 0.5;
+		ctx.strokeRect(topLeft.x, topLeft.y, width, height);
+	}
 }

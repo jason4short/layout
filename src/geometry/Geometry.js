@@ -102,6 +102,43 @@ export class Geometry
 		};
 	}
 
+	/**
+	 * Draw this shape to the canvas context.
+	 * Override in subclasses to implement shape-specific rendering.
+	 * @param {CanvasRenderingContext2D} ctx - The canvas context
+	 * @param {Renderer} renderer - Renderer instance for coordinate conversion helpers
+	 */
+	draw(ctx, renderer) {
+		// Base implementation does nothing - subclasses override
+	}
+
+	/**
+	 * Draw control point handles when shape is selected.
+	 * Override in subclasses for custom handle rendering.
+	 * @param {CanvasRenderingContext2D} ctx - The canvas context
+	 * @param {Renderer} renderer - Renderer instance for coordinate conversion helpers
+	 */
+	drawHandles(ctx, renderer) {
+		// Default: draw circles at each snap POI
+		if (!this.selected && !this.showControlPoints) return;
+
+		const pois = this.getSnapPOIs();
+		const handleRadius = 4;
+
+		ctx.lineWidth = 0.5;
+		ctx.strokeStyle = '#666666';
+		ctx.fillStyle = '#FFFFFF';
+
+		for (const poi of pois) {
+			if (!poi) continue;
+			const pt = renderer.toScreen(poi.x, poi.y);
+			ctx.beginPath();
+			ctx.arc(pt.x, pt.y, handleRadius, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.stroke();
+		}
+	}
+
 	dotProduct(vectorA, vectorB)
 	{
 		return VectorUtils.dotProduct(vectorA, vectorB);

@@ -332,4 +332,50 @@ export class Spline extends Geometry
 		if(data.penStyle) spline.penStyle = data.penStyle;
 		return spline;
 	}
+
+	draw(ctx, renderer) {
+		const p0 = renderer.toScreen(this.p0.x, this.p0.y);
+		const p1 = renderer.toScreen(this.p1.x, this.p1.y);
+		const p2 = renderer.toScreen(this.p2.x, this.p2.y);
+		const p3 = renderer.toScreen(this.p3.x, this.p3.y);
+
+		ctx.moveTo(p0.x, p0.y);
+		ctx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+		ctx.stroke();
+		renderer.resetPenStyle(ctx);
+	}
+
+	drawHandles(ctx, renderer) {
+		if (!this.selected && !this.showControlPoints) return;
+
+		const p0 = renderer.toScreen(this.p0.x, this.p0.y);
+		const p1 = renderer.toScreen(this.p1.x, this.p1.y);
+		const p2 = renderer.toScreen(this.p2.x, this.p2.y);
+		const p3 = renderer.toScreen(this.p3.x, this.p3.y);
+		const handleRadius = 4;
+
+		// Draw control polygon (gray dashed lines)
+		ctx.beginPath();
+		ctx.strokeStyle = '#AAAAAA';
+		ctx.lineWidth = 0.5;
+		ctx.setLineDash([2, 2]);
+		ctx.moveTo(p0.x, p0.y);
+		ctx.lineTo(p1.x, p1.y);
+		ctx.lineTo(p2.x, p2.y);
+		ctx.lineTo(p3.x, p3.y);
+		ctx.stroke();
+		ctx.setLineDash([]);
+
+		// Draw control point handles
+		ctx.lineWidth = 0.5;
+		ctx.strokeStyle = '#666666';
+		ctx.fillStyle = '#FFFFFF';
+
+		for (const pt of [p0, p1, p2, p3]) {
+			ctx.beginPath();
+			ctx.arc(pt.x, pt.y, handleRadius, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.stroke();
+		}
+	}
 }

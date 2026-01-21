@@ -311,4 +311,116 @@ export class RadialDimension extends Geometry
 		if(data.penStyle) dim.penStyle = data.penStyle;
 		return dim;
 	}
+
+	draw(ctx, renderer) {
+		const color = this.selected ? '#FF0000' : '#111111';
+		const arrowSize = 8;
+
+		const center = renderer.toScreen(this.center.x, this.center.y);
+		const dimStart = renderer.toScreen(this.dimLineStart.x, this.dimLineStart.y);
+		const dimEnd = renderer.toScreen(this.dimLineEnd.x, this.dimLineEnd.y);
+		const textPos = renderer.toScreen(this.textPosition.x, this.textPosition.y);
+
+		ctx.strokeStyle = color;
+		ctx.fillStyle = color;
+		ctx.lineWidth = 0.5;
+
+		const dirX = Math.cos(this.angle);
+		const dirY = Math.sin(this.angle);
+		const perpX = -dirY;
+		const perpY = dirX;
+
+		ctx.font = '12px Arial';
+		const displayText = this.getDisplayText('', 2);
+		const textMetrics = ctx.measureText(displayText);
+		const halfTextWidth = (textMetrics.width + 8) / 2;
+
+		if (this.mode === 'radius') {
+			// Leader line from perimeter to text position
+			const textGap = halfTextWidth + 4;
+			const lineLen = Math.sqrt(
+				Math.pow(textPos.x - dimEnd.x, 2) + Math.pow(textPos.y - dimEnd.y, 2)
+			);
+
+			let lineEndX = textPos.x, lineEndY = textPos.y;
+			if (lineLen > textGap) {
+				const toDirX = (textPos.x - dimEnd.x) / lineLen;
+				const toDirY = (textPos.y - dimEnd.y) / lineLen;
+				lineEndX = textPos.x - toDirX * textGap;
+				lineEndY = textPos.y - toDirY * textGap;
+			}
+
+			ctx.beginPath();
+			ctx.moveTo(dimEnd.x, dimEnd.y);
+			ctx.lineTo(lineEndX, lineEndY);
+			ctx.stroke();
+
+			renderer.drawArrow(ctx, dimEnd.x, dimEnd.y, dirX, dirY, perpX, perpY, arrowSize);
+		} else {
+			// Diameter mode
+			const gapStart = { x: textPos.x - perpX * halfTextWidth, y: textPos.y - perpY * halfTextWidth };
+			const gapEnd = { x: textPos.x + perpX * halfTextWidth, y: textPos.y + perpY * halfTextWidth };
+			const textDistFromCenter = Math.sqrt(
+				Math.pow(textPos.x - center.x, 2) + Math.pow(textPos.y - center.y, 2)
+			);
+
+			if (textDistFromCenter < 20) {
+				ctx.beginPath();
+				ctx.moveTo(dimStart.x, dimStart.y);
+				ctx.lineTo(gapStart.x, gapStart.y);
+				ctx.moveTo(gapEnd.x, gapEnd.y);
+				ctx.lineTo(dimEnd.x, dimEnd.y);
+				ctx.stroke();
+			} else {
+				ctx.beginPath();
+				ctx.moveTo(dimStart.x, dimStart.y);
+				ctx.lineTo(dimEnd.x, dimEnd.y);
+				ctx.stroke();
+
+				ctx.beginPath();
+				ctx.moveTo(center.x, center.y);
+				ctx.lineTo(textPos.x, textPos.y);
+				ctx.stroke();
+			}
+
+			renderer.drawArrow(ctx, dimStart.x, dimStart.y, -dirX, -dirY, perpX, perpY, arrowSize);
+			renderer.drawArrow(ctx, dimEnd.x, dimEnd.y, dirX, dirY, perpX, perpY, arrowSize);
+		}
+
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		ctx.fillText(displayText, textPos.x, textPos.y);
+	}
+
+	drawHandles(ctx, renderer) {
+		if (!this.selected && !this.showControlPoints) return;
+
+		const handleRadius = 4;
+		ctx.lineWidth = 0.5;
+		ctx.strokeStyle = '#666666';
+		ctx.fillStyle = '#FFFFFF';
+
+		const center = renderer.toScreen(this.center.x, this.center.y);
+		ctx.beginPath();
+		ctx.arc(center.x, center.y, handleRadius, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.stroke();
+
+		const dimEnd = renderer.toScreen(this.dimLineEnd.x, this.dimLineEnd.y);
+		ctx.beginPath();
+		ctx.arc(dimEnd.x, dimEnd.y, handleRadius, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.stroke();
+
+		const textPos = renderer.toScreen(this.textPosition.x, this.textPosition.y);
+		ctx.fillStyle = '#FFCC00';
+		ctx.beginPath();
+		ctx.moveTo(textPos.x, textPos.y - handleRadius);
+		ctx.lineTo(textPos.x + handleRadius, textPos.y);
+		ctx.lineTo(textPos.x, textPos.y + handleRadius);
+		ctx.lineTo(textPos.x - handleRadius, textPos.y);
+		ctx.closePath();
+		ctx.fill();
+		ctx.stroke();
+	}
 }

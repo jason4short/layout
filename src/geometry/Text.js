@@ -1,6 +1,8 @@
 import {Geometry, Shape, PenStyle} from './Geometry.js';
 import {Point} from './Point.js';
 import * as TransformUtils from './utils/TransformUtils.js';
+import stage from '../core/Stage.js';
+import toolManager from '../tools/ToolManager.js';
 
 export class Text extends Geometry
 {
@@ -289,5 +291,227 @@ export class Text extends Geometry
 		t.rotation = json.rotation || 0;
 		t.penStyle = json.penStyle || PenStyle.VISIBLE;
 		return t;
+	}
+
+	draw(ctx, renderer) {
+		const color = '#111111'; // Text stays black even when selected
+
+		// Convert position to screen coordinates
+		const screenPos = renderer.toScreen(this.x, this.y);
+
+		// Scale font size with zoom for world-space text
+		const screenFontSize = this.fontSize * stage.zoom;
+
+		// Build font string
+		const fontStyle = this.fontStyle === 'italic' ? 'italic' : '';
+		const fontWeight = this.fontWeight === 'bold' ? 'bold' : '';
+		ctx.font = `${fontStyle} ${fontWeight} ${screenFontSize}px ${this.fontFamily}`.trim();
+		ctx.fillStyle = color;
+		ctx.textAlign = 'left'; // Always left for cursor positioning
+		ctx.textBaseline = 'top';
+
+		// Handle rotation
+		if (this.rotation !== 0) {
+			ctx.save();
+			ctx.translate(screenPos.x, screenPos.y);
+			ctx.rotate(this.rotation);
+			this.drawTextContent(ctx, 0, 0, screenFontSize);
+			ctx.restore();
+		} else {
+			this.drawTextContent(ctx, screenPos.x, screenPos.y, screenFontSize);
+		}
+
+		// Draw cursor and selection if this text is being edited
+		const cursorInfo = toolManager.textTool?.getCursorInfo?.();
+		if (cursorInfo && cursorInfo.text === this) {
+			// Draw selection highlight first (behind cursor)
+			if (cursorInfo.selectionStart !== undefined) {
+				this.drawTextSelection(ctx, screenPos, screenFontSize, cursorInfo.selectionStart, cursorInfo.selectionEnd);
+			}
+			// Draw cursor
+			if (cursorInfo.cursorVisible) {
+				this.drawTextCursor(ctx, screenPos, screenFontSize, cursorInfo.position);
+			}
+		}
+
+		// Draw bounding box when selected
+		if (this.selected || this.showControlPoints) {
+			this.drawTextBounds(ctx, screenPos, screenFontSize);
+		}
+	}
+
+	drawTextContent(ctx, x, y, fontSize) {
+		const lineHeight = fontSize * 1.2;
+		const lines = this.text.split('\n');
+
+		// Calculate bounding width in screen space
+		const screenBoxWidth = this.boxWidth ? this.boxWidth * stage.zoom : null;
+
+		for (let i = 0; i < lines.length; i++) {
+			let line = lines[i];
+
+			// Word wrap if bounding box is set
+			if (screenBoxWidth) {
+				const words = line.split(' ');
+				let currentLine = '';
+
+				for (const word of words) {
+					const testLine = currentLine ? currentLine + ' ' + word : word;
+					const metrics = ctx.measureText(testLine);
+
+					if (metrics.width > screenBoxWidth && currentLine) {
+						ctx.fillText(currentLine, x, y);
+						y += lineHeight;
+						currentLine = word;
+					} else {
+						currentLine = testLine;
+					}
+				}
+				if (currentLine) {
+					ctx.fillText(currentLine, x, y);
+					y += lineHeight;
+				}
+			} else {
+				ctx.fillText(line, x, y);
+				y += lineHeight;
+			}
+		}
+	}
+
+	drawTextBounds(ctx, screenPos, fontSize) {
+		// Calculate bounds in screen space
+		let screenWidth = this.textWidth * stage.zoom;
+		let screenHeight = this.textHeight * stage.zoom;
+
+		// Measure actual text if needed
+		const lines = this.text.split('\n');
+		let maxWidth = 0;
+		for (const line of lines) {
+			const metrics = ctx.measureText(line);
+			maxWidth = Math.max(maxWidth, metrics.width);
+		}
+		if (!this.boxWidth) screenWidth = maxWidth;
+		if (!this.boxHeight) screenHeight = lines.length * fontSize * 1.2;
+
+		// Calculate left edge based on alignment
+		let left = screenPos.x;
+		if (this.alignment === 'center') left = screenPos.x - screenWidth / 2;
+		else if (this.alignment === 'right') left = screenPos.x - screenWidth;
+
+		// Draw bounding box
+		ctx.strokeStyle = '#2b6cb0';
+		ctx.lineWidth = 1;
+		ctx.setLineDash([4, 4]);
+		ctx.strokeRect(left, screenPos.y, screenWidth, screenHeight);
+		ctx.setLineDash([]);
+
+		// Draw corner control points
+		const corners = [
+			{ x: left, y: screenPos.y },
+			{ x: left + screenWidth, y: screenPos.y },
+			{ x: left + screenWidth, y: screenPos.y + screenHeight },
+			{ x: left, y: screenPos.y + screenHeight }
+		];
+
+		ctx.fillStyle = '#FFFFFF';
+		ctx.strokeStyle = '#2b6cb0';
+		for (const corner of corners) {
+			ctx.beginPath();
+			ctx.arc(corner.x, corner.y, 4, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.stroke();
+		}
+
+		// Draw anchor point
+		ctx.fillStyle = '#2b6cb0';
+		ctx.beginPath();
+		ctx.arc(screenPos.x, screenPos.y, 4, 0, Math.PI * 2);
+		ctx.fill();
+	}
+
+	drawTextCursor(ctx, screenPos, fontSize, cursorPos) {
+		// Calculate cursor X position by measuring text up to cursor
+		const textBeforeCursor = this.text.slice(0, cursorPos);
+		const lines = textBeforeCursor.split('\n');
+		const currentLineIndex = lines.length - 1;
+		const currentLineText = lines[currentLineIndex];
+
+		// Measure width of current line text
+		const cursorX = screenPos.x + ctx.measureText(currentLineText).width;
+		const lineHeight = fontSize * 1.2;
+		const cursorY = screenPos.y + (currentLineIndex * lineHeight);
+
+		// Draw cursor line
+		ctx.strokeStyle = '#000000';
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.moveTo(cursorX, cursorY);
+		ctx.lineTo(cursorX, cursorY + fontSize);
+		ctx.stroke();
+	}
+
+	drawTextSelection(ctx, screenPos, fontSize, selStart, selEnd) {
+		const lineHeight = fontSize * 1.2;
+		const allLines = this.text.split('\n');
+
+		// Find line and column for start and end positions
+		const getLineCol = (pos) => {
+			let charCount = 0;
+			for (let i = 0; i < allLines.length; i++) {
+				const lineLen = allLines[i].length;
+				if (pos <= charCount + lineLen) {
+					return { line: i, col: pos - charCount };
+				}
+				charCount += lineLen + 1; // +1 for newline
+			}
+			return { line: allLines.length - 1, col: allLines[allLines.length - 1].length };
+		};
+
+		const startLC = getLineCol(selStart);
+		const endLC = getLineCol(selEnd);
+
+		// Calculate max text width for extending selection to edge
+		let maxTextWidth = 0;
+		for (const line of allLines) {
+			const w = ctx.measureText(line).width;
+			if (w > maxTextWidth) maxTextWidth = w;
+		}
+		// Use box width if set, otherwise use measured width + small padding
+		const selectionEdge = this.boxWidth
+			? this.boxWidth * stage.zoom
+			: maxTextWidth + fontSize * 0.5;
+
+		ctx.fillStyle = 'rgba(66, 133, 244, 0.3)'; // Light blue selection highlight
+
+		for (let lineIdx = startLC.line; lineIdx <= endLC.line; lineIdx++) {
+			const line = allLines[lineIdx];
+			const lineY = screenPos.y + (lineIdx * lineHeight);
+
+			// Calculate start X for this line's selection
+			let startCol = 0;
+			if (lineIdx === startLC.line) {
+				startCol = startLC.col;
+			}
+
+			// Measure start position
+			const startX = screenPos.x + ctx.measureText(line.slice(0, startCol)).width;
+
+			// Calculate end X - extend to edge if not the last selected line
+			let endX;
+			if (lineIdx === endLC.line) {
+				// Last line of selection - stop at the end column
+				endX = screenPos.x + ctx.measureText(line.slice(0, endLC.col)).width;
+			} else {
+				// Not the last line - extend to the selection edge
+				endX = screenPos.x + selectionEdge;
+			}
+
+			// Draw selection rectangle for this line
+			ctx.fillRect(startX, lineY, endX - startX, lineHeight);
+		}
+	}
+
+	drawHandles(ctx, renderer) {
+		// Handles are drawn as part of drawTextBounds when selected
 	}
 }

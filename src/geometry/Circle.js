@@ -233,4 +233,21 @@ export class Circle extends Geometry
 		if(data.penStyle) circle.penStyle = data.penStyle;
 		return circle;
 	}
+
+	draw(ctx, renderer) {
+		const center = renderer.toScreen(this.x, this.y);
+		const radius = renderer.toScreenScale(this.radius);
+
+		// Optimization: when radius is huge, only draw visible arc
+		if (radius > 2000) {
+			const angles = renderer.getVisibleArcAngles(center, radius);
+			if (angles) {
+				ctx.arc(center.x, center.y, radius, angles.start, angles.end);
+			}
+		} else {
+			ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+		}
+		ctx.stroke();
+		renderer.resetPenStyle(ctx);
+	}
 }

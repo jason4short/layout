@@ -469,6 +469,98 @@ export class AngleDimension extends Geometry
 		return dim;
 	}
 
+	draw(ctx, renderer) {
+		const color = this.selected ? '#FF0000' : '#111111';
+		const arrowSize = 8;
+
+		// Convert points to screen coordinates
+		const vertex = renderer.toScreen(this.vertex.x, this.vertex.y);
+		const arcStart = renderer.toScreen(this.arcStart.x, this.arcStart.y);
+		const arcEnd = renderer.toScreen(this.arcEnd.x, this.arcEnd.y);
+		const ext1Start = renderer.toScreen(this.ext1Start.x, this.ext1Start.y);
+		const ext1End = renderer.toScreen(this.ext1End.x, this.ext1End.y);
+		const ext2Start = renderer.toScreen(this.ext2Start.x, this.ext2Start.y);
+		const ext2End = renderer.toScreen(this.ext2End.x, this.ext2End.y);
+		const textPos = renderer.toScreen(this.textPosition.x, this.textPosition.y);
+		const arcRadius = renderer.toScreenScale(this.arcRadius);
+
+		ctx.strokeStyle = color;
+		ctx.fillStyle = color;
+		ctx.lineWidth = 0.5;
+
+		// Draw extension lines from click points (with gap) to past the arc
+		ctx.beginPath();
+		ctx.moveTo(ext1Start.x, ext1Start.y);
+		ctx.lineTo(ext1End.x, ext1End.y);
+		ctx.moveTo(ext2Start.x, ext2Start.y);
+		ctx.lineTo(ext2End.x, ext2End.y);
+		ctx.stroke();
+
+		// Draw arc between the two angles
+		ctx.beginPath();
+		ctx.arc(vertex.x, vertex.y, arcRadius, this.startAngle, this.endAngle);
+		ctx.stroke();
+
+		// Draw arrows at arc ends (pointing along the arc tangent)
+		// Arrow at arcStart - tangent is perpendicular to radius, pointing CCW
+		const tangent1X = -Math.sin(this.startAngle);
+		const tangent1Y = Math.cos(this.startAngle);
+		const perp1X = Math.cos(this.startAngle);
+		const perp1Y = Math.sin(this.startAngle);
+		renderer.drawArrow(ctx, arcStart.x, arcStart.y, tangent1X, tangent1Y, perp1X, perp1Y, arrowSize);
+
+		// Arrow at arcEnd - tangent pointing CW (opposite)
+		const tangent2X = Math.sin(this.endAngle);
+		const tangent2Y = -Math.cos(this.endAngle);
+		const perp2X = Math.cos(this.endAngle);
+		const perp2Y = Math.sin(this.endAngle);
+		renderer.drawArrow(ctx, arcEnd.x, arcEnd.y, tangent2X, tangent2Y, perp2X, perp2Y, arrowSize);
+
+		// Draw text
+		ctx.font = '12px Arial';
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		const displayText = this.getDisplayText();
+		ctx.fillText(displayText, textPos.x, textPos.y);
+	}
+
+	drawHandles(ctx, renderer) {
+		if (!this.selected && !this.showControlPoints) return;
+
+		const handleRadius = 4;
+		ctx.lineWidth = 0.5;
+		ctx.strokeStyle = '#666666';
+		ctx.fillStyle = '#FFFFFF';
+
+		// Click point handles (draggable - these are the selectable control points)
+		if (this.click1) {
+			const click1Scr = renderer.toScreen(this.click1.x, this.click1.y);
+			ctx.beginPath();
+			ctx.arc(click1Scr.x, click1Scr.y, handleRadius, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.stroke();
+		}
+		if (this.click2) {
+			const click2Scr = renderer.toScreen(this.click2.x, this.click2.y);
+			ctx.beginPath();
+			ctx.arc(click2Scr.x, click2Scr.y, handleRadius, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.stroke();
+		}
+
+		// Text handle (diamond, draggable)
+		const textPos = renderer.toScreen(this.textPosition.x, this.textPosition.y);
+		ctx.fillStyle = '#FFCC00';
+		ctx.beginPath();
+		ctx.moveTo(textPos.x, textPos.y - handleRadius);
+		ctx.lineTo(textPos.x + handleRadius, textPos.y);
+		ctx.lineTo(textPos.x, textPos.y + handleRadius);
+		ctx.lineTo(textPos.x - handleRadius, textPos.y);
+		ctx.closePath();
+		ctx.fill();
+		ctx.stroke();
+	}
+
 	/**
 	 * Link line references by ID. Called after all shapes are loaded.
 	 */

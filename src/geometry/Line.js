@@ -253,4 +253,18 @@ export class Line extends Geometry
 		if(data.penStyle) line.penStyle = data.penStyle;
 		return line;
 	}
+
+	draw(ctx, renderer) {
+		const start = renderer.toScreen(this.start.x, this.start.y);
+		const end = renderer.toScreen(this.end.x, this.end.y);
+
+		// Clip line to viewport (important for dashed lines performance)
+		const clipped = renderer.clipLineToViewport(start, end);
+		if (clipped) {
+			ctx.moveTo(clipped.x1, clipped.y1);
+			ctx.lineTo(clipped.x2, clipped.y2);
+			ctx.stroke();
+		}
+		renderer.resetPenStyle(ctx);
+	}
 }

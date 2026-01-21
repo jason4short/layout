@@ -333,4 +333,61 @@ export class TangentArc extends Geometry
 		if(data.penStyle) arc.penStyle = data.penStyle;
 		return arc;
 	}
+
+	draw(ctx, renderer) {
+		const center = renderer.toScreen(this.x, this.y);
+		const radius = renderer.toScreenScale(this.radius);
+
+		ctx.arc(center.x, center.y, radius, this.startAngle, this.endAngle);
+		ctx.stroke();
+		renderer.resetPenStyle(ctx);
+	}
+
+	drawHandles(ctx, renderer) {
+		if (!this.selected && !this.showControlPoints) return;
+
+		const startPt = renderer.toScreen(this.startPoint.x, this.startPoint.y);
+		const tangentPt = renderer.toScreen(this.tangentPoint.x, this.tangentPoint.y);
+		const endPt = renderer.toScreen(this.endPoint.x, this.endPoint.y);
+		const handleRadius = 4;
+
+		// Draw tangent line from start to tangent handle
+		ctx.beginPath();
+		ctx.strokeStyle = '#AAAAAA';
+		ctx.lineWidth = 0.5;
+		ctx.setLineDash([2, 2]);
+		ctx.moveTo(startPt.x, startPt.y);
+		ctx.lineTo(tangentPt.x, tangentPt.y);
+		ctx.stroke();
+		ctx.setLineDash([]);
+
+		// Draw control point handles
+		ctx.lineWidth = 0.5;
+		ctx.strokeStyle = '#666666';
+		ctx.fillStyle = '#FFFFFF';
+
+		// Start point
+		ctx.beginPath();
+		ctx.arc(startPt.x, startPt.y, handleRadius, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.stroke();
+
+		// Tangent handle (diamond shape)
+		ctx.beginPath();
+		ctx.fillStyle = '#FFCC00';
+		ctx.moveTo(tangentPt.x, tangentPt.y - handleRadius);
+		ctx.lineTo(tangentPt.x + handleRadius, tangentPt.y);
+		ctx.lineTo(tangentPt.x, tangentPt.y + handleRadius);
+		ctx.lineTo(tangentPt.x - handleRadius, tangentPt.y);
+		ctx.closePath();
+		ctx.fill();
+		ctx.stroke();
+
+		// End point
+		ctx.beginPath();
+		ctx.fillStyle = '#FFFFFF';
+		ctx.arc(endPt.x, endPt.y, handleRadius, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.stroke();
+	}
 }
