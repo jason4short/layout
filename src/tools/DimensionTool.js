@@ -1,6 +1,7 @@
 import {Tool} 				from './Tool.js';
 import {Shape} 				from '../geometry/Geometry.js';
 import {Dimension} 			from '../geometry/Dimension.js';
+import {RadialDimension} 	from '../geometry/RadialDimension.js';
 import {AddShapeCommand} 	from '../core/Commands.js';
 
 import stage 				from '../core/Stage.js';
@@ -10,8 +11,16 @@ import draftingAssistant 	from '../geometry/DraftingAssistant.js';
 
 const STATE = {
 	IDLE: 0,
-	FIRST_POINT: 1,   // Have first point, waiting for second
-	SECOND_POINT: 2   // Have both points, waiting for offset click
+	FIRST_POINT: 1,   // Have first point, waiting for second (linear)
+	SECOND_POINT: 2,  // Have both points, waiting for offset click (linear)
+	RADIAL: 3         // Clicked on circle/arc, waiting for position click
+};
+
+// Helper to check if shape is a circular type
+const isCircularShape = (shape) => {
+	return shape && (shape.geometry === Shape.ARC ||
+					 shape.geometry === Shape.CIRCLE ||
+					 shape.geometry === Shape.TANGENT_ARC);
 };
 
 export class DimensionTool extends Tool
@@ -21,14 +30,18 @@ export class DimensionTool extends Tool
 		super();
 
 		this.name 	= "Dimension";
-		this.usage 	= "Click start point, click end point, click to position dimension line.";
+		this.usage 	= "Click two points for linear dimension, or click a circle/arc for radius dimension. Shift+click for diameter.";
 
-		this.generateGuides 	= false; // Enable snapping for move operations
+		this.generateGuides 	= false;
 
 		this.state 				= STATE.IDLE;
 		this.dimension 			= null;
 		this.startPoint 		= null;
 		this.endPoint 			= null;
+
+		// For radial dimensions
+		this.targetShape 		= null;
+		this.radialMode 		= 'radius';  // 'radius' or 'diameter'
 
 		this.onMouseMove 		= this.onMouseMove.bind(this);
 		this.onMouseDown 		= this.onMouseDown.bind(this);
@@ -52,6 +65,8 @@ export class DimensionTool extends Tool
 		this.dimension = null;
 		this.startPoint = null;
 		this.endPoint = null;
+		this.targetShape = null;
+		this.radialMode = 'radius';
 		data.resetSnaps();
 		data.clearGuides();
 		data.clearTempShapes();
@@ -64,21 +79,49 @@ export class DimensionTool extends Tool
 		const snap = { x: data.snapPoint.x, y: data.snapPoint.y };
 
 		if(this.state === STATE.IDLE){
-			// First click - set start point
-			this.startPoint = snap;
+			// Check if user clicked on a circle or arc
+			const clickedShape = data.getTargetShape();
 
-			// Create preview dimension with zero offset
-			this.dimension = new Dimension([
-				snap.x, snap.y,
-				snap.x, snap.y,
-				0
-			]);
-			data.addTempShape(this.dimension);
+			if (isCircularShape(clickedShape)) {
+				// Start radial dimension workflow
+				this.targetShape = clickedShape;
+				this.radialMode = stage.shiftKey ? 'diameter' : 'radius';
 
-			// Create guides from first point
-			draftingAssistant.setCurrentSnapPoint(data.snapPoint, true);
+				// Calculate initial angle from center to click point
+				const angle = Math.atan2(
+					snap.y - clickedShape.y,
+					snap.x - clickedShape.x
+				);
 
-			this.state = STATE.FIRST_POINT;
+				// Create preview radial dimension
+				this.dimension = new RadialDimension([
+					clickedShape.x, clickedShape.y,
+					clickedShape.radius,
+					angle,
+					this.radialMode,
+					30  // default text offset
+				]);
+				data.addTempShape(this.dimension);
+
+				this.state = STATE.RADIAL;
+
+			} else {
+				// Start linear dimension workflow
+				this.startPoint = snap;
+
+				// Create preview dimension with zero offset
+				this.dimension = new Dimension([
+					snap.x, snap.y,
+					snap.x, snap.y,
+					0
+				]);
+				data.addTempShape(this.dimension);
+
+				// Create guides from first point
+				draftingAssistant.setCurrentSnapPoint(data.snapPoint, true);
+
+				this.state = STATE.FIRST_POINT;
+			}
 
 		} else if(this.state === STATE.FIRST_POINT){
 			// Second click - set end point
@@ -102,6 +145,13 @@ export class DimensionTool extends Tool
 			undoManager.execute(new AddShapeCommand(this.dimension));
 
 			this.reset();
+
+		} else if(this.state === STATE.RADIAL){
+			// Commit the radial dimension
+			data.clearTempShapes();
+			undoManager.execute(new AddShapeCommand(this.dimension));
+
+			this.reset();
 		}
 
 		stage.render();
@@ -119,6 +169,27 @@ export class DimensionTool extends Tool
 			// Update offset based on mouse position
 			const offset = this.calculateOffset(data.snapPoint);
 			this.dimension.offset = offset;
+			this.dimension.update();
+			stage.render();
+
+		} else if(this.state === STATE.RADIAL && this.dimension){
+			// Update text position based on mouse position
+			const snap = data.snapPoint;
+			const center = this.dimension.center;
+
+			// Set text position to mouse location
+			this.dimension.textX = snap.x;
+			this.dimension.textY = snap.y;
+
+			// Calculate angle from center to text (arrow always points toward center)
+			this.dimension.angle = Math.atan2(
+				snap.y - center.y,
+				snap.x - center.x
+			);
+
+			// Allow toggling mode with shift key during preview
+			this.dimension.mode = stage.shiftKey ? 'diameter' : 'radius';
+
 			this.dimension.update();
 			stage.render();
 		}

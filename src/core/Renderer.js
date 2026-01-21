@@ -443,6 +443,9 @@ export class Renderer
 			} else if(shape.geometry === Shape.DIMENSION){
 				this.drawDimension(ctx, shape);
 
+			} else if(shape.geometry === Shape.RADIAL_DIMENSION){
+				this.drawRadialDimension(ctx, shape);
+
 			} else if(shape.geometry === Shape.TEXT){
 				this.drawText(ctx, shape);
 			}
@@ -865,6 +868,152 @@ export class Renderer
 			ctx.stroke();
 
 			// Text/offset handle (diamond)
+			ctx.fillStyle = '#FFCC00';
+			ctx.beginPath();
+			ctx.moveTo(textPos.x, textPos.y - handleRadius);
+			ctx.lineTo(textPos.x + handleRadius, textPos.y);
+			ctx.lineTo(textPos.x, textPos.y + handleRadius);
+			ctx.lineTo(textPos.x - handleRadius, textPos.y);
+			ctx.closePath();
+			ctx.fill();
+			ctx.stroke();
+		}
+	}
+
+	drawRadialDimension(ctx, shape){
+		const color = shape.selected ? '#FF0000' : '#111111';
+		const arrowSize = 8;
+
+		// Convert points to screen coordinates
+		const center 	= this.toScreen(shape.center.x, shape.center.y);
+		const dimStart 	= this.toScreen(shape.dimLineStart.x, shape.dimLineStart.y);
+		const dimEnd 	= this.toScreen(shape.dimLineEnd.x, shape.dimLineEnd.y);
+		const textPos 	= this.toScreen(shape.textPosition.x, shape.textPosition.y);
+
+		ctx.strokeStyle = color;
+		ctx.fillStyle 	= color;
+		ctx.lineWidth 	= 0.5;
+
+		// Direction from dimEnd (perimeter) toward text
+		const dirX = Math.cos(shape.angle);
+		const dirY = Math.sin(shape.angle);
+		const perpX = -dirY;
+		const perpY = dirX;
+
+		// Get text dimensions
+		ctx.font = '12px Arial';
+		const displayText = shape.getDisplayText('', 2);
+		const textMetrics = ctx.measureText(displayText);
+		const textWidth = textMetrics.width + 8;
+		const halfTextWidth = textWidth / 2;
+
+		if (shape.mode === 'radius') {
+			// Radius dimension: leader line from perimeter to text position
+			// Arrow at perimeter pointing outward
+
+			// Calculate line end point - stop short of text to leave gap
+			const textGap = halfTextWidth + 4;
+			const lineLen = Math.sqrt(
+				Math.pow(textPos.x - dimEnd.x, 2) +
+				Math.pow(textPos.y - dimEnd.y, 2)
+			);
+
+			let lineEndX = textPos.x;
+			let lineEndY = textPos.y;
+
+			if (lineLen > textGap) {
+				// Direction from perimeter to text
+				const toDirX = (textPos.x - dimEnd.x) / lineLen;
+				const toDirY = (textPos.y - dimEnd.y) / lineLen;
+				// Stop short of text
+				lineEndX = textPos.x - toDirX * textGap;
+				lineEndY = textPos.y - toDirY * textGap;
+			}
+
+			// Draw leader line from perimeter toward text (with gap)
+			ctx.beginPath();
+			ctx.moveTo(dimEnd.x, dimEnd.y);
+			ctx.lineTo(lineEndX, lineEndY);
+			ctx.stroke();
+
+			// Draw arrow at perimeter pointing outward (away from center)
+			this.drawArrow(ctx, dimEnd.x, dimEnd.y, dirX, dirY, perpX, perpY, arrowSize);
+
+		} else {
+			// Diameter dimension: line through center with arrows at both ends
+
+			// Draw diameter line with gap for text
+			const gapStart = {
+				x: textPos.x - perpX * halfTextWidth,
+				y: textPos.y - perpY * halfTextWidth
+			};
+			const gapEnd = {
+				x: textPos.x + perpX * halfTextWidth,
+				y: textPos.y + perpY * halfTextWidth
+			};
+
+			// Determine if text is near center or offset
+			const textDistFromCenter = Math.sqrt(
+				Math.pow(textPos.x - center.x, 2) +
+				Math.pow(textPos.y - center.y, 2)
+			);
+
+			if (textDistFromCenter < 20) {
+				// Text at center - draw line with gap
+				ctx.beginPath();
+				ctx.moveTo(dimStart.x, dimStart.y);
+				ctx.lineTo(gapStart.x, gapStart.y);
+				ctx.moveTo(gapEnd.x, gapEnd.y);
+				ctx.lineTo(dimEnd.x, dimEnd.y);
+				ctx.stroke();
+			} else {
+				// Text offset - draw full line and leader
+				ctx.beginPath();
+				ctx.moveTo(dimStart.x, dimStart.y);
+				ctx.lineTo(dimEnd.x, dimEnd.y);
+				ctx.stroke();
+
+				// Leader to text
+				const closestOnLine = {
+					x: center.x + perpX * (textPos.x - center.x) * perpX + perpY * (textPos.y - center.y) * perpX,
+					y: center.y + perpX * (textPos.x - center.x) * perpY + perpY * (textPos.y - center.y) * perpY
+				};
+				ctx.beginPath();
+				ctx.moveTo(center.x, center.y);
+				ctx.lineTo(textPos.x, textPos.y);
+				ctx.stroke();
+			}
+
+			// Draw arrows at both ends pointing inward
+			this.drawArrow(ctx, dimStart.x, dimStart.y, -dirX, -dirY, perpX, perpY, arrowSize);
+			this.drawArrow(ctx, dimEnd.x, dimEnd.y, dirX, dirY, perpX, perpY, arrowSize);
+		}
+
+		// Draw text
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		ctx.fillText(displayText, textPos.x, textPos.y);
+
+		// Draw control point handles when selected
+		if(shape.selected || shape.showControlPoints){
+			const handleRadius = 4;
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#666666';
+			ctx.fillStyle = '#FFFFFF';
+
+			// Center point
+			ctx.beginPath();
+			ctx.arc(center.x, center.y, handleRadius, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.stroke();
+
+			// Perimeter point (dimEnd)
+			ctx.beginPath();
+			ctx.arc(dimEnd.x, dimEnd.y, handleRadius, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.stroke();
+
+			// Text handle (diamond)
 			ctx.fillStyle = '#FFCC00';
 			ctx.beginPath();
 			ctx.moveTo(textPos.x, textPos.y - handleRadius);

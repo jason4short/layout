@@ -14,6 +14,7 @@ export const Shape = Object.freeze({
 	SPLINE: "spline",
 	IMAGE: "image",
 	DIMENSION: "dimension",
+	RADIAL_DIMENSION: "radial_dimension",
 	TEXT: "text",
 	PAPER: "paper",
 	SYMBOL: "symbol",
