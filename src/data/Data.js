@@ -165,6 +165,23 @@ class Data
 		}
 	}
 
+	/**
+	 * Update any angle dimensions that reference the given shapes.
+	 * Call this after shapes (lines) have been edited/moved.
+	 */
+	updateDependentDimensions(editedShapes){
+		const editedSet = new Set(editedShapes);
+		for(const shape of this.shapes){
+			if(shape.geometry === Shape.ANGLE_DIMENSION){
+				// Check if this dimension references any of the edited shapes
+				if((shape.line1 && editedSet.has(shape.line1)) ||
+				   (shape.line2 && editedSet.has(shape.line2))){
+					shape.updateFromLines();
+				}
+			}
+		}
+	}
+
 	// --------------------------------------------------------------------------------
 	// POI Management
 	// --------------------------------------------------------------------------------
@@ -517,6 +534,8 @@ class Data
 				return [0, 1, 2]; // start, end, and offset/text position
 			case Shape.RADIAL_DIMENSION:
 				return [0, 1, 2]; // center, perimeter point, text position
+			case Shape.ANGLE_DIMENSION:
+				return [1, 2, 3]; // arcStart, arcEnd, text position (no vertex - dims can't be dragged as whole)
 			case Shape.TEXT:
 				return [0]; // anchor point only - corners are for resizing
 			case Shape.PAPER:

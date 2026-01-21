@@ -14,6 +14,7 @@ import {Spline} 			from '../geometry/Spline.js';
 import {Image} 				from '../geometry/Image.js';
 import {Dimension} 			from '../geometry/Dimension.js';
 import {RadialDimension} 	from '../geometry/RadialDimension.js';
+import {AngleDimension} 	from '../geometry/AngleDimension.js';
 import {Text} 				from '../geometry/Text.js';
 import {Paper} 				from '../geometry/Paper.js';
 import {SymbolInstance} 	from '../geometry/Symbol.js';
@@ -157,6 +158,17 @@ class FileManager
 			}
 		}
 
+		// Link angle dimensions to their referenced lines
+		const shapesById = new Map();
+		for(const shape of data.shapes){
+			if(shape.id) shapesById.set(shape.id, shape);
+		}
+		for(const shape of data.shapes){
+			if(shape.geometry === Shape.ANGLE_DIMENSION && shape.linkLines){
+				shape.linkLines(shapesById);
+			}
+		}
+
 		stage.render();
 	}
 
@@ -184,6 +196,8 @@ class FileManager
 				return Dimension.fromJSON(shapeData);
 			case Shape.RADIAL_DIMENSION:
 				return RadialDimension.fromJSON(shapeData);
+			case Shape.ANGLE_DIMENSION:
+				return AngleDimension.fromJSON(shapeData);
 			case Shape.TEXT:
 				return Text.fromJSON(shapeData);
 			case Shape.PAPER:

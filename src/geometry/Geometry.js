@@ -15,6 +15,7 @@ export const Shape = Object.freeze({
 	IMAGE: "image",
 	DIMENSION: "dimension",
 	RADIAL_DIMENSION: "radial_dimension",
+	ANGLE_DIMENSION: "angle_dimension",
 	TEXT: "text",
 	PAPER: "paper",
 	SYMBOL: "symbol",

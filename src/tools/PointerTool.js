@@ -339,6 +339,9 @@ export class PointerTool extends Tool
 			const movedShapes = new Set(this.originalPositions.map(p => p.shape));
 			data.recalculateIntersectionsForShapes([...movedShapes]);
 
+			// Update any angle dimensions that depend on moved shapes
+			data.updateDependentDimensions([...movedShapes]);
+
 			if(this.isCloning && this.clonedShapes.length > 0){
 				// Record clone command for undo (shapes already added)
 				undoManager.record(new AddShapesCommand(this.clonedShapes));

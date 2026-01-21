@@ -446,6 +446,9 @@ export class Renderer
 			} else if(shape.geometry === Shape.RADIAL_DIMENSION){
 				this.drawRadialDimension(ctx, shape);
 
+			} else if(shape.geometry === Shape.ANGLE_DIMENSION){
+				this.drawAngleDimension(ctx, shape);
+
 			} else if(shape.geometry === Shape.TEXT){
 				this.drawText(ctx, shape);
 			}
@@ -1014,6 +1017,96 @@ export class Renderer
 			ctx.stroke();
 
 			// Text handle (diamond)
+			ctx.fillStyle = '#FFCC00';
+			ctx.beginPath();
+			ctx.moveTo(textPos.x, textPos.y - handleRadius);
+			ctx.lineTo(textPos.x + handleRadius, textPos.y);
+			ctx.lineTo(textPos.x, textPos.y + handleRadius);
+			ctx.lineTo(textPos.x - handleRadius, textPos.y);
+			ctx.closePath();
+			ctx.fill();
+			ctx.stroke();
+		}
+	}
+
+	drawAngleDimension(ctx, shape){
+		const color = shape.selected ? '#FF0000' : '#111111';
+		const arrowSize = 8;
+
+		// Convert points to screen coordinates
+		const vertex 	= this.toScreen(shape.vertex.x, shape.vertex.y);
+		const arcStart 	= this.toScreen(shape.arcStart.x, shape.arcStart.y);
+		const arcEnd 	= this.toScreen(shape.arcEnd.x, shape.arcEnd.y);
+		const ext1Start = this.toScreen(shape.ext1Start.x, shape.ext1Start.y);
+		const ext1End 	= this.toScreen(shape.ext1End.x, shape.ext1End.y);
+		const ext2Start = this.toScreen(shape.ext2Start.x, shape.ext2Start.y);
+		const ext2End 	= this.toScreen(shape.ext2End.x, shape.ext2End.y);
+		const textPos 	= this.toScreen(shape.textPosition.x, shape.textPosition.y);
+		const arcRadius = this.toScreenScale(shape.arcRadius);
+
+		ctx.strokeStyle = color;
+		ctx.fillStyle 	= color;
+		ctx.lineWidth 	= 0.5;
+
+		// Draw extension lines from click points (with gap) to past the arc
+		ctx.beginPath();
+		ctx.moveTo(ext1Start.x, ext1Start.y);
+		ctx.lineTo(ext1End.x, ext1End.y);
+		ctx.moveTo(ext2Start.x, ext2Start.y);
+		ctx.lineTo(ext2End.x, ext2End.y);
+		ctx.stroke();
+
+		// Draw arc between the two angles
+		ctx.beginPath();
+		ctx.arc(vertex.x, vertex.y, arcRadius, shape.startAngle, shape.endAngle);
+		ctx.stroke();
+
+		// Draw arrows at arc ends (pointing along the arc tangent)
+		// Arrow at arcStart - tangent is perpendicular to radius, pointing CCW
+		const tangent1X = -Math.sin(shape.startAngle);
+		const tangent1Y = Math.cos(shape.startAngle);
+		const perp1X = Math.cos(shape.startAngle);
+		const perp1Y = Math.sin(shape.startAngle);
+		this.drawArrow(ctx, arcStart.x, arcStart.y, tangent1X, tangent1Y, perp1X, perp1Y, arrowSize);
+
+		// Arrow at arcEnd - tangent pointing CW (opposite)
+		const tangent2X = Math.sin(shape.endAngle);
+		const tangent2Y = -Math.cos(shape.endAngle);
+		const perp2X = Math.cos(shape.endAngle);
+		const perp2Y = Math.sin(shape.endAngle);
+		this.drawArrow(ctx, arcEnd.x, arcEnd.y, tangent2X, tangent2Y, perp2X, perp2Y, arrowSize);
+
+		// Draw text
+		ctx.font = '12px Arial';
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		const displayText = shape.getDisplayText();
+		ctx.fillText(displayText, textPos.x, textPos.y);
+
+		// Draw control point handles when selected
+		if(shape.selected || shape.showControlPoints){
+			const handleRadius = 4;
+			ctx.lineWidth = 0.5;
+			ctx.strokeStyle = '#666666';
+			ctx.fillStyle = '#FFFFFF';
+
+			// Click point handles (draggable - these are the selectable control points)
+			if (shape.click1) {
+				const click1Scr = this.toScreen(shape.click1.x, shape.click1.y);
+				ctx.beginPath();
+				ctx.arc(click1Scr.x, click1Scr.y, handleRadius, 0, Math.PI * 2);
+				ctx.fill();
+				ctx.stroke();
+			}
+			if (shape.click2) {
+				const click2Scr = this.toScreen(shape.click2.x, shape.click2.y);
+				ctx.beginPath();
+				ctx.arc(click2Scr.x, click2Scr.y, handleRadius, 0, Math.PI * 2);
+				ctx.fill();
+				ctx.stroke();
+			}
+
+			// Text handle (diamond, draggable)
 			ctx.fillStyle = '#FFCC00';
 			ctx.beginPath();
 			ctx.moveTo(textPos.x, textPos.y - handleRadius);

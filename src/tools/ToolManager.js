@@ -28,6 +28,7 @@ import { MirrorTool } 					from "./MirrorTool.js";
 import { RotateTool } 					from "./RotateTool.js";
 import { ImageTool } 					from "./ImageTool.js";
 import { DimensionTool } 				from "./DimensionTool.js";
+import { AngleDimensionTool } 			from "./AngleDimensionTool.js";
 import { TextTool } 					from "./TextTool.js";
 import { PaperTool } 					from "./PaperTool.js";
 
@@ -73,6 +74,7 @@ class ToolManager extends EventDispatcher
 		this.rotateTool					= new RotateTool();
 		this.imageTool					= new ImageTool();
 		this.dimensionTool				= new DimensionTool();
+		this.angleDimensionTool			= new AngleDimensionTool();
 		this.textTool					= new TextTool();
 		this.paperTool					= new PaperTool();
 
@@ -103,6 +105,7 @@ class ToolManager extends EventDispatcher
 			{ tool: this.rotateTool, 				name: 'Rotate', shortcut: 'R', icon: 'rotate' },
 			{ category: 'Annotate' },
 			{ tool: this.dimensionTool, 			name: 'Dimension', shortcut: 'D', icon: 'dimension' },
+			{ tool: this.angleDimensionTool, 		name: 'Angle Dim', shortcut: null, icon: 'angle-dimension' },
 			{ tool: this.textTool, 					name: 'Text', shortcut: 'N', icon: 'text' },
 			{ category: 'Layout' },
 			{ tool: this.paperTool, 				name: 'Paper', shortcut: 'O', icon: 'paper' },
