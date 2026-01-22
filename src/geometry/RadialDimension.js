@@ -5,6 +5,7 @@ import {Shape,
 
 import * as VectorUtils 	from './utils/VectorUtils.js';
 import * as TransformUtils 	from './utils/TransformUtils.js';
+import {radialDimensionSchema} from './InspectorSchemas.js';
 
 /**
  * Radial dimension for circles and arcs.
@@ -231,57 +232,7 @@ export class RadialDimension extends Geometry
 	}
 
 	getInspectorSchema() {
-		return {
-			name: this.mode === 'diameter' ? 'Diameter Dimension' : 'Radius Dimension',
-			sections: [
-				{
-					title: 'Value',
-					fields: [
-						{
-							key: 'value',
-							label: this.mode === 'diameter' ? 'Diameter' : 'Radius',
-							type: 'readonly',
-							get: () => this.value,
-							precision: 2
-						},
-						{
-							key: 'mode',
-							label: 'Mode',
-							type: 'select',
-							options: [
-								{ value: 'radius', label: 'Radius' },
-								{ value: 'diameter', label: 'Diameter' }
-							],
-							get: () => this.mode,
-							set: (v) => { this.mode = v; this.update(); }
-						}
-					]
-				},
-				{
-					title: 'Position',
-					fields: [
-						{
-							key: 'angleDeg',
-							label: 'Angle',
-							type: 'number',
-							get: () => this.angle * 180 / Math.PI,
-							set: (v) => { this.angle = v * Math.PI / 180; this.update(); },
-							precision: 1,
-							step: 5,
-							suffix: '°'
-						},
-						{
-							key: 'textOffset',
-							label: 'Text Offset',
-							type: 'number',
-							precision: 1,
-							step: 5,
-							min: 0
-						}
-					]
-				}
-			]
-		};
+		return radialDimensionSchema(this);
 	}
 
 	toJSON() {

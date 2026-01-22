@@ -3,6 +3,7 @@ import {Point} from './Point.js';
 import * as AngleUtils from './utils/AngleUtils.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
+import {tangentArcSchema} from './InspectorSchemas.js';
 
 // Arc defined by start point, tangent direction, and end point
 // The tangent handle can be edited to change the arc's curvature
@@ -245,51 +246,7 @@ export class TangentArc extends Geometry
 	}
 
 	getInspectorSchema() {
-		return {
-			name: 'Tangent Arc',
-			sections: [
-				{
-					title: 'Dimensions',
-					fields: [
-						{
-							key: 'radius',
-							label: 'Radius',
-							type: 'readonly',
-							get: () => this.radius,
-							precision: 2
-						},
-						{
-							key: 'arcLength',
-							label: 'Arc Length',
-							type: 'readonly',
-							get: () => this.length(),
-							precision: 2
-						}
-					]
-				},
-				{
-					title: 'Start Point',
-					fields: [
-						{ key: 'startPoint.x', label: 'X', type: 'number', precision: 2, step: 1 },
-						{ key: 'startPoint.y', label: 'Y', type: 'number', precision: 2, step: 1 }
-					]
-				},
-				{
-					title: 'Tangent Handle',
-					fields: [
-						{ key: 'tangentPoint.x', label: 'X', type: 'number', precision: 2, step: 1 },
-						{ key: 'tangentPoint.y', label: 'Y', type: 'number', precision: 2, step: 1 }
-					]
-				},
-				{
-					title: 'End Point',
-					fields: [
-						{ key: 'endPoint.x', label: 'X', type: 'number', precision: 2, step: 1 },
-						{ key: 'endPoint.y', label: 'Y', type: 'number', precision: 2, step: 1 }
-					]
-				}
-			]
-		};
+		return tangentArcSchema(this);
 	}
 
 	// Update control point by index

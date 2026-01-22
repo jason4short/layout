@@ -5,6 +5,7 @@ import {Rectangle} 			from './Rectangle.js';
 import * as VectorUtils 	from './utils/VectorUtils.js';
 import * as TransformUtils 	from './utils/TransformUtils.js';
 import * as LineUtils 		from './utils/LineUtils.js';
+import {lineSchema} 		from './InspectorSchemas.js';
 
 export class Line extends Geometry
 {
@@ -101,48 +102,7 @@ export class Line extends Geometry
 	}
 
 	getInspectorSchema() {
-		return {
-			name: 'Line',
-			sections: [
-				{
-					title: 'Dimensions',
-					fields: [
-						{
-							key: 'length',
-							label: 'Length',
-							type: 'number',
-							get: () => this.length(),
-							set: (v) => this.scaleToDim(v),
-							precision: 2,
-							step: 1,
-							min: 0.1
-						},
-						{
-							key: 'angle',
-							label: 'Angle',
-							type: 'readonly',
-							get: () => this.getAngleDeg(),
-							precision: 1,
-							suffix: '°'
-						}
-					]
-				},
-				{
-					title: 'Start Point',
-					fields: [
-						{ key: 'start.x', label: 'X', type: 'number', precision: 2, step: 1 },
-						{ key: 'start.y', label: 'Y', type: 'number', precision: 2, step: 1 }
-					]
-				},
-				{
-					title: 'End Point',
-					fields: [
-						{ key: 'end.x', label: 'X', type: 'number', precision: 2, step: 1 },
-						{ key: 'end.y', label: 'Y', type: 'number', precision: 2, step: 1 }
-					]
-				}
-			]
-		};
+		return lineSchema(this);
 	}
 
 	getGeoSnap(mouse, mouseRect, pixelTolerance)

@@ -7,6 +7,7 @@ import {GeometryUtils}		from './GeometryUtils.js';
 import * as VectorUtils 	from './utils/VectorUtils.js';
 import * as TransformUtils 	from './utils/TransformUtils.js';
 import * as AngleUtils 		from './utils/AngleUtils.js';
+import {angleDimensionSchema} from './InspectorSchemas.js';
 
 /**
  * Angle dimension between two lines.
@@ -385,53 +386,7 @@ export class AngleDimension extends Geometry
 	}
 
 	getInspectorSchema() {
-		return {
-			name: 'Angle Dimension',
-			sections: [
-				{
-					title: 'Value',
-					fields: [
-						{
-							key: 'value',
-							label: 'Angle',
-							type: 'readonly',
-							get: () => this.value,
-							precision: 2,
-							suffix: '°'
-						}
-					]
-				},
-				{
-					title: 'Position',
-					fields: [
-						{
-							key: 'arcRadius',
-							label: 'Radius',
-							type: 'number',
-							precision: 1,
-							step: 5,
-							min: 10
-						},
-						{
-							key: 'vertexX',
-							label: 'Vertex X',
-							type: 'number',
-							get: () => this.vertex.x,
-							set: (v) => { this.vertex.x = v; this.update(); },
-							precision: 2
-						},
-						{
-							key: 'vertexY',
-							label: 'Vertex Y',
-							type: 'number',
-							get: () => this.vertex.y,
-							set: (v) => { this.vertex.y = v; this.update(); },
-							precision: 2
-						}
-					]
-				}
-			]
-		};
+		return angleDimensionSchema(this);
 	}
 
 	toJSON() {

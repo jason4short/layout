@@ -2,6 +2,7 @@ import {Shape, Geometry} from './Geometry.js';
 import {Point} from './Point.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
+import {paperSchema} from './InspectorSchemas.js';
 
 // Standard paper sizes in mm
 export const PaperSizes = Object.freeze({
@@ -190,76 +191,7 @@ export class Paper extends Geometry
 	}
 
 	getInspectorSchema() {
-		const sizeOptions = Object.entries(PaperSizes).map(([key, size]) => ({
-			value: key.toLowerCase(),
-			label: `${size.name} (${size.width} × ${size.height} mm)`
-		}));
-		sizeOptions.push({ value: 'custom', label: 'Custom' });
-
-		return {
-			name: 'Paper',
-			sections: [
-				{
-					title: 'Size',
-					fields: [
-						{
-							key: 'paperSize',
-							label: 'Preset',
-							type: 'select',
-							options: sizeOptions,
-							set: (v) => {
-								this.paperSize = v;
-								const preset = PaperSizes[v.toUpperCase()];
-								if (preset) {
-									this.width = preset.width;
-									this.height = preset.height;
-								}
-							}
-						},
-						{
-							key: 'width',
-							label: 'Width',
-							type: 'number',
-							precision: 1,
-							step: 1,
-							min: 10,
-							suffix: ' mm'
-						},
-						{
-							key: 'height',
-							label: 'Height',
-							type: 'number',
-							precision: 1,
-							step: 1,
-							min: 10,
-							suffix: ' mm'
-						}
-					]
-				},
-				{
-					title: 'Position',
-					fields: [
-						{ key: 'x', label: 'X', type: 'number', precision: 2, step: 1 },
-						{ key: 'y', label: 'Y', type: 'number', precision: 2, step: 1 }
-					]
-				},
-				{
-					title: 'Export',
-					fields: [
-						{
-							key: 'scale',
-							label: 'Scale',
-							type: 'number',
-							precision: 0,
-							step: 10,
-							min: 10,
-							max: 1000,
-							suffix: '%'
-						}
-					]
-				}
-			]
-		};
+		return paperSchema(this);
 	}
 
 	toJSON() {

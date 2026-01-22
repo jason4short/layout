@@ -3,6 +3,7 @@ import {Point} from './Point.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
 import * as CircleUtils from './utils/CircleUtils.js';
+import {circleSchema} from './InspectorSchemas.js';
 
 export class Circle extends Geometry
 {
@@ -102,48 +103,7 @@ export class Circle extends Geometry
 	}
 
 	getInspectorSchema() {
-		return {
-			name: 'Circle',
-			sections: [
-				{
-					title: 'Dimensions',
-					fields: [
-						{
-							key: 'radius',
-							label: 'Radius',
-							type: 'number',
-							precision: 2,
-							step: 1,
-							min: 0.1
-						},
-						{
-							key: 'diameter',
-							label: 'Diameter',
-							type: 'number',
-							get: () => this.radius * 2,
-							set: (v) => { this.radius = v / 2; },
-							precision: 2,
-							step: 1,
-							min: 0.1
-						},
-						{
-							key: 'circumference',
-							label: 'Circumference',
-							type: 'readonly',
-							get: () => this.length(),
-							precision: 2
-						}
-					]
-				},
-				{
-					title: 'Center',
-					fields: [
-						{ key: 'x', label: 'X', type: 'number', precision: 2, step: 1 },
-						{ key: 'y', label: 'Y', type: 'number', precision: 2, step: 1 }
-					]
-				}
-			]
-		};
+		return circleSchema(this);
 	}
 
 	// Get tangent angle (in degrees) at a point on the circle

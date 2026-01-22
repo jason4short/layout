@@ -4,6 +4,7 @@ import {Point} 				from './Point.js';
 import * as AngleUtils 		from './utils/AngleUtils.js';
 import * as CircleUtils 	from './utils/CircleUtils.js';
 import * as TransformUtils 	from './utils/TransformUtils.js';
+import {arcSchema} 			from './InspectorSchemas.js';
 
 export class Arc extends Circle
 {
@@ -142,63 +143,7 @@ export class Arc extends Circle
 	}
 
 	getInspectorSchema() {
-		return {
-			name: 'Arc',
-			sections: [
-				{
-					title: 'Dimensions',
-					fields: [
-						{
-							key: 'radius',
-							label: 'Radius',
-							type: 'number',
-							precision: 2,
-							step: 1,
-							min: 0.1
-						},
-						{
-							key: 'arcLength',
-							label: 'Arc Length',
-							type: 'readonly',
-							get: () => this.length(),
-							precision: 2
-						}
-					]
-				},
-				{
-					title: 'Angles',
-					fields: [
-						{
-							key: 'startAngleDeg',
-							label: 'Start',
-							type: 'number',
-							get: () => this.startAngle * 180 / Math.PI,
-							set: (v) => { this.startAngle = v * Math.PI / 180; },
-							precision: 1,
-							step: 1,
-							suffix: '°'
-						},
-						{
-							key: 'endAngleDeg',
-							label: 'End',
-							type: 'number',
-							get: () => this.endAngle * 180 / Math.PI,
-							set: (v) => { this.endAngle = v * Math.PI / 180; },
-							precision: 1,
-							step: 1,
-							suffix: '°'
-						}
-					]
-				},
-				{
-					title: 'Center',
-					fields: [
-						{ key: 'x', label: 'X', type: 'number', precision: 2, step: 1 },
-						{ key: 'y', label: 'Y', type: 'number', precision: 2, step: 1 }
-					]
-				}
-			]
-		};
+		return arcSchema(this);
 	}
 
 	// Static factory: Calculate arc parameters from 3 points
@@ -306,19 +251,7 @@ export class Arc extends Circle
 		const center = renderer.toScreen(this.x, this.y);
 		const radius = renderer.toScreenScale(this.radius);
 
-		// Optimization: when radius is huge, clip to visible portion
-		if (radius > 2000) {
-			const visible = renderer.getVisibleArcAngles(center, radius);
-			if (visible) {
-				const clampedStart = Math.max(this.startAngle, visible.start);
-				const clampedEnd = Math.min(this.endAngle, visible.end);
-				if (clampedEnd > clampedStart) {
-					ctx.arc(center.x, center.y, radius, clampedStart, clampedEnd);
-				}
-			}
-		} else {
-			ctx.arc(center.x, center.y, radius, this.startAngle, this.endAngle);
-		}
+		ctx.arc(center.x, center.y, radius, this.startAngle, this.endAngle);
 		ctx.stroke();
 		renderer.resetPenStyle(ctx);
 	}

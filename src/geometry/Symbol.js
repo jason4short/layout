@@ -1,9 +1,6 @@
 import { Shape, Geometry } from './Geometry.js';
 import { Rectangle } from './Rectangle.js';
-import data from '../data/Data.js';
-import stage from '../core/Stage.js';
-import undoManager from '../core/UndoManager.js';
-import { DeleteShapesCommand, AddShapesCommand } from '../core/Commands.js';
+import {symbolSchema} from './InspectorSchemas.js';
 
 /**
  * Symbol Definition - a reusable template of shapes
@@ -399,65 +396,7 @@ export class SymbolInstance extends Geometry {
 	}
 
 	getInspectorSchema() {
-		return {
-			name: this._definition ? this._definition.name : 'Symbol',
-			sections: [
-				{
-					title: 'Position',
-					fields: [
-						{ key: 'x', label: 'X', type: 'number', precision: 2, step: 1 },
-						{ key: 'y', label: 'Y', type: 'number', precision: 2, step: 1 }
-					]
-				},
-				{
-					title: 'Transform',
-					fields: [
-						{
-							key: 'rotation',
-							label: 'Rotation',
-							type: 'number',
-							precision: 1,
-							step: 15,
-							suffix: '°',
-							get: () => this.rotation * 180 / Math.PI,
-							set: (v) => { this.rotation = v * Math.PI / 180; }
-						},
-						{ key: 'scaleX', label: 'Scale X', type: 'number', precision: 2, step: 0.1, min: 0.1 },
-						{ key: 'scaleY', label: 'Scale Y', type: 'number', precision: 2, step: 0.1, min: 0.1 }
-					]
-				},
-				{
-					title: 'Symbol',
-					fields: [
-						{
-							key: 'definitionName',
-							label: 'Name',
-							type: 'readonly',
-							get: () => this._definition ? this._definition.name : '(unlinked)'
-						},
-						{
-							key: 'explode',
-							label: 'Break Apart',
-							type: 'button',
-							action: (symbol) => {
-								const shapes = symbol.explode();
-								if (shapes.length > 0) {
-									// Delete the symbol instance and add the exploded shapes
-									undoManager.execute(new DeleteShapesCommand([symbol]));
-									undoManager.execute(new AddShapesCommand(shapes));
-									// Select the new shapes
-									data.selectNone();
-									for (const shape of shapes) {
-										shape.selected = true;
-									}
-									stage.render();
-								}
-							}
-						}
-					]
-				}
-			]
-		};
+		return symbolSchema(this);
 	}
 
 	toJSON() {

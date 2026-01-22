@@ -3,6 +3,7 @@ import {Point} from './Point.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
 import * as AngleUtils from './utils/AngleUtils.js';
+import {splineSchema} from './InspectorSchemas.js';
 
 // Cubic Bezier Spline with 4 control points
 export class Spline extends Geometry
@@ -238,51 +239,7 @@ export class Spline extends Geometry
 	}
 
 	getInspectorSchema() {
-		return {
-			name: 'Spline',
-			sections: [
-				{
-					title: 'Dimensions',
-					fields: [
-						{
-							key: 'arcLength',
-							label: 'Length',
-							type: 'readonly',
-							get: () => this.length(),
-							precision: 2
-						}
-					]
-				},
-				{
-					title: 'Start Point (P0)',
-					fields: [
-						{ key: 'p0.x', label: 'X', type: 'number', precision: 2, step: 1 },
-						{ key: 'p0.y', label: 'Y', type: 'number', precision: 2, step: 1 }
-					]
-				},
-				{
-					title: 'Handle 1 (P1)',
-					fields: [
-						{ key: 'p1.x', label: 'X', type: 'number', precision: 2, step: 1 },
-						{ key: 'p1.y', label: 'Y', type: 'number', precision: 2, step: 1 }
-					]
-				},
-				{
-					title: 'Handle 2 (P2)',
-					fields: [
-						{ key: 'p2.x', label: 'X', type: 'number', precision: 2, step: 1 },
-						{ key: 'p2.y', label: 'Y', type: 'number', precision: 2, step: 1 }
-					]
-				},
-				{
-					title: 'End Point (P3)',
-					fields: [
-						{ key: 'p3.x', label: 'X', type: 'number', precision: 2, step: 1 },
-						{ key: 'p3.y', label: 'Y', type: 'number', precision: 2, step: 1 }
-					]
-				}
-			]
-		};
+		return splineSchema(this);
 	}
 
 	// Update a specific control point by index
