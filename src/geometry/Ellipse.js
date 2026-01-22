@@ -3,6 +3,7 @@ import {Point} from './Point.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
 import {ellipseSchema} from './InspectorSchemas.js';
+import {serializeEllipse, deserializeEllipse} from './GeometrySerializers.js';
 
 export class Ellipse extends Geometry
 {
@@ -205,23 +206,11 @@ export class Ellipse extends Geometry
 	}
 
 	toJSON() {
-		return {
-			geometry: this.geometry,
-			type: this.type,
-			penStyle: this.penStyle,
-			x: this.x,
-			y: this.y,
-			radiusX: this.radiusX,
-			radiusY: this.radiusY,
-			rotation: this.rotation
-		};
+		return serializeEllipse(this);
 	}
 
 	static fromJSON(data) {
-		const ellipse = new Ellipse([data.x, data.y, data.radiusX, data.radiusY, data.rotation]);
-		ellipse.type = data.type;
-		if(data.penStyle) ellipse.penStyle = data.penStyle;
-		return ellipse;
+		return deserializeEllipse(data, Ellipse);
 	}
 
 	draw(ctx, renderer) {

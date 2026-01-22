@@ -2,6 +2,7 @@ import {Shape, Geometry} from './Geometry.js';
 import {Ellipse} from './Ellipse.js';
 import {Point} from './Point.js';
 import * as AngleUtils from './utils/AngleUtils.js';
+import {serializeEllipticalArc, deserializeEllipticalArc} from './GeometrySerializers.js';
 
 export class EllipticalArc extends Ellipse
 {
@@ -184,27 +185,11 @@ export class EllipticalArc extends Ellipse
 	}
 
 	toJSON() {
-		return {
-			type: this.type,
-			geometry: this.geometry,
-			penStyle: this.penStyle,
-			x: this.x,
-			y: this.y,
-			radiusX: this.radiusX,
-			radiusY: this.radiusY,
-			rotation: this.rotation,
-			startAngle: this.startAngle,
-			endAngle: this.endAngle
-		};
+		return serializeEllipticalArc(this);
 	}
 
 	static fromJSON(data) {
-		const ellipse = new EllipticalArc([data.x, data.y, data.radiusX, data.radiusY, data.rotation, data.startAngle, data.endAngle]);
-		ellipse.type = data.type;
-		ellipse.geometry = data.geometry;
-		if(data.penStyle) ellipse.penStyle = data.penStyle;
-
-		return ellipse;
+		return deserializeEllipticalArc(data, EllipticalArc);
 	}
 
 	draw(ctx, renderer) {

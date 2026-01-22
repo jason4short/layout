@@ -8,6 +8,7 @@ import * as VectorUtils 	from './utils/VectorUtils.js';
 import * as TransformUtils 	from './utils/TransformUtils.js';
 import * as AngleUtils 		from './utils/AngleUtils.js';
 import {angleDimensionSchema} from './InspectorSchemas.js';
+import {serializeAngleDimension, deserializeAngleDimension} from './GeometrySerializers.js';
 
 /**
  * Angle dimension between two lines.
@@ -390,38 +391,11 @@ export class AngleDimension extends Geometry
 	}
 
 	toJSON() {
-		const json = {
-			geometry: this.geometry,
-			type: this.type,
-			penStyle: this.penStyle,
-			vertex: { x: this.vertex.x, y: this.vertex.y },
-			startAngle: this.startAngle,
-			endAngle: this.endAngle,
-			arcRadius: this.arcRadius
-		};
-		if (this.click1) json.click1 = { x: this.click1.x, y: this.click1.y };
-		if (this.click2) json.click2 = { x: this.click2.x, y: this.click2.y };
-		// Store line IDs for linking after load
-		if (this.line1 && this.line1.id) json.line1Id = this.line1.id;
-		if (this.line2 && this.line2.id) json.line2Id = this.line2.id;
-		return json;
+		return serializeAngleDimension(this);
 	}
 
 	static fromJSON(data) {
-		const dim = new AngleDimension([
-			data.vertex.x, data.vertex.y,
-			data.startAngle || 0,
-			data.endAngle || Math.PI / 2,
-			data.arcRadius || 40,
-			data.click1 || null,
-			data.click2 || null
-		]);
-		dim.type = data.type;
-		if(data.penStyle) dim.penStyle = data.penStyle;
-		// Store IDs for later linking (resolved in FileManager after all shapes loaded)
-		dim._line1Id = data.line1Id || null;
-		dim._line2Id = data.line2Id || null;
-		return dim;
+		return deserializeAngleDimension(data, AngleDimension);
 	}
 
 	draw(ctx, renderer) {

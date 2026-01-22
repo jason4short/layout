@@ -3,6 +3,7 @@ import {Point} from './Point.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as AngleUtils from './utils/AngleUtils.js';
 import {splineSchema} from './InspectorSchemas.js';
+import {serializeSpline, deserializeSpline} from './GeometrySerializers.js';
 
 // Cubic Bezier Spline with 4 control points
 export class Spline extends Geometry
@@ -236,27 +237,11 @@ export class Spline extends Geometry
 	}
 
 	toJSON() {
-		return {
-			geometry: this.geometry,
-			type: this.type,
-			penStyle: this.penStyle,
-			p0: { x: this.p0.x, y: this.p0.y },
-			p1: { x: this.p1.x, y: this.p1.y },
-			p2: { x: this.p2.x, y: this.p2.y },
-			p3: { x: this.p3.x, y: this.p3.y }
-		};
+		return serializeSpline(this);
 	}
 
 	static fromJSON(data) {
-		const spline = new Spline([
-			data.p0.x, data.p0.y,
-			data.p1.x, data.p1.y,
-			data.p2.x, data.p2.y,
-			data.p3.x, data.p3.y
-		]);
-		spline.type = data.type;
-		if(data.penStyle) spline.penStyle = data.penStyle;
-		return spline;
+		return deserializeSpline(data, Spline);
 	}
 
 	draw(ctx, renderer) {

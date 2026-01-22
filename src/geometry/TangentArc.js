@@ -3,6 +3,7 @@ import {Point} from './Point.js';
 import * as AngleUtils from './utils/AngleUtils.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import {tangentArcSchema} from './InspectorSchemas.js';
+import {serializeTangentArc, deserializeTangentArc} from './GeometrySerializers.js';
 
 // Arc defined by start point, tangent direction, and end point
 // The tangent handle can be edited to change the arc's curvature
@@ -243,25 +244,11 @@ export class TangentArc extends Geometry
 	}
 
 	toJSON() {
-		return {
-			geometry: this.geometry,
-			type: this.type,
-			penStyle: this.penStyle,
-			startPoint: { x: this.startPoint.x, y: this.startPoint.y },
-			tangentPoint: { x: this.tangentPoint.x, y: this.tangentPoint.y },
-			endPoint: { x: this.endPoint.x, y: this.endPoint.y }
-		};
+		return serializeTangentArc(this);
 	}
 
 	static fromJSON(data) {
-		const arc = new TangentArc([
-			data.startPoint.x, data.startPoint.y,
-			data.tangentPoint.x, data.tangentPoint.y,
-			data.endPoint.x, data.endPoint.y
-		]);
-		arc.type = data.type;
-		if(data.penStyle) arc.penStyle = data.penStyle;
-		return arc;
+		return deserializeTangentArc(data, TangentArc);
 	}
 
 	draw(ctx, renderer) {

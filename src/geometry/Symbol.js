@@ -1,6 +1,7 @@
 import { Shape, Geometry } from './Geometry.js';
 import { Rectangle } from './Rectangle.js';
 import {symbolSchema} from './InspectorSchemas.js';
+import {serializeSymbol, deserializeSymbol} from './GeometrySerializers.js';
 
 /**
  * Symbol Definition - a reusable template of shapes
@@ -400,26 +401,10 @@ export class SymbolInstance extends Geometry {
 	}
 
 	toJSON() {
-		return {
-			geometry: this.geometry,
-			type: this.type,
-			penStyle: this.penStyle,
-			x: this.x,
-			y: this.y,
-			definitionId: this.definitionId,
-			rotation: this.rotation,
-			scaleX: this.scaleX,
-			scaleY: this.scaleY
-		};
+		return serializeSymbol(this);
 	}
 
 	static fromJSON(data) {
-		const inst = new SymbolInstance([
-			data.x, data.y, data.definitionId,
-			data.rotation, data.scaleX, data.scaleY
-		]);
-		inst.type = data.type;
-		if (data.penStyle) inst.penStyle = data.penStyle;
-		return inst;
+		return deserializeSymbol(data, SymbolInstance);
 	}
 }

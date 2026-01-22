@@ -5,6 +5,7 @@ import * as AngleUtils 		from './utils/AngleUtils.js';
 import * as CircleUtils 	from './utils/CircleUtils.js';
 import * as TransformUtils 	from './utils/TransformUtils.js';
 import {arcSchema} 			from './InspectorSchemas.js';
+import {serializeArc, deserializeArc} from './GeometrySerializers.js';
 
 export class Arc extends Circle
 {
@@ -228,23 +229,11 @@ export class Arc extends Circle
 	}
 
 	toJSON() {
-		return {
-			geometry: this.geometry,
-			type: this.type,
-			penStyle: this.penStyle,
-			x: this.x,
-			y: this.y,
-			radius: this.radius,
-			startAngle: this.startAngle,
-			endAngle: this.endAngle
-		};
+		return serializeArc(this);
 	}
 
 	static fromJSON(data) {
-		const arc = new Arc([data.x, data.y, data.radius, data.startAngle, data.endAngle]);
-		arc.type = data.type;
-		if(data.penStyle) arc.penStyle = data.penStyle;
-		return arc;
+		return deserializeArc(data, Arc);
 	}
 
 	draw(ctx, renderer) {

@@ -3,6 +3,7 @@ import {Point} from './Point.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
 import stage from '../core/Stage.js';
+import {serializeImage, deserializeImage} from './GeometrySerializers.js';
 
 export class Image extends Geometry
 {
@@ -412,39 +413,11 @@ export class Image extends Geometry
 	}
 
 	toJSON() {
-		return {
-			geometry: this.geometry,
-			type: this.type,
-			penStyle: this.penStyle,
-			locked: this.locked,
-			x: this.x,
-			y: this.y,
-			width: this.width,
-			height: this.height,
-			rotation: this.rotation,
-			flipX: this.flipX,
-			flipY: this.flipY,
-			opacity: this.opacity,
-			src: this.src
-		};
+		return serializeImage(this);
 	}
 
 	static fromJSON(data) {
-		const img = new Image([data.x, data.y, data.width, data.height]);
-		img.type = data.type;
-		if(data.penStyle) img.penStyle = data.penStyle;
-		if(data.locked !== undefined) img.locked = data.locked;
-		if(data.rotation !== undefined) img.rotation = data.rotation;
-		if(data.flipX !== undefined) img.flipX = data.flipX;
-		if(data.flipY !== undefined) img.flipY = data.flipY;
-		if(data.opacity !== undefined) img.opacity = data.opacity;
-
-		// Load the image from path
-		if(data.src){
-			img.loadImage(data.src);
-		}
-
-		return img;
+		return deserializeImage(data, Image);
 	}
 
 	draw(ctx, renderer) {

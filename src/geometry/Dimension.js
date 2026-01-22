@@ -4,6 +4,7 @@ import {Shape,
 		PenStyle} 			from './Geometry.js';
 
 import * as VectorUtils 	from './utils/VectorUtils.js';
+import {serializeDimension, deserializeDimension} from './GeometrySerializers.js';
 
 export class Dimension extends Geometry
 {
@@ -205,25 +206,11 @@ export class Dimension extends Geometry
 	}
 
 	toJSON() {
-		return {
-			geometry: this.geometry,
-			type: this.type,
-			penStyle: this.penStyle,
-			start: { x: this.start.x, y: this.start.y },
-			end: { x: this.end.x, y: this.end.y },
-			offset: this.offset
-		};
+		return serializeDimension(this);
 	}
 
 	static fromJSON(data) {
-		const dim = new Dimension([
-			data.start.x, data.start.y,
-			data.end.x, data.end.y,
-			data.offset || 0
-		]);
-		dim.type = data.type;
-		if(data.penStyle) dim.penStyle = data.penStyle;
-		return dim;
+		return deserializeDimension(data, Dimension);
 	}
 
 	draw(ctx, renderer) {

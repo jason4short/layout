@@ -6,6 +6,7 @@ import {Shape,
 import * as VectorUtils 	from './utils/VectorUtils.js';
 import * as TransformUtils 	from './utils/TransformUtils.js';
 import {radialDimensionSchema} from './InspectorSchemas.js';
+import {serializeRadialDimension, deserializeRadialDimension} from './GeometrySerializers.js';
 
 /**
  * Radial dimension for circles and arcs.
@@ -236,31 +237,11 @@ export class RadialDimension extends Geometry
 	}
 
 	toJSON() {
-		return {
-			geometry: this.geometry,
-			type: this.type,
-			penStyle: this.penStyle,
-			center: { x: this.center.x, y: this.center.y },
-			radius: this.radius,
-			angle: this.angle,
-			mode: this.mode,
-			textX: this.textX,
-			textY: this.textY
-		};
+		return serializeRadialDimension(this);
 	}
 
 	static fromJSON(data) {
-		const dim = new RadialDimension([
-			data.center.x, data.center.y,
-			data.radius,
-			data.angle || 0,
-			data.mode || 'radius',
-			data.textX !== undefined ? data.textX : null,
-			data.textY !== undefined ? data.textY : null
-		]);
-		dim.type = data.type;
-		if(data.penStyle) dim.penStyle = data.penStyle;
-		return dim;
+		return deserializeRadialDimension(data, RadialDimension);
 	}
 
 	draw(ctx, renderer) {

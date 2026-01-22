@@ -3,6 +3,7 @@ import {Point} from './Point.js';
 import * as TransformUtils from './utils/TransformUtils.js';
 import stage from '../core/Stage.js';
 import toolManager from '../tools/ToolManager.js';
+import {serializeText, deserializeText} from './GeometrySerializers.js';
 
 export class Text extends Geometry
 {
@@ -261,36 +262,12 @@ export class Text extends Geometry
 	}
 
 	// JSON serialization
-	toJSON()
-	{
-		return {
-			geometry: this.geometry,
-			x: this.x,
-			y: this.y,
-			text: this.text,
-			fontSize: this.fontSize,
-			fontFamily: this.fontFamily,
-			fontWeight: this.fontWeight,
-			fontStyle: this.fontStyle,
-			alignment: this.alignment,
-			boxWidth: this.boxWidth,
-			boxHeight: this.boxHeight,
-			rotation: this.rotation,
-			penStyle: this.penStyle
-		};
+	toJSON() {
+		return serializeText(this);
 	}
 
-	static fromJSON(json)
-	{
-		const t = new Text([json.x, json.y, json.text, json.fontSize, json.fontFamily]);
-		t.fontWeight = json.fontWeight || 'normal';
-		t.fontStyle = json.fontStyle || 'normal';
-		t.alignment = json.alignment || 'left';
-		t.boxWidth = json.boxWidth || null;
-		t.boxHeight = json.boxHeight || null;
-		t.rotation = json.rotation || 0;
-		t.penStyle = json.penStyle || PenStyle.VISIBLE;
-		return t;
+	static fromJSON(json) {
+		return deserializeText(json, Text, PenStyle);
 	}
 
 	draw(ctx, renderer) {

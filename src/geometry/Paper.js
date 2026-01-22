@@ -3,6 +3,7 @@ import {Point} from './Point.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
 import {paperSchema} from './InspectorSchemas.js';
+import {serializePaper, deserializePaper} from './GeometrySerializers.js';
 
 // Standard paper sizes in mm
 export const PaperSizes = Object.freeze({
@@ -195,24 +196,11 @@ export class Paper extends Geometry
 	}
 
 	toJSON() {
-		return {
-			geometry: this.geometry,
-			type: this.type,
-			penStyle: this.penStyle,
-			x: this.x,
-			y: this.y,
-			width: this.width,
-			height: this.height,
-			paperSize: this.paperSize,
-			scale: this.scale
-		};
+		return serializePaper(this);
 	}
 
 	static fromJSON(data) {
-		const paper = new Paper([data.x, data.y, data.width, data.height, data.paperSize, data.scale]);
-		paper.type = data.type;
-		if (data.penStyle) paper.penStyle = data.penStyle;
-		return paper;
+		return deserializePaper(data, Paper);
 	}
 
 	draw(ctx, renderer) {

@@ -4,6 +4,7 @@ import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
 import * as CircleUtils from './utils/CircleUtils.js';
 import {circleSchema} from './InspectorSchemas.js';
+import {serializeCircle, deserializeCircle} from './GeometrySerializers.js';
 
 export class Circle extends Geometry
 {
@@ -176,22 +177,11 @@ export class Circle extends Geometry
 	}
 
 	toJSON() {
-		return {
-			geometry: this.geometry,
-			type: this.type,
-			penStyle: this.penStyle,
-			x: this.x,
-			y: this.y,
-			radius: this.radius,
-			radiusAngle: this.radiusAngle
-		};
+		return serializeCircle(this);
 	}
 
 	static fromJSON(data) {
-		const circle = new Circle([data.x, data.y, data.radius, data.radiusAngle || 0]);
-		circle.type = data.type;
-		if(data.penStyle) circle.penStyle = data.penStyle;
-		return circle;
+		return deserializeCircle(data, Circle);
 	}
 
 	draw(ctx, renderer) {
