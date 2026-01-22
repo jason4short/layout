@@ -3,7 +3,6 @@ import {Shape, Geometry} 	from './Geometry.js';
 import {Rectangle} 			from './Rectangle.js';
 
 import * as VectorUtils 	from './utils/VectorUtils.js';
-import * as TransformUtils 	from './utils/TransformUtils.js';
 import * as LineUtils 		from './utils/LineUtils.js';
 import {lineSchema} 		from './InspectorSchemas.js';
 
@@ -39,6 +38,10 @@ export class Line extends Geometry
 
 	getSnapPOIs() {
 		return [this.start, this.end, this.mid];
+	}
+
+	getTransformablePoints() {
+		return [this.start, this.end];
 	}
 
 	length(){
@@ -145,33 +148,7 @@ export class Line extends Geometry
 		this.update();
 	}
 
-	// Translate the line by offset
-	translate(dx, dy){
-		TransformUtils.translatePointInPlace(this.start, dx, dy);
-		TransformUtils.translatePointInPlace(this.end, dx, dy);
-		this.update();
-	}
-
-	// Scale the line relative to an anchor point
-	scale(anchorX, anchorY, factor){
-		TransformUtils.scalePointInPlace(this.start, anchorX, anchorY, factor);
-		TransformUtils.scalePointInPlace(this.end, anchorX, anchorY, factor);
-		this.update();
-	}
-
-	// Rotate the line around an anchor point by angle (in radians)
-	rotate(anchorX, anchorY, angleRad) {
-		TransformUtils.rotatePointInPlace(this.start, anchorX, anchorY, angleRad);
-		TransformUtils.rotatePointInPlace(this.end, anchorX, anchorY, angleRad);
-		this.update();
-	}
-
-	// Mirror the line across a line defined by two points
-	mirror(x1, y1, x2, y2){
-		TransformUtils.mirrorPointInPlace(this.start, x1, y1, x2, y2);
-		TransformUtils.mirrorPointInPlace(this.end, x1, y1, x2, y2);
-		this.update();
-	}
+	// Transform methods inherited from Geometry base class via getTransformablePoints()
 
 	// Update a specific control point by index
 	// POI indices: 0=start, 1=end, 2=midpoint

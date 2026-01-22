@@ -1,10 +1,9 @@
 import {Point} 				from './Point.js';
-import {Shape, 
-		Geometry, 
+import {Shape,
+		Geometry,
 		PenStyle} 			from './Geometry.js';
 
 import * as VectorUtils 	from './utils/VectorUtils.js';
-import * as TransformUtils 	from './utils/TransformUtils.js';
 
 export class Dimension extends Geometry
 {
@@ -116,6 +115,10 @@ export class Dimension extends Geometry
 		return [this.start, this.end, this.textPosition];
 	}
 
+	getTransformablePoints() {
+		return [this.start, this.end];
+	}
+
 	// Returns the measured distance
 	length(){
 		return this.value;
@@ -166,34 +169,18 @@ export class Dimension extends Geometry
 		return null;
 	}
 
-	// Translate the dimension by offset
-	translate(dx, dy){
-		TransformUtils.translatePointInPlace(this.start, dx, dy);
-		TransformUtils.translatePointInPlace(this.end, dx, dy);
-		this.update();
-	}
+	// translate() and rotate() inherited from Geometry base class
 
-	// Scale the dimension relative to an anchor point
-	scale(anchorX, anchorY, factor){
-		TransformUtils.scalePointInPlace(this.start, anchorX, anchorY, factor);
-		TransformUtils.scalePointInPlace(this.end, anchorX, anchorY, factor);
+	// Scale - also scales offset
+	scale(anchorX, anchorY, factor) {
+		super.scale(anchorX, anchorY, factor);
 		this.offset *= factor;
-		this.update();
 	}
 
-	// Rotate the dimension around an anchor point by angle (in radians)
-	rotate(anchorX, anchorY, angleRad) {
-		TransformUtils.rotatePointInPlace(this.start, anchorX, anchorY, angleRad);
-		TransformUtils.rotatePointInPlace(this.end, anchorX, anchorY, angleRad);
-		this.update();
-	}
-
-	// Mirror the dimension across a line defined by two points
-	mirror(x1, y1, x2, y2){
-		TransformUtils.mirrorPointInPlace(this.start, x1, y1, x2, y2);
-		TransformUtils.mirrorPointInPlace(this.end, x1, y1, x2, y2);
-		this.offset = -this.offset;  // Flip offset direction
-		this.update();
+	// Mirror - also flips offset direction
+	mirror(x1, y1, x2, y2) {
+		super.mirror(x1, y1, x2, y2);
+		this.offset = -this.offset;
 	}
 
 	// Update a specific control point by index

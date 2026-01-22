@@ -3,23 +3,9 @@ import stage from './Stage.js';
 import undoManager from './UndoManager.js';
 import symbolLibrary from './SymbolLibrary.js';
 
-import {Shape} 				from '../geometry/Geometry.js';
-import {Line} 				from '../geometry/Line.js';
-import {Circle} 			from '../geometry/Circle.js';
-import {Arc} 				from '../geometry/Arc.js';
-import {TangentArc} 		from '../geometry/TangentArc.js';
-import {Ellipse} 			from '../geometry/Ellipse.js';
-import {EllipticalArc} 		from '../geometry/EllipticalArc.js';
-import {Spline} 			from '../geometry/Spline.js';
-import {Image} 				from '../geometry/Image.js';
-import {Dimension} 			from '../geometry/Dimension.js';
-import {RadialDimension} 	from '../geometry/RadialDimension.js';
-import {AngleDimension} 	from '../geometry/AngleDimension.js';
-import {Text} 				from '../geometry/Text.js';
-import {Paper} 				from '../geometry/Paper.js';
-import {SymbolInstance} 	from '../geometry/Symbol.js';
-
+import {Shape} from '../geometry/Geometry.js';
 import {Construction} from '../geometry/Construction.js';
+import geometryFactory from '../geometry/GeometryFactory.js';
 
 class FileManager
 {
@@ -175,39 +161,7 @@ class FileManager
 	// Factory method to create shapes from JSON based on geometry type
 	createShapeFromJSON(shapeData)
 	{
-		switch(shapeData.geometry){
-			case Shape.LINE:
-				return Line.fromJSON(shapeData);
-			case Shape.CIRCLE:
-				return Circle.fromJSON(shapeData);
-			case Shape.ARC:
-				return Arc.fromJSON(shapeData);
-			case Shape.TANGENT_ARC:
-				return TangentArc.fromJSON(shapeData);
-			case Shape.ELLIPSE:
-				return Ellipse.fromJSON(shapeData);
-			case Shape.SPLINE:
-				return Spline.fromJSON(shapeData);
-			case Shape.ELLIPTICAL_ARC:
-				return EllipticalArc.fromJSON(shapeData);
-			case Shape.IMAGE:
-				return Image.fromJSON(shapeData);
-			case Shape.DIMENSION:
-				return Dimension.fromJSON(shapeData);
-			case Shape.RADIAL_DIMENSION:
-				return RadialDimension.fromJSON(shapeData);
-			case Shape.ANGLE_DIMENSION:
-				return AngleDimension.fromJSON(shapeData);
-			case Shape.TEXT:
-				return Text.fromJSON(shapeData);
-			case Shape.PAPER:
-				return Paper.fromJSON(shapeData);
-			case Shape.SYMBOL:
-				return SymbolInstance.fromJSON(shapeData);
-			default:
-				console.warn('Unknown geometry type:', shapeData.geometry);
-				return null;
-		}
+		return geometryFactory.fromJSON(shapeData);
 	}
 
 	// Save document to file (triggers download)

@@ -1,6 +1,7 @@
 import {Point} 				from './Point.js';
 import {Rectangle} 			from './Rectangle.js';
 import * as VectorUtils 	from './utils/VectorUtils.js';
+import * as TransformUtils 	from './utils/TransformUtils.js';
 
 export const Shape = Object.freeze({
 	/*geometry*/
@@ -217,5 +218,78 @@ export class Geometry
 		}
 
 		return new Point(result.x, result.y);
+	}
+
+	// ========== Transform Methods ==========
+	// Default implementations for shapes that define getTransformablePoints().
+	// Shapes with additional properties (radius, angles, etc.) should override.
+
+	/**
+	 * Return array of Point objects that should be transformed.
+	 * Override in subclasses to enable default transform implementations.
+	 * @returns {Point[]} Array of transformable points
+	 */
+	getTransformablePoints() {
+		return [];
+	}
+
+	/**
+	 * Translate the shape by offset.
+	 * @param {number} dx - X offset
+	 * @param {number} dy - Y offset
+	 */
+	translate(dx, dy) {
+		for (const pt of this.getTransformablePoints()) {
+			TransformUtils.translatePointInPlace(pt, dx, dy);
+		}
+		this.update();
+	}
+
+	/**
+	 * Scale the shape relative to an anchor point.
+	 * @param {number} anchorX - Anchor x coordinate
+	 * @param {number} anchorY - Anchor y coordinate
+	 * @param {number} factor - Scale factor
+	 */
+	scale(anchorX, anchorY, factor) {
+		for (const pt of this.getTransformablePoints()) {
+			TransformUtils.scalePointInPlace(pt, anchorX, anchorY, factor);
+		}
+		this.update();
+	}
+
+	/**
+	 * Rotate the shape around an anchor point.
+	 * @param {number} anchorX - Anchor x coordinate
+	 * @param {number} anchorY - Anchor y coordinate
+	 * @param {number} angleRad - Rotation angle in radians
+	 */
+	rotate(anchorX, anchorY, angleRad) {
+		for (const pt of this.getTransformablePoints()) {
+			TransformUtils.rotatePointInPlace(pt, anchorX, anchorY, angleRad);
+		}
+		this.update();
+	}
+
+	/**
+	 * Mirror the shape across a line defined by two points.
+	 * @param {number} x1 - Line point 1 x
+	 * @param {number} y1 - Line point 1 y
+	 * @param {number} x2 - Line point 2 x
+	 * @param {number} y2 - Line point 2 y
+	 */
+	mirror(x1, y1, x2, y2) {
+		for (const pt of this.getTransformablePoints()) {
+			TransformUtils.mirrorPointInPlace(pt, x1, y1, x2, y2);
+		}
+		this.update();
+	}
+
+	/**
+	 * Update computed properties after transforms.
+	 * Override in subclasses.
+	 */
+	update() {
+		// Base implementation does nothing
 	}
 }

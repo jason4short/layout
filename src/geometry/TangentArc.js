@@ -2,7 +2,6 @@ import {Shape, Geometry} from './Geometry.js';
 import {Point} from './Point.js';
 import * as AngleUtils from './utils/AngleUtils.js';
 import * as VectorUtils from './utils/VectorUtils.js';
-import * as TransformUtils from './utils/TransformUtils.js';
 import {tangentArcSchema} from './InspectorSchemas.js';
 
 // Arc defined by start point, tangent direction, and end point
@@ -143,6 +142,10 @@ export class TangentArc extends Geometry
 		];
 	}
 
+	getTransformablePoints() {
+		return [this.startPoint, this.tangentPoint, this.endPoint];
+	}
+
 	// Check if angle is within arc range
 	containsAngle(angle) {
 		return AngleUtils.isAngleInRange(angle, this.startAngle, this.endAngle);
@@ -213,37 +216,7 @@ export class TangentArc extends Geometry
 		return this.radius * span;
 	}
 
-	// Translate by offset
-	translate(dx, dy) {
-		TransformUtils.translatePointInPlace(this.startPoint, dx, dy);
-		TransformUtils.translatePointInPlace(this.tangentPoint, dx, dy);
-		TransformUtils.translatePointInPlace(this.endPoint, dx, dy);
-		this.recalculate();
-	}
-
-	// Scale relative to anchor
-	scale(anchorX, anchorY, factor) {
-		TransformUtils.scalePointInPlace(this.startPoint, anchorX, anchorY, factor);
-		TransformUtils.scalePointInPlace(this.tangentPoint, anchorX, anchorY, factor);
-		TransformUtils.scalePointInPlace(this.endPoint, anchorX, anchorY, factor);
-		this.recalculate();
-	}
-
-	// Rotate around anchor
-	rotate(anchorX, anchorY, angleRad) {
-		TransformUtils.rotatePointInPlace(this.startPoint, anchorX, anchorY, angleRad);
-		TransformUtils.rotatePointInPlace(this.tangentPoint, anchorX, anchorY, angleRad);
-		TransformUtils.rotatePointInPlace(this.endPoint, anchorX, anchorY, angleRad);
-		this.recalculate();
-	}
-
-	// Mirror across line
-	mirror(x1, y1, x2, y2) {
-		TransformUtils.mirrorPointInPlace(this.startPoint, x1, y1, x2, y2);
-		TransformUtils.mirrorPointInPlace(this.tangentPoint, x1, y1, x2, y2);
-		TransformUtils.mirrorPointInPlace(this.endPoint, x1, y1, x2, y2);
-		this.recalculate();
-	}
+	// Transform methods inherited from Geometry base class via getTransformablePoints()
 
 	getInspectorSchema() {
 		return tangentArcSchema(this);

@@ -1,7 +1,6 @@
 import {Shape, Geometry} from './Geometry.js';
 import {Point} from './Point.js';
 import * as VectorUtils from './utils/VectorUtils.js';
-import * as TransformUtils from './utils/TransformUtils.js';
 import * as AngleUtils from './utils/AngleUtils.js';
 import {splineSchema} from './InspectorSchemas.js';
 
@@ -72,6 +71,10 @@ export class Spline extends Geometry
 	getSnapPOIs() {
 		// Return all 4 control points
 		// POI indices: 0=p0(start), 1=p1(handle1), 2=p2(handle2), 3=p3(end)
+		return [this.p0, this.p1, this.p2, this.p3];
+	}
+
+	getTransformablePoints() {
 		return [this.p0, this.p1, this.p2, this.p3];
 	}
 
@@ -202,41 +205,7 @@ export class Spline extends Geometry
 		return s;
 	}
 
-	// Translate the spline by offset
-	translate(dx, dy){
-		TransformUtils.translatePointInPlace(this.p0, dx, dy);
-		TransformUtils.translatePointInPlace(this.p1, dx, dy);
-		TransformUtils.translatePointInPlace(this.p2, dx, dy);
-		TransformUtils.translatePointInPlace(this.p3, dx, dy);
-		this.update();
-	}
-
-	// Scale the spline relative to an anchor point
-	scale(anchorX, anchorY, factor){
-		TransformUtils.scalePointInPlace(this.p0, anchorX, anchorY, factor);
-		TransformUtils.scalePointInPlace(this.p1, anchorX, anchorY, factor);
-		TransformUtils.scalePointInPlace(this.p2, anchorX, anchorY, factor);
-		TransformUtils.scalePointInPlace(this.p3, anchorX, anchorY, factor);
-		this.update();
-	}
-
-	// Rotate the spline around an anchor point by angle (in radians)
-	rotate(anchorX, anchorY, angleRad) {
-		TransformUtils.rotatePointInPlace(this.p0, anchorX, anchorY, angleRad);
-		TransformUtils.rotatePointInPlace(this.p1, anchorX, anchorY, angleRad);
-		TransformUtils.rotatePointInPlace(this.p2, anchorX, anchorY, angleRad);
-		TransformUtils.rotatePointInPlace(this.p3, anchorX, anchorY, angleRad);
-		this.update();
-	}
-
-	// Mirror the spline across a line defined by two points
-	mirror(x1, y1, x2, y2){
-		TransformUtils.mirrorPointInPlace(this.p0, x1, y1, x2, y2);
-		TransformUtils.mirrorPointInPlace(this.p1, x1, y1, x2, y2);
-		TransformUtils.mirrorPointInPlace(this.p2, x1, y1, x2, y2);
-		TransformUtils.mirrorPointInPlace(this.p3, x1, y1, x2, y2);
-		this.update();
-	}
+	// Transform methods inherited from Geometry base class via getTransformablePoints()
 
 	getInspectorSchema() {
 		return splineSchema(this);
