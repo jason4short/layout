@@ -6,6 +6,12 @@ import data 		from '../data/Data.js';
 import undoManager	from '../core/UndoManager.js';
 import {ScaleCommand} from '../core/Commands.js';
 
+const STATE = Object.freeze({
+	ANCHOR: 0,     // waiting for anchor point
+	REFERENCE: 1,  // waiting for reference point (P2)
+	TARGET: 2      // waiting for target point (P3)
+});
+
 export class ScaleTool extends Tool
 {
 	constructor()
@@ -18,11 +24,7 @@ export class ScaleTool extends Tool
 
 		this.generateGuides = false;
 
-		// 3-click state machine
-		// state 0: waiting for anchor
-		// state 1: waiting for reference (P2)
-		// state 2: waiting for target (P3)
-		this.state 			= 0;
+		this.state 			= STATE.ANCHOR;
 
 		this.anchor 		= null;
 		this.reference 		= null;
@@ -66,7 +68,7 @@ export class ScaleTool extends Tool
 	}
 
 	resetState(){
-		this.state 		= 0;
+		this.state 		= STATE.ANCHOR;
 		this.anchor 	= null;
 		this.reference 	= null;
 		this.target 	= null;
@@ -77,7 +79,7 @@ export class ScaleTool extends Tool
 	}
 
 	onMouseMove(e){
-		if(this.state === 2 && this.dragStart){
+		if(this.state === STATE.TARGET && this.dragStart){
 			const snap = data.snapPoint;
 			const dx = snap.x - this.dragStart.x;
 			const dy = snap.y - this.dragStart.y;
@@ -116,7 +118,7 @@ export class ScaleTool extends Tool
 	}
 
 	onMouseUp(e){
-		if(this.state === 2 && this.isDragging){
+		if(this.state === STATE.TARGET && this.isDragging){
 			// Drag complete - apply scale to originals
 			const snap = data.snapPoint;
 			this.target = { x: snap.x, y: snap.y };
@@ -139,22 +141,22 @@ export class ScaleTool extends Tool
 
 		const snap = data.snapPoint;
 
-		if(this.state === 0){
+		if(this.state === STATE.ANCHOR){
 			this.anchor = { x: snap.x, y: snap.y };
-			this.state = 1;
+			this.state = STATE.REFERENCE;
 			this.usage = "Click or drag from reference to target.";
 			toolManager.updateToolNameDisplay();
 
-		} else if(this.state === 1){
+		} else if(this.state === STATE.REFERENCE){
 			// Set reference, prepare for potential drag
 			this.reference = { x: snap.x, y: snap.y };
 			this.dragStart = { x: snap.x, y: snap.y };
 			this.isDragging = false;
-			this.state = 2;
+			this.state = STATE.TARGET;
 			this.usage = "Drag to target or click target point.";
 			toolManager.updateToolNameDisplay();
 
-		} else if(this.state === 2 && !this.isDragging){
+		} else if(this.state === STATE.TARGET && !this.isDragging){
 			// Click mode - set target and apply
 			this.target = { x: snap.x, y: snap.y };
 			this.applyScale();

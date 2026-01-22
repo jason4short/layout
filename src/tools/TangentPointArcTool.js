@@ -2,7 +2,7 @@ import {Tool} 				from './Tool.js';
 import {Shape} 				from '../geometry/Geometry.js';
 import {TangentArc} 		from '../geometry/TangentArc.js';
 import {Line} 				from '../geometry/Line.js';
-	
+
 import stage 				from '../core/Stage.js';
 import toolManager			from './ToolManager.js';
 import data 				from '../data/Data.js';
@@ -10,6 +10,12 @@ import undoManager			from '../core/UndoManager.js';
 import draftingAssistant 	from '../geometry/DraftingAssistant.js';
 
 import {AddShapeCommand} from '../core/Commands.js';
+
+const STATE = Object.freeze({
+	START: 0,    // pick start point
+	TANGENT: 1,  // pick tangent direction
+	END: 2       // pick endpoint
+});
 
 export class TangentPointArcTool extends Tool
 {
@@ -24,7 +30,7 @@ export class TangentPointArcTool extends Tool
 		this.tangentLine	= null;
 		this.startPoint 	= null;
 		this.tangentPoint 	= null;
-		this.step 			= 0;  // 0: pick start, 1: pick tangent direction, 2: pick endpoint
+		this.state 			= STATE.START;
 
 		this.onMouseMove 	= this.onMouseMove.bind(this);
 		this.onMouseDown 	= this.onMouseDown.bind(this);
@@ -47,7 +53,7 @@ export class TangentPointArcTool extends Tool
 		this.tangentLine = null;
 		this.startPoint = null;
 		this.tangentPoint = null;
-		this.step = 0;
+		this.state = STATE.START;
 		data.clearTempShapes();
 	}
 
@@ -56,7 +62,7 @@ export class TangentPointArcTool extends Tool
 		data.resetSnaps();
 		const currentPoint = draftingAssistant.getCurrentSnapPoint();
 
-		if(this.step === 0){
+		if(this.state === STATE.START){
 			// First click: set start point, show tangent line
 			this.startPoint = {x: currentPoint.x, y: currentPoint.y};
 			this.tangentLine = new Line([
@@ -64,17 +70,17 @@ export class TangentPointArcTool extends Tool
 				this.startPoint.x, this.startPoint.y
 			]);
 			data.addTempShape(this.tangentLine);
-			this.step = 1;
-			
+			this.state = STATE.TANGENT;
+
 			// create a guide reference from initial point
 			draftingAssistant.setCurrentSnapPoint(currentPoint, true);
 
-		} else if(this.step === 1){
+		} else if(this.state === STATE.TANGENT){
 			// Second click: set tangent direction, keep line visible for now
 			this.tangentPoint = {x: currentPoint.x, y: currentPoint.y};
-			this.step = 2;
+			this.state = STATE.END;
 
-		} else if(this.step === 2){
+		} else if(this.state === STATE.END){
 			// Third click: commit the arc
 			if(this.arc){
 				this.arc.update();
@@ -91,7 +97,7 @@ export class TangentPointArcTool extends Tool
 	{
 		const currentPoint = draftingAssistant.getCurrentSnapPoint();
 
-		if(this.step === 1 && this.tangentLine){
+		if(this.state === STATE.TANGENT && this.tangentLine){
 			// Update tangent line preview
 			this.tangentLine.end.x = currentPoint.x;
 			this.tangentLine.end.y = currentPoint.y;
@@ -100,7 +106,7 @@ export class TangentPointArcTool extends Tool
 			return;
 		}
 
-		if(this.step === 2){
+		if(this.state === STATE.END){
 			// Create/update TangentArc from start, tangent, and current endpoint
 			if(!this.arc){
 				// Switch from tangent line to arc

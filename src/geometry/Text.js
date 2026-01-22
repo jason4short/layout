@@ -2,7 +2,6 @@ import {Geometry, Shape, PenStyle} from './Geometry.js';
 import {Point} from './Point.js';
 import * as TransformUtils from './utils/TransformUtils.js';
 import stage from '../core/Stage.js';
-import toolManager from '../tools/ToolManager.js';
 import {serializeText, deserializeText} from './GeometrySerializers.js';
 
 export class Text extends Geometry
@@ -299,7 +298,7 @@ export class Text extends Geometry
 		}
 
 		// Draw cursor and selection if this text is being edited
-		const cursorInfo = toolManager.textTool?.getCursorInfo?.();
+		const cursorInfo = renderer.textCursorInfo;
 		if (cursorInfo && cursorInfo.text === this) {
 			// Draw selection highlight first (behind cursor)
 			if (cursorInfo.selectionStart !== undefined) {

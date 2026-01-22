@@ -11,6 +11,12 @@ import da 					from '../geometry/DraftingAssistant.js';
 
 import {AddShapeCommand} 	from '../core/Commands.js';
 
+const STATE = Object.freeze({
+	START: 0,  // waiting for start point
+	END: 1,    // waiting for end point
+	MID: 2     // waiting for mid point (defines curvature)
+});
+
 export class ThreePointArcTool extends Tool
 {
 	constructor()
@@ -25,7 +31,7 @@ export class ThreePointArcTool extends Tool
 		this.linePreview	= null;
 		this.startPoint 	= null;
 		this.endPoint 		= null;
-		this.step 			= 0;  // 0: waiting for start, 1: waiting for end, 2: waiting for mid
+		this.state 			= STATE.START;
 
 		this.onMouseMove 	= this.onMouseMove.bind(this);
 		this.onMouseDown 	= this.onMouseDown.bind(this);
@@ -47,7 +53,7 @@ export class ThreePointArcTool extends Tool
 		this.linePreview 	= null;
 		this.startPoint 	= null;
 		this.endPoint 		= null;
-		this.step 			= 0;
+		this.state 			= STATE.START;
 		data.clearTempShapes();
 	}
 
@@ -60,7 +66,7 @@ export class ThreePointArcTool extends Tool
 		data.resetSnaps();
 		const currentPoint = da.getCurrentSnapPoint();
 
-		if(this.step === 0){
+		if(this.state === STATE.START){
 			// First click: set start point and create line preview
 			this.startPoint = {x: currentPoint.x, y: currentPoint.y};
 			this.linePreview = new Line([
@@ -68,9 +74,9 @@ export class ThreePointArcTool extends Tool
 				this.startPoint.x, this.startPoint.y
 			]);
 			data.addTempShape(this.linePreview);
-			this.step = 1;
+			this.state = STATE.END;
 
-		} else if(this.step === 1){
+		} else if(this.state === STATE.END){
 			// Second click: set end point, keep line as chord preview until mouse moves
 			this.endPoint = {x: currentPoint.x, y: currentPoint.y};
 
@@ -78,9 +84,9 @@ export class ThreePointArcTool extends Tool
 			this.linePreview.end.x = this.endPoint.x;
 			this.linePreview.end.y = this.endPoint.y;
 			this.linePreview.update();
-			this.step = 2;
+			this.state = STATE.MID;
 
-		} else if(this.step === 2){
+		} else if(this.state === STATE.MID){
 			// Third click: commit the arc
 			if(this.arc){
 				this.arc.update();
@@ -97,8 +103,8 @@ export class ThreePointArcTool extends Tool
 	{
 		const currentPoint = da.getCurrentSnapPoint();
 
-		// Step 1: update line preview
-		if(this.step === 1 && this.linePreview){
+		// STATE.END: update line preview
+		if(this.state === STATE.END && this.linePreview){
 			this.linePreview.end.x = currentPoint.x;
 			this.linePreview.end.y = currentPoint.y;
 			this.linePreview.update();
@@ -106,7 +112,7 @@ export class ThreePointArcTool extends Tool
 			return;
 		}
 
-		if(this.step < 2){
+		if(this.state !== STATE.MID){
 			return;
 		}
 

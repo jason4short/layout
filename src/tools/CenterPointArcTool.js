@@ -10,6 +10,12 @@ import data 			from '../data/Data.js';
 import undoManager		from '../core/UndoManager.js';
 import da 				from '../geometry/DraftingAssistant.js';
 
+const STATE = Object.freeze({
+	CENTER: 0,     // pick center point
+	RADIUS: 1,     // pick radius and start angle
+	END_ANGLE: 2   // pick end angle
+});
+
 export class CenterPointArcTool extends Tool
 {
 	constructor()
@@ -24,7 +30,7 @@ export class CenterPointArcTool extends Tool
 		this.centerPoint 	= null;
 		this.radius 		= 0;
 		this.startAngle 	= 0;
-		this.step 			= 0;  // 0: pick center, 1: pick radius/start, 2: pick end angle
+		this.state 			= STATE.CENTER;
 
 		this.onMouseMove 	= this.onMouseMove.bind(this);
 		this.onMouseDown 	= this.onMouseDown.bind(this);
@@ -50,7 +56,7 @@ export class CenterPointArcTool extends Tool
 		this.centerPoint = null;
 		this.radius = 0;
 		this.startAngle = 0;
-		this.step = 0;
+		this.state = STATE.CENTER;
 		data.clearTempShapes();
 	}
 
@@ -58,7 +64,7 @@ export class CenterPointArcTool extends Tool
 	{
 		const currentPoint = da.getCurrentSnapPoint();
 
-		if(this.step === 0){
+		if(this.state === STATE.CENTER){
 			// First click: set center point, show radius line
 			this.centerPoint = {x: currentPoint.x, y: currentPoint.y};
 			this.radiusLine = new Line([
@@ -66,9 +72,9 @@ export class CenterPointArcTool extends Tool
 				this.centerPoint.x, this.centerPoint.y
 			]);
 			data.addTempShape(this.radiusLine);
-			this.step = 1;
+			this.state = STATE.RADIUS;
 
-		} else if(this.step === 1){
+		} else if(this.state === STATE.RADIUS){
 			// Second click: set radius and start angle, switch to arc preview
 			const dx = currentPoint.x - this.centerPoint.x;
 			const dy = currentPoint.y - this.centerPoint.y;
@@ -86,9 +92,9 @@ export class CenterPointArcTool extends Tool
 			data.clearTempShapes();
 			this.radiusLine = null;
 			data.addTempShape(this.arc);
-			this.step = 2;
+			this.state = STATE.END_ANGLE;
 
-		} else if(this.step === 2){
+		} else if(this.state === STATE.END_ANGLE){
 			// Third click: commit the arc
 			if(this.arc && this.radius > 0){
 				this.arc.update();
@@ -105,7 +111,7 @@ export class CenterPointArcTool extends Tool
 	{
 		const currentPoint = da.getCurrentSnapPoint();
 
-		if(this.step === 1 && this.radiusLine){
+		if(this.state === STATE.RADIUS && this.radiusLine){
 			// Update radius line preview
 			this.radiusLine.end.x = currentPoint.x;
 			this.radiusLine.end.y = currentPoint.y;
@@ -114,7 +120,7 @@ export class CenterPointArcTool extends Tool
 			return;
 		}
 
-		if(this.step === 2 && this.arc){
+		if(this.state === STATE.END_ANGLE && this.arc){
 			// Update arc end angle
 			const dx = currentPoint.x - this.centerPoint.x;
 			const dy = currentPoint.y - this.centerPoint.y;

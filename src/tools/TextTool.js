@@ -7,6 +7,7 @@ import stage 				from '../core/Stage.js';
 import data 				from '../data/Data.js';
 import undoManager			from '../core/UndoManager.js';
 import toolManager			from './ToolManager.js';
+import events 				from '../core/Events.js';
 
 const STATE = {
 	IDLE: 0,
@@ -80,8 +81,10 @@ export class TextTool extends Tool
 	startCursorBlink(){
 		this.stopCursorBlink();
 		this.cursorVisible = true;
+		this.emitCursorInfo();
 		this.cursorBlinkTimer = setInterval(() => {
 			this.cursorVisible = !this.cursorVisible;
+			this.emitCursorInfo();
 			stage.render();
 		}, 530);
 	}
@@ -92,6 +95,7 @@ export class TextTool extends Tool
 			this.cursorBlinkTimer = null;
 		}
 		this.cursorVisible = false;
+		this.emitCursorInfo();
 	}
 
 	clearSelection(){
@@ -577,5 +581,10 @@ export class TextTool extends Tool
 		}
 
 		return info;
+	}
+
+	// Emit cursor info via event bus for decoupled subscribers
+	emitCursorInfo(){
+		events.emit('text-cursor-update', this.getCursorInfo());
 	}
 }

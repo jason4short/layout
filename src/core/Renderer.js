@@ -2,6 +2,7 @@ import stage from './Stage.js';
 import data from '../data/Data.js';
 import {Shape, PenStyle} from '../geometry/Geometry.js';
 import toolManager from '../tools/ToolManager.js';
+import events from './Events.js';
 
 export class Renderer
 {
@@ -10,6 +11,12 @@ export class Renderer
 	{
 		this.marqueeRect = null; // Set by PointerTool during drag
 		this.zoomRect = null;    // Set by StrokeTool during zoom gesture
+		this.textCursorInfo = null; // Updated via events from TextTool
+
+		// Subscribe to text cursor updates
+		events.on('text-cursor-update', (info) => {
+			this.textCursorInfo = info;
+		});
 
 		// Pen style definitions: [color, dashPattern, lineWidth]
 		this.penStyles = {
