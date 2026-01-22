@@ -229,26 +229,40 @@ export class PointerTool extends Tool
 		// Check if clicking on something already selected
 		this.moveTarget = data.getTargetShape();
 
-		// Check if clicking on a corner of Image for resizing
-		// Corners are POI indices 0-3, center is 4
-		// Note: Paper no longer supports corner resize - use Scale property instead
-		if(this.moveTarget &&
-		   this.moveTarget.geometry === Shape.IMAGE &&
-		   data.snapPoint.poiIndex !== undefined &&
-		   data.snapPoint.poiIndex >= 0 &&
-		   data.snapPoint.poiIndex <= 3) {
-			// Clicked on a corner - set up for corner resize
-			this.cornerResize = {
-				shape: this.moveTarget,
-				cornerIndex: data.snapPoint.poiIndex
-			};
-			// Select the shape for corner resize
-			if(!this.moveTarget.selected){
+		// Check if clicking on a control point for resizing
+		// For Image: corners are POI indices 0-3, center is 4
+		// For Ellipse: center is 0, corner is 1, axis points are 2-5
+		// For Circle: center is 0, radius point is 1
+		this.cornerResize = null;
+
+		if(this.moveTarget && data.snapPoint.poiIndex !== undefined) {
+			const geo = this.moveTarget.geometry;
+			const poi = data.snapPoint.poiIndex;
+
+			// Image corners (0-3)
+			if(geo === Shape.IMAGE && poi >= 0 && poi <= 3) {
+				this.cornerResize = { shape: this.moveTarget, cornerIndex: poi };
+			}
+			// Ellipse control points (0 and 1)
+			// In 'center' mode: 0=center (move), 1=corner (resize)
+			// In 'corners' mode: 0=corner1 (resize), 1=corner2 (resize)
+			else if(geo === Shape.ELLIPSE && (poi === 0 || poi === 1)) {
+				// For corners mode, both are resize points
+				// For center mode, 0 is move (handled by normal move), 1 is resize
+				if(this.moveTarget.controlMode === 'corners' || poi === 1) {
+					this.cornerResize = { shape: this.moveTarget, cornerIndex: poi };
+				}
+			}
+			// Circle radius control point (1)
+			else if(geo === Shape.CIRCLE && poi === 1) {
+				this.cornerResize = { shape: this.moveTarget, cornerIndex: poi };
+			}
+
+			// Select the shape for control point resize
+			if(this.cornerResize && !this.moveTarget.selected){
 				data.selectNone();
 				this.moveTarget.selected = true;
 			}
-		} else {
-			this.cornerResize = null;
 		}
 
 		// create a guide reference from initial point

@@ -104,12 +104,14 @@ export function serializeEllipse(shape) {
 		y: shape.y,
 		radiusX: shape.radiusX,
 		radiusY: shape.radiusY,
-		rotation: shape.rotation
+		rotation: shape.rotation,
+		cornerAngle: shape.cornerAngle,
+		controlMode: shape.controlMode
 	};
 }
 
 export function deserializeEllipse(data, EllipseClass) {
-	const ellipse = new EllipseClass([data.x, data.y, data.radiusX, data.radiusY, data.rotation]);
+	const ellipse = new EllipseClass([data.x, data.y, data.radiusX, data.radiusY, data.rotation, data.cornerAngle, data.controlMode || 'center']);
 	ellipse.type = data.type;
 	if (data.penStyle) ellipse.penStyle = data.penStyle;
 	return ellipse;

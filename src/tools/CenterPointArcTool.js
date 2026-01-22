@@ -23,7 +23,7 @@ export class CenterPointArcTool extends Tool
 		super();
 
 		this.name 			= "Center Arc";
-		this.usage 			= "Click center, click again to set radius and start angle, then click to set end angle.";
+		this.usage 			= "Click center, click or drag to set radius and start angle, then click to set end angle.";
 
 		this.arc 			= null;
 		this.radiusLine		= null;
@@ -31,6 +31,10 @@ export class CenterPointArcTool extends Tool
 		this.radius 		= 0;
 		this.startAngle 	= 0;
 		this.state 			= STATE.CENTER;
+
+		// Drag support for center-to-radius segment
+		this.isDragging		= false;
+		this.dragStart		= null;
 
 		this.onMouseMove 	= this.onMouseMove.bind(this);
 		this.onMouseDown 	= this.onMouseDown.bind(this);
@@ -57,6 +61,8 @@ export class CenterPointArcTool extends Tool
 		this.radius = 0;
 		this.startAngle = 0;
 		this.state = STATE.CENTER;
+		this.isDragging = false;
+		this.dragStart = null;
 		data.clearTempShapes();
 	}
 
@@ -67,6 +73,9 @@ export class CenterPointArcTool extends Tool
 		if(this.state === STATE.CENTER){
 			// First click: set center point, show radius line
 			this.centerPoint = {x: currentPoint.x, y: currentPoint.y};
+			this.dragStart = {x: currentPoint.x, y: currentPoint.y};
+			this.isDragging = false;
+
 			this.radiusLine = new Line([
 				this.centerPoint.x, this.centerPoint.y,
 				this.centerPoint.x, this.centerPoint.y
@@ -74,25 +83,9 @@ export class CenterPointArcTool extends Tool
 			data.addTempShape(this.radiusLine);
 			this.state = STATE.RADIUS;
 
-		} else if(this.state === STATE.RADIUS){
-			// Second click: set radius and start angle, switch to arc preview
-			const dx = currentPoint.x - this.centerPoint.x;
-			const dy = currentPoint.y - this.centerPoint.y;
-			this.radius = Math.sqrt(dx * dx + dy * dy);
-			this.startAngle = Math.atan2(dy, dx);
-
-			// Create arc with zero sweep initially
-			this.arc = new Arc([
-				this.centerPoint.x,
-				this.centerPoint.y,
-				this.radius,
-				this.startAngle,
-				this.startAngle
-			]);
-			data.clearTempShapes();
-			this.radiusLine = null;
-			data.addTempShape(this.arc);
-			this.state = STATE.END_ANGLE;
+		} else if(this.state === STATE.RADIUS && !this.isDragging){
+			// Second click (click-click mode): set radius and start angle
+			this.commitRadius(currentPoint);
 
 		} else if(this.state === STATE.END_ANGLE){
 			// Third click: commit the arc
@@ -107,11 +100,44 @@ export class CenterPointArcTool extends Tool
 		stage.render();
 	}
 
+	commitRadius(currentPoint){
+		const dx = currentPoint.x - this.centerPoint.x;
+		const dy = currentPoint.y - this.centerPoint.y;
+		this.radius = Math.sqrt(dx * dx + dy * dy);
+		this.startAngle = Math.atan2(dy, dx);
+
+		// Create arc with zero sweep initially
+		this.arc = new Arc([
+			this.centerPoint.x,
+			this.centerPoint.y,
+			this.radius,
+			this.startAngle,
+			this.startAngle
+		]);
+		data.clearTempShapes();
+		this.radiusLine = null;
+		data.addTempShape(this.arc);
+
+		this.isDragging = false;
+		this.dragStart = null;
+		this.state = STATE.END_ANGLE;
+	}
+
 	onMouseMove(e)
 	{
 		const currentPoint = da.getCurrentSnapPoint();
 
 		if(this.state === STATE.RADIUS && this.radiusLine){
+			// Check if we've moved enough to consider this a drag
+			if(this.dragStart && !this.isDragging){
+				const dx = currentPoint.x - this.dragStart.x;
+				const dy = currentPoint.y - this.dragStart.y;
+				const screenDist = stage.worldToScreenScale(Math.sqrt(dx * dx + dy * dy));
+				if(screenDist > 5){
+					this.isDragging = true;
+				}
+			}
+
 			// Update radius line preview
 			this.radiusLine.end.x = currentPoint.x;
 			this.radiusLine.end.y = currentPoint.y;
@@ -133,6 +159,11 @@ export class CenterPointArcTool extends Tool
 	}
 	
 	onMouseUp(e){
-		
+		if(this.state === STATE.RADIUS && this.isDragging){
+			// Drag complete: commit radius and start angle
+			const currentPoint = da.getCurrentSnapPoint();
+			this.commitRadius(currentPoint);
+			stage.render();
+		}
 	}
 }

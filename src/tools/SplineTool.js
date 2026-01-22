@@ -25,7 +25,7 @@ export class SplineTool extends Tool
 		super();
 
 		this.name 	= "Spline";
-		this.usage 	= "Click 4 points: start, end, then two control handles to shape the curve.";
+		this.usage 	= "Click or drag start to end, then click two control handles to shape the curve.";
 
 		this.spline 		= null;
 		this.linePreview	= null;
@@ -35,6 +35,10 @@ export class SplineTool extends Tool
 		this.p1 = null;
 		this.p2 = null;
 		this.p3 = null;
+
+		// Drag support for start-to-end segment
+		this.isDragging		= false;
+		this.dragStart		= null;
 
 		this.onMouseDown 		= this.onMouseDown.bind(this);
 		this.onMouseMove 		= this.onMouseMove.bind(this);
@@ -57,7 +61,10 @@ export class SplineTool extends Tool
 
 		this.spline 		= null;
 		this.linePreview 	= null;
+		this.isDragging		= false;
+		this.dragStart		= null;
 		data.clearTempShapes();
+		data.resetSnaps();
 	}
 	updateCursor(){
 		stage.setCursor('spline', 0, 0);
@@ -65,41 +72,28 @@ export class SplineTool extends Tool
 
 	onMouseDown(e)
 	{
-		data.resetSnaps();
 		const snap = da.getCurrentSnapPoint();
 
 		switch(this.state){
 			case STATE.START:
 				// First click: set start point (p0)
 				this.p0 = {x: snap.x, y: snap.y};
+				this.dragStart = {x: snap.x, y: snap.y};
+				this.isDragging = false;
+
+				// Create guide reference from start point (pass a copy)
+				da.setCurrentSnapPoint({x: this.p0.x, y: this.p0.y}, true);
+
 				this.linePreview = data.getNewShape(Shape.LINE);
 				data.addTempShape(this.linePreview);
 				this.state = STATE.END;
 				break;
 
 			case STATE.END:
-				data.clearTempShapes();
-
-				// Second click: set end point (p3)
-				this.p3 = {x: snap.x, y: snap.y};
-				// Default control handles to 1/3 and 2/3 along the line
-				this.p1 = {
-					x: this.p0.x + (this.p3.x - this.p0.x) / 3,
-					y: this.p0.y + (this.p3.y - this.p0.y) / 3
-				};
-				this.p2 = {
-					x: this.p0.x + 2 * (this.p3.x - this.p0.x) / 3,
-					y: this.p0.y + 2 * (this.p3.y - this.p0.y) / 3
-				};
-				// Create spline preview
-				this.spline = new Spline([
-					this.p0.x, this.p0.y,
-					this.p1.x, this.p1.y,
-					this.p2.x, this.p2.y,
-					this.p3.x, this.p3.y
-				]);
-				data.addTempShape(this.spline);
-				this.state = STATE.CONTROL1;
+				if(!this.isDragging){
+					// Second click (click-click mode): commit end point
+					this.commitEndPoint(snap);
+				}
 				break;
 
 			case STATE.CONTROL1:
@@ -108,6 +102,11 @@ export class SplineTool extends Tool
 				this.spline.p1.x = this.p1.x;
 				this.spline.p1.y = this.p1.y;
 				this.spline.update();
+
+				// Create guide reference from first control point
+				// Pass a copy to avoid storing a reference to spline.p1
+				da.setCurrentSnapPoint({x: this.p1.x, y: this.p1.y}, true);
+
 				this.state = STATE.CONTROL2;
 				break;
 
@@ -117,6 +116,9 @@ export class SplineTool extends Tool
 				this.spline.p2.x = this.p2.x;
 				this.spline.p2.y = this.p2.y;
 				this.spline.update();
+
+				// Create guide reference from second control point (pass a copy)
+				da.setCurrentSnapPoint({x: this.p2.x, y: this.p2.y}, true);
 
 				// Commit the spline
 				undoManager.execute(new AddShapeCommand(this.spline));
@@ -128,11 +130,52 @@ export class SplineTool extends Tool
 		stage.render();
 	}
 
+	commitEndPoint(snap){
+		data.clearTempShapes();
+
+		// Set end point (p3)
+		this.p3 = {x: snap.x, y: snap.y};
+		// Default control handles to 1/3 and 2/3 along the line
+		this.p1 = {
+			x: this.p0.x + (this.p3.x - this.p0.x) / 3,
+			y: this.p0.y + (this.p3.y - this.p0.y) / 3
+		};
+		this.p2 = {
+			x: this.p0.x + 2 * (this.p3.x - this.p0.x) / 3,
+			y: this.p0.y + 2 * (this.p3.y - this.p0.y) / 3
+		};
+		// Create spline preview
+		this.spline = new Spline([
+			this.p0.x, this.p0.y,
+			this.p1.x, this.p1.y,
+			this.p2.x, this.p2.y,
+			this.p3.x, this.p3.y
+		]);
+		data.addTempShape(this.spline);
+
+		// Create guide reference from end point (pass a copy)
+		da.setCurrentSnapPoint({x: this.p3.x, y: this.p3.y}, true);
+
+		this.isDragging = false;
+		this.dragStart = null;
+		this.state = STATE.CONTROL1;
+	}
+
 	onMouseMove(e)
 	{
 		const snap = da.getCurrentSnapPoint();
 
 		if(this.state === STATE.END && this.p0){
+			// Check if we've moved enough to consider this a drag
+			if(this.dragStart && !this.isDragging){
+				const dx = snap.x - this.dragStart.x;
+				const dy = snap.y - this.dragStart.y;
+				const screenDist = stage.worldToScreenScale(Math.sqrt(dx * dx + dy * dy));
+				if(screenDist > 5){
+					this.isDragging = true;
+				}
+			}
+
 			if(this.linePreview){
 				this.linePreview.end.x = snap.x;
 				this.linePreview.end.y = snap.y;
@@ -157,7 +200,12 @@ export class SplineTool extends Tool
 	}
 
 	onMouseUp(e){
-		
+		if(this.state === STATE.END && this.isDragging){
+			// Drag complete: commit end point
+			const snap = da.getCurrentSnapPoint();
+			this.commitEndPoint(snap);
+			stage.render();
+		}
 	}
 
 }

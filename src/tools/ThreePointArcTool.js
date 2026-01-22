@@ -24,7 +24,7 @@ export class ThreePointArcTool extends Tool
 		super();
 
 		this.name 	= "3-Point Arc";
-		this.usage 	= "Click start point, click end point, then click a point on the arc to define curvature.";
+		this.usage 	= "Click start, then click or drag to end point, then click to define curvature.";
 		this.cursor = "cursor_arc";
 
 		this.arc 			= null;
@@ -32,6 +32,10 @@ export class ThreePointArcTool extends Tool
 		this.startPoint 	= null;
 		this.endPoint 		= null;
 		this.state 			= STATE.START;
+
+		// Drag support for start-to-end segment
+		this.isDragging		= false;
+		this.dragStart		= null;
 
 		this.onMouseMove 	= this.onMouseMove.bind(this);
 		this.onMouseDown 	= this.onMouseDown.bind(this);
@@ -54,6 +58,8 @@ export class ThreePointArcTool extends Tool
 		this.startPoint 	= null;
 		this.endPoint 		= null;
 		this.state 			= STATE.START;
+		this.isDragging		= false;
+		this.dragStart		= null;
 		data.clearTempShapes();
 	}
 
@@ -69,6 +75,9 @@ export class ThreePointArcTool extends Tool
 		if(this.state === STATE.START){
 			// First click: set start point and create line preview
 			this.startPoint = {x: currentPoint.x, y: currentPoint.y};
+			this.dragStart = {x: currentPoint.x, y: currentPoint.y};
+			this.isDragging = false;
+
 			this.linePreview = new Line([
 				this.startPoint.x, this.startPoint.y,
 				this.startPoint.x, this.startPoint.y
@@ -76,8 +85,8 @@ export class ThreePointArcTool extends Tool
 			data.addTempShape(this.linePreview);
 			this.state = STATE.END;
 
-		} else if(this.state === STATE.END){
-			// Second click: set end point, keep line as chord preview until mouse moves
+		} else if(this.state === STATE.END && !this.isDragging){
+			// Second click (click-click mode): set end point
 			this.endPoint = {x: currentPoint.x, y: currentPoint.y};
 
 			// Update line to show the chord (start to end)
@@ -103,8 +112,18 @@ export class ThreePointArcTool extends Tool
 	{
 		const currentPoint = da.getCurrentSnapPoint();
 
-		// STATE.END: update line preview
+		// STATE.END: update line preview and check for drag
 		if(this.state === STATE.END && this.linePreview){
+			// Check if we've moved enough to consider this a drag
+			if(this.dragStart && !this.isDragging){
+				const dx = currentPoint.x - this.dragStart.x;
+				const dy = currentPoint.y - this.dragStart.y;
+				const screenDist = stage.worldToScreenScale(Math.sqrt(dx * dx + dy * dy));
+				if(screenDist > 5){
+					this.isDragging = true;
+				}
+			}
+
 			this.linePreview.end.x = currentPoint.x;
 			this.linePreview.end.y = currentPoint.y;
 			this.linePreview.update();
@@ -152,7 +171,21 @@ export class ThreePointArcTool extends Tool
 	}
 
 	onMouseUp(e){
-		
+		if(this.state === STATE.END && this.isDragging){
+			// Drag complete: commit end point and move to MID state
+			const currentPoint = da.getCurrentSnapPoint();
+			this.endPoint = {x: currentPoint.x, y: currentPoint.y};
+
+			// Update line to show the chord
+			this.linePreview.end.x = this.endPoint.x;
+			this.linePreview.end.y = this.endPoint.y;
+			this.linePreview.update();
+
+			this.isDragging = false;
+			this.dragStart = null;
+			this.state = STATE.MID;
+			stage.render();
+		}
 	}
 
 }

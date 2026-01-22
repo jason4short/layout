@@ -13,12 +13,18 @@ export class Ellipse extends Geometry
 		this.type 			= Shape.PLAIN;
 		this.geometry		= Shape.ELLIPSE;
 
-		// params: [x, y, radiusX, radiusY, rotation]
+		// params: [x, y, radiusX, radiusY, rotation, cornerAngle, controlMode]
 		this.x 				= params[0];
 		this.y 				= params[1];
 		this.radiusX 		= params[2];  // semi-axis in X direction
 		this.radiusY 		= params[3];  // semi-axis in Y direction
 		this.rotation 		= params[4] || 0;  // rotation in radians (for future use)
+		// cornerAngle remembers which corner the user used to create/resize the ellipse
+		// Default to bottom-right quadrant (π/4)
+		this.cornerAngle 	= params[5] !== undefined ? params[5] : Math.PI / 4;
+		// controlMode: 'center' = center + corner control points
+		//              'corners' = two opposite corners as control points
+		this.controlMode 	= params[6] || 'center';
 
 		this.updateBoundingBox();
 	}
@@ -37,14 +43,38 @@ export class Ellipse extends Geometry
 	}
 
 	getSnapPOIs() {
-		// Return center and 4 vertex points (ends of axes)
-		return [
-			{ x: this.x, y: this.y },  // center
-			{ x: this.x + this.radiusX, y: this.y },  // right
-			{ x: this.x - this.radiusX, y: this.y },  // left
-			{ x: this.x, y: this.y + this.radiusY },  // bottom
-			{ x: this.x, y: this.y - this.radiusY }   // top
-		];
+		// Control points depend on controlMode:
+		// 'center' mode: POI 0 = center, POI 1 = corner
+		// 'corners' mode: POI 0 = corner1, POI 1 = opposite corner
+		// POI 2-5 = axis endpoints for snapping (right, left, bottom, top)
+
+		const signX = Math.sign(Math.cos(this.cornerAngle)) || 1;
+		const signY = Math.sign(Math.sin(this.cornerAngle)) || 1;
+		const corner1X = this.x + signX * this.radiusX;
+		const corner1Y = this.y + signY * this.radiusY;
+		const corner2X = this.x - signX * this.radiusX;
+		const corner2Y = this.y - signY * this.radiusY;
+
+		if (this.controlMode === 'corners') {
+			return [
+				{ x: corner1X, y: corner1Y },  // corner1 (user's first click)
+				{ x: corner2X, y: corner2Y },  // corner2 (opposite corner)
+				{ x: this.x + this.radiusX, y: this.y },  // right
+				{ x: this.x - this.radiusX, y: this.y },  // left
+				{ x: this.x, y: this.y + this.radiusY },  // bottom
+				{ x: this.x, y: this.y - this.radiusY }   // top
+			];
+		} else {
+			// 'center' mode (default)
+			return [
+				{ x: this.x, y: this.y },  // center
+				{ x: corner1X, y: corner1Y },  // corner control point
+				{ x: this.x + this.radiusX, y: this.y },  // right
+				{ x: this.x - this.radiusX, y: this.y },  // left
+				{ x: this.x, y: this.y + this.radiusY },  // bottom
+				{ x: this.x, y: this.y - this.radiusY }   // top
+			];
+		}
 	}
 
 	getGeoSnap(mouse, mouseRect, pixelTolerance)
@@ -109,7 +139,7 @@ export class Ellipse extends Geometry
 	}
 
 	clone() {
-		let e = new Ellipse([this.x, this.y, this.radiusX, this.radiusY, this.rotation]);
+		let e = new Ellipse([this.x, this.y, this.radiusX, this.radiusY, this.rotation, this.cornerAngle, this.controlMode]);
 		e.type = this.type;
 		e.groupId = this.groupId;
 		return e;
@@ -184,25 +214,73 @@ export class Ellipse extends Geometry
 	}
 
 	// Update a specific control point by index
-	// POI indices: 0=center, 1=right, 2=left, 3=bottom, 4=top
+	// POI indices depend on controlMode:
+	// 'center' mode: 0=center, 1=corner, 2-5=axis points
+	// 'corners' mode: 0=corner1, 1=corner2, 2-5=axis points
 	updateControlPoint(index, newX, newY){
+		if (this.controlMode === 'corners') {
+			// In corners mode, dragging one corner keeps the opposite fixed
+			const signX = Math.sign(Math.cos(this.cornerAngle)) || 1;
+			const signY = Math.sign(Math.sin(this.cornerAngle)) || 1;
+
+			if (index === 0) {
+				// Dragging corner1 - corner2 (opposite) stays fixed
+				const corner2X = this.x - signX * this.radiusX;
+				const corner2Y = this.y - signY * this.radiusY;
+				// New center is midpoint between new corner1 and fixed corner2
+				this.x = (newX + corner2X) / 2;
+				this.y = (newY + corner2Y) / 2;
+				this.radiusX = Math.abs(newX - corner2X) / 2;
+				this.radiusY = Math.abs(newY - corner2Y) / 2;
+				this.cornerAngle = Math.atan2(newY - this.y, newX - this.x);
+			} else if (index === 1) {
+				// Dragging corner2 - corner1 stays fixed
+				const corner1X = this.x + signX * this.radiusX;
+				const corner1Y = this.y + signY * this.radiusY;
+				// New center is midpoint between fixed corner1 and new corner2
+				this.x = (corner1X + newX) / 2;
+				this.y = (corner1Y + newY) / 2;
+				this.radiusX = Math.abs(corner1X - newX) / 2;
+				this.radiusY = Math.abs(corner1Y - newY) / 2;
+				this.cornerAngle = Math.atan2(corner1Y - this.y, corner1X - this.x);
+			} else {
+				// Axis points (2-5) behave the same as center mode
+				this.updateAxisPoint(index, newX, newY);
+			}
+		} else {
+			// 'center' mode (default)
+			switch(index){
+				case 0: // center - move the ellipse
+					this.x = newX;
+					this.y = newY;
+					break;
+				case 1: // corner - adjust both radii and remember the angle
+					this.radiusX = Math.abs(newX - this.x);
+					this.radiusY = Math.abs(newY - this.y);
+					this.cornerAngle = Math.atan2(newY - this.y, newX - this.x);
+					break;
+				default:
+					this.updateAxisPoint(index, newX, newY);
+					break;
+			}
+		}
+		this.update();
+	}
+
+	// Helper to update axis control points (indices 2-5)
+	updateAxisPoint(index, newX, newY) {
 		switch(index){
-			case 0: // center - move the ellipse
-				this.x = newX;
-				this.y = newY;
-				break;
-			case 1: // right
-			case 2: // left
+			case 2: // right
+			case 3: // left
 				// Change radiusX based on horizontal distance from center
 				this.radiusX = Math.abs(newX - this.x);
 				break;
-			case 3: // bottom
-			case 4: // top
+			case 4: // bottom
+			case 5: // top
 				// Change radiusY based on vertical distance from center
 				this.radiusY = Math.abs(newY - this.y);
 				break;
 		}
-		this.update();
 	}
 
 	toJSON() {
