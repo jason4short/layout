@@ -107,7 +107,6 @@ class Inspector {
 		if (!this.container) return;
 
 		const selected = data.getSelected();
-		console.log('[Inspector] update() called, selected:', selected.length);
 
 		if (selected.length === 0) {
 			if (this.currentShape !== null || this.currentGroupId !== null || this.lastMultiCount !== 0) {
