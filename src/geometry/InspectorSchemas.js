@@ -8,7 +8,7 @@ import { PaperSizes } from './Paper.js';
 import data from '../data/Data.js';
 import stage from '../core/Stage.js';
 import undoManager from '../core/UndoManager.js';
-import { DeleteShapesCommand, AddShapesCommand } from '../core/Commands.js';
+import { DeleteShapesCommand, AddShapesCommand, ApplyLayoutCommand } from '../core/Commands.js';
 
 // Common field templates
 const positionFields = (prefix = '') => [
@@ -517,6 +517,93 @@ export function symbolSchema(shape) {
 								for (const s of shapes) {
 									s.selected = true;
 								}
+								stage.render();
+							}
+						}
+					}
+				]
+			}
+		]
+	};
+}
+
+export function groupSchema(groupId) {
+	const group = data.groups.get(groupId);
+	if (!group) return null;
+
+	// Count items in group
+	const directShapes = data.getDirectGroupShapes(groupId);
+	const childGroups = data.getChildGroupIds(groupId);
+	const itemCount = directShapes.length + childGroups.length;
+
+	return {
+		name: 'Group',
+		sections: [
+			{
+				title: 'Info',
+				fields: [
+					{
+						key: 'itemCount',
+						label: 'Items',
+						type: 'readonly',
+						get: () => itemCount
+					}
+				]
+			},
+			{
+				title: 'Auto-Layout',
+				fields: [
+					{
+						key: 'layout.mode',
+						label: 'Direction',
+						type: 'select',
+						options: [
+							{ value: 'none', label: 'None' },
+							{ value: 'row', label: 'Horizontal' },
+							{ value: 'column', label: 'Vertical' }
+						],
+						get: () => group.layout.mode,
+						set: (v) => { group.layout.mode = v; }
+					},
+					{
+						key: 'layout.gap',
+						label: 'Gap',
+						type: 'length',
+						get: () => group.layout.gap,
+						set: (v) => { group.layout.gap = v; },
+						min: 0
+					},
+					{
+						key: 'layout.alignment',
+						label: 'Align',
+						type: 'select',
+						options: [
+							{ value: 'start', label: 'Start' },
+							{ value: 'center', label: 'Center' },
+							{ value: 'end', label: 'End' }
+						],
+						get: () => group.layout.alignment,
+						set: (v) => { group.layout.alignment = v; }
+					},
+					{
+						key: 'layout.distribution',
+						label: 'Distribute',
+						type: 'select',
+						options: [
+							{ value: 'none', label: 'Fixed Gap' },
+							{ value: 'space-between', label: 'Space Between' },
+							{ value: 'space-around', label: 'Space Around' }
+						],
+						get: () => group.layout.distribution,
+						set: (v) => { group.layout.distribution = v; }
+					},
+					{
+						key: 'applyLayout',
+						label: 'Apply Layout',
+						type: 'button',
+						action: () => {
+							if (group.layout.mode !== 'none') {
+								undoManager.execute(new ApplyLayoutCommand(groupId));
 								stage.render();
 							}
 						}

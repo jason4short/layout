@@ -118,9 +118,37 @@ export class PointerTool extends Tool
 
 		const selected = data.getSelected();
 
-		// Clone each selected shape
+		// Build mapping from old groupIds to new groupIds
+		const groupIdMap = new Map();
+		for(const shape of selected){
+			if(shape.groupId && !groupIdMap.has(shape.groupId)){
+				// Walk up the group hierarchy to capture all ancestor groups
+				let currentId = shape.groupId;
+				while(currentId && !groupIdMap.has(currentId)){
+					const newId = `group_${data._nextGroupId++}`;
+					groupIdMap.set(currentId, newId);
+					const group = data.groups.get(currentId);
+					currentId = group ? group.parentId : null;
+				}
+			}
+		}
+
+		// Create new groups with remapped parentIds
+		for(const [oldId, newId] of groupIdMap){
+			const oldGroup = data.groups.get(oldId);
+			const newParentId = oldGroup && oldGroup.parentId ? groupIdMap.get(oldGroup.parentId) : null;
+			const layout = oldGroup && oldGroup.layout
+				? { ...oldGroup.layout }
+				: { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' };
+			data.groups.set(newId, { id: newId, parentId: newParentId, layout });
+		}
+
+		// Clone each selected shape with remapped groupId
 		for(const shape of selected){
 			const clone = shape.clone();
+			if(clone.groupId){
+				clone.groupId = groupIdMap.get(clone.groupId) || null;
+			}
 			data.addShape(clone);
 			clone.selected = true;
 			this.clonedShapes.push(clone);
@@ -226,10 +254,10 @@ export class PointerTool extends Tool
 		this.isDragging = false;
 		this.isMoving = false;
 
-		// Check if clicking on something already selected
+		// Check if clicking on a shape
 		this.moveTarget = data.getTargetShape();
 
-		// Check if clicking on a control point for resizing
+		// Check if clicking on a control point for resizing FIRST
 		// For Image: corners are POI indices 0-3, center is 4
 		// For Ellipse: center is 0, corner is 1, axis points are 2-5
 		// For Circle: center is 0, radius point is 1
@@ -259,6 +287,44 @@ export class PointerTool extends Tool
 				data.selectNone();
 				this.moveTarget.selected = true;
 			}
+		}
+
+		// Select on mouse down (if clicking on a shape, but not a resize control point)
+		if(this.moveTarget && !this.cornerResize){
+			const shape = this.moveTarget;
+			const clickingOnPOI = data.snapPoint.poiIndex !== undefined;
+			const shapeAlreadySelected = shape.selected || data.getSelectedPoints().has(shape);
+
+			// If shape is already selected and clicking on a POI, allow point dragging
+			// (don't change selection - just let the drag happen)
+			if(shapeAlreadySelected && clickingOnPOI){
+				// Don't change selection - point drag will be handled by move logic
+				stage.render();
+			} else if(stage.shiftKey){
+				// Shift+click toggles selection (including group)
+				if(shape.groupId){
+					const rootId = data.getRootGroupId(shape.groupId);
+					const groupShapes = data.getGroupShapes(rootId);
+					const shouldSelect = !shape.selected;
+					for(const s of groupShapes){
+						if(!s.locked) s.selected = shouldSelect;
+					}
+				} else {
+					shape.selected = !shape.selected;
+				}
+				stage.render();
+			} else if(!shapeAlreadySelected){
+				// Click on unselected shape - select it (deselect others)
+				data.selectNone();
+				if(shape.groupId){
+					// Select entire group hierarchy
+					data.selectGroup(shape);
+				} else {
+					shape.selected = true;
+				}
+				stage.render();
+			}
+			// If already selected (not on POI), keep it selected (for move operation)
 		}
 
 		// create a guide reference from initial point
@@ -377,14 +443,12 @@ export class PointerTool extends Tool
 			// Finish marquee selection
 			data.selectByMarquee(this.marqueeRect, stage.shiftKey);
 			this.marqueeRect = null;
-			
-		} else if(this.dragStart && !this.isDragging && !this.isMoving){
-			// It was a click, not a drag - use existing click selection
-			//data.selectShape(e, stage.shiftKey);
-			data.selectSnapShape(stage.shiftKey);
-		}else{
-			if(e.target == stage.canvas)
+
+		} else if(this.dragStart && !this.isDragging && !this.isMoving && !this.moveTarget){
+			// Click on empty space (no shape) - deselect all
+			if(!stage.shiftKey){
 				data.selectNone();
+			}
 		}
 
 		this.resetDrag();

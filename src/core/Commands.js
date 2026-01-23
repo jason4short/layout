@@ -2,6 +2,7 @@
 // Each command knows how to execute and undo itself
 
 import data from '../data/Data.js';
+import { calculateLayout } from './LayoutEngine.js';
 
 // Base Command class
 export class Command {
@@ -484,14 +485,26 @@ export class GroupCommand extends Command {
 				childGroupIds.add(shape.groupId);
 			}
 		}
+		console.log('GroupCommand: shapes with existing groupIds:', [...childGroupIds]);
 
-		// Create new group
+		// Create new group with layout properties
 		this.groupId = `group_${data._nextGroupId++}`;
-		data.groups.set(this.groupId, { id: this.groupId, parentId: null });
+		data.groups.set(this.groupId, {
+			id: this.groupId,
+			parentId: null,
+			layout: {
+				mode: 'none',
+				gap: 0,
+				alignment: 'start',
+				distribution: 'none'
+			}
+		});
+		console.log('GroupCommand: created new group', this.groupId);
 
 		// Reparent child groups
 		for(const childId of childGroupIds){
 			const childGroup = data.groups.get(childId);
+			console.log('GroupCommand: reparenting', childId, '- found:', !!childGroup);
 			if(childGroup){
 				this.reparentedGroups.push({ id: childId, oldParentId: childGroup.parentId });
 				childGroup.parentId = this.groupId;
@@ -499,11 +512,15 @@ export class GroupCommand extends Command {
 		}
 
 		// Assign ungrouped shapes to new group
+		let ungroupedCount = 0;
 		for(const shape of this.shapes){
 			if(!shape.groupId){
 				shape.groupId = this.groupId;
+				ungroupedCount++;
 			}
 		}
+		console.log('GroupCommand: assigned', ungroupedCount, 'ungrouped shapes to new group');
+		console.log('GroupCommand: groups Map now has', data.groups.size, 'groups');
 	}
 
 	undo() {
@@ -543,6 +560,7 @@ export class UngroupCommand extends Command {
 			const groupInfo = {
 				id: groupId,
 				parentId: parentId,
+				layout: group.layout ? { ...group.layout } : null,
 				shapes: [],
 				childGroups: []
 			};
@@ -571,8 +589,12 @@ export class UngroupCommand extends Command {
 	undo() {
 		// Restore groups in reverse order
 		for(const groupInfo of this.groupData.reverse()){
-			// Recreate group
-			data.groups.set(groupInfo.id, { id: groupInfo.id, parentId: groupInfo.parentId });
+			// Recreate group with layout
+			data.groups.set(groupInfo.id, {
+				id: groupInfo.id,
+				parentId: groupInfo.parentId,
+				layout: groupInfo.layout || { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' }
+			});
 
 			// Restore shape groupIds
 			for(const {shape, oldGroupId} of groupInfo.shapes){
@@ -585,5 +607,87 @@ export class UngroupCommand extends Command {
 				if(g) g.parentId = oldParentId;
 			}
 		}
+	}
+}
+
+// Apply auto-layout to a group
+export class ApplyLayoutCommand extends Command {
+	constructor(groupId) {
+		super('Apply Layout');
+		this.groupId = groupId;
+		this.originalPositions = []; // For undo: { type, item, x, y }
+	}
+
+	execute() {
+		const group = data.groups.get(this.groupId);
+		if (!group || group.layout.mode === 'none') return;
+
+		const items = data.getLayoutItems(this.groupId);
+		const bounds = data.getGroupBounds(this.groupId);
+		if (!bounds || items.length === 0) return;
+
+		// Store original positions for undo
+		this.originalPositions = items.map(item => ({
+			type: item.type,
+			item: item.item,
+			x: item.bounds.x,
+			y: item.bounds.y
+		}));
+
+		// Calculate new positions
+		const moves = calculateLayout(items, bounds, group.layout);
+
+		// Apply moves
+		for (const move of moves) {
+			if (move.dx === 0 && move.dy === 0) continue;
+
+			if (move.type === 'shape') {
+				move.item.translate(move.dx, move.dy);
+			} else if (move.type === 'group') {
+				// Move all shapes in the child group
+				const groupShapes = data.getGroupShapes(move.item);
+				for (const shape of groupShapes) {
+					shape.translate(move.dx, move.dy);
+				}
+			}
+		}
+
+		data.rebuildPOIs();
+		data.recalculateAllIntersections?.() || this._recalculateIntersections();
+	}
+
+	undo() {
+		// Restore original positions
+		for (const pos of this.originalPositions) {
+			if (pos.type === 'shape') {
+				const currentBounds = pos.item.bounds;
+				const dx = pos.x - currentBounds.x;
+				const dy = pos.y - currentBounds.y;
+				if (dx !== 0 || dy !== 0) {
+					pos.item.translate(dx, dy);
+				}
+			} else if (pos.type === 'group') {
+				const currentBounds = data.getGroupBounds(pos.item);
+				if (currentBounds) {
+					const dx = pos.x - currentBounds.x;
+					const dy = pos.y - currentBounds.y;
+					if (dx !== 0 || dy !== 0) {
+						const groupShapes = data.getGroupShapes(pos.item);
+						for (const shape of groupShapes) {
+							shape.translate(dx, dy);
+						}
+					}
+				}
+			}
+		}
+
+		data.rebuildPOIs();
+		data.recalculateAllIntersections?.() || this._recalculateIntersections();
+	}
+
+	_recalculateIntersections() {
+		// Fallback if recalculateAllIntersections doesn't exist
+		const shapes = data.getGroupShapes(this.groupId);
+		data.recalculateIntersectionsForShapes(shapes);
 	}
 }

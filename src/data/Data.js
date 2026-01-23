@@ -396,8 +396,17 @@ class Data
 			}
 		}
 
-		// Create the group
-		this.groups.set(groupId, { id: groupId, parentId: null });
+		// Create the group with layout properties
+		this.groups.set(groupId, {
+			id: groupId,
+			parentId: null,
+			layout: {
+				mode: 'none',       // 'none' | 'row' | 'column'
+				gap: 0,             // spacing between children (mm)
+				alignment: 'start', // 'start' | 'center' | 'end'
+				distribution: 'none' // 'none' | 'space-between' | 'space-around'
+			}
+		});
 
 		// If there are child groups, update their parentId
 		for(const childId of childGroupIds){
@@ -474,6 +483,76 @@ class Data
 		}
 
 		return result;
+	}
+
+	// Get direct children only (shapes whose groupId === groupId, not nested)
+	getDirectGroupShapes(groupId){
+		if(!groupId) return [];
+		return this.shapes.filter(s => s.groupId === groupId);
+	}
+
+	// Get child group IDs (direct children groups)
+	getChildGroupIds(groupId){
+		const childIds = [];
+		for(const [id, group] of this.groups){
+			if(group.parentId === groupId){
+				childIds.push(id);
+			}
+		}
+		return childIds;
+	}
+
+	// Compute bounding box of all shapes in group (recursive)
+	getGroupBounds(groupId){
+		const shapes = this.getGroupShapes(groupId);
+		if(shapes.length === 0) return null;
+
+		let minX = Infinity, minY = Infinity;
+		let maxX = -Infinity, maxY = -Infinity;
+
+		for(const shape of shapes){
+			const b = shape.bounds;
+			minX = Math.min(minX, b.x);
+			minY = Math.min(minY, b.y);
+			maxX = Math.max(maxX, b.x + b.width);
+			maxY = Math.max(maxY, b.y + b.height);
+		}
+
+		return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+	}
+
+	// Get layout items for a group: direct shapes + child groups as units
+	// Returns array of { type: 'shape'|'group', item: shape|groupId, bounds: {...} }
+	getLayoutItems(groupId){
+		const items = [];
+
+		// Add direct shapes (shapes whose groupId === this groupId)
+		const directShapes = this.getDirectGroupShapes(groupId);
+		console.log(`getLayoutItems(${groupId}): directShapes =`, directShapes.length);
+		for(const shape of directShapes){
+			items.push({
+				type: 'shape',
+				item: shape,
+				bounds: { ...shape.bounds }
+			});
+		}
+
+		// Add child groups as single units
+		const childGroupIds = this.getChildGroupIds(groupId);
+		console.log(`getLayoutItems(${groupId}): childGroupIds =`, childGroupIds);
+		for(const childId of childGroupIds){
+			const bounds = this.getGroupBounds(childId);
+			if(bounds){
+				items.push({
+					type: 'group',
+					item: childId,
+					bounds: bounds
+				});
+			}
+		}
+
+		console.log(`getLayoutItems(${groupId}): total items =`, items.length, items.map(i => i.type));
+		return items;
 	}
 
 	// Get the root group ID for a shape (walks up parent chain)
@@ -666,16 +745,22 @@ class Data
 					const newId = `group_${this._nextGroupId++}`;
 					groupIdMap.set(currentId, newId);
 					const group = this.groups.get(currentId);
+					console.log(`preparePaste: mapping ${currentId} -> ${newId}, parent = ${group?.parentId}`);
 					currentId = group ? group.parentId : null;
 				}
 			}
 		}
+		console.log('preparePaste: groupIdMap =', [...groupIdMap.entries()]);
 
-		// Create new groups with remapped parentIds
+		// Create new groups with remapped parentIds and layout properties
 		for(const [oldId, newId] of groupIdMap){
 			const oldGroup = this.groups.get(oldId);
 			const newParentId = oldGroup && oldGroup.parentId ? groupIdMap.get(oldGroup.parentId) : null;
-			this.groups.set(newId, { id: newId, parentId: newParentId });
+			const layout = oldGroup && oldGroup.layout
+				? { ...oldGroup.layout }
+				: { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' };
+			console.log(`preparePaste: creating group ${newId} with parentId ${newParentId}`);
+			this.groups.set(newId, { id: newId, parentId: newParentId, layout });
 		}
 
 		// Clone and offset each shape, remapping groupId

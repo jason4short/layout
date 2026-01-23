@@ -2,6 +2,7 @@ import data from '../data/Data.js';
 import stage from './Stage.js';
 import { Shape, PenStyle } from '../geometry/Geometry.js';
 import units from './Units.js';
+import { groupSchema } from '../geometry/InspectorSchemas.js';
 
 class Inspector {
 	constructor() {
@@ -13,6 +14,7 @@ class Inspector {
 		this.currentShape = null;
 		this.currentSchema = null;
 		this.lastMultiCount = 0;
+		this.currentGroupId = null; // Track when showing group inspector
 
 		Inspector.instance = this;
 		return this;
@@ -25,23 +27,116 @@ class Inspector {
 		this.container.innerHTML = '<div class="inspector-empty">No selection</div>';
 	}
 
+	// Find if the selection represents a complete group at any level
+	// Returns the groupId if found, null otherwise
+	findSelectedGroup(selected) {
+		if (selected.length === 0) return null;
+
+		// Check if ALL selected shapes have a groupId (no ungrouped shapes mixed in)
+		const allGrouped = selected.every(s => s.groupId);
+		if (!allGrouped) return null;
+
+		// Collect all unique group IDs from selection
+		const groupIds = new Set();
+		for (const shape of selected) {
+			groupIds.add(shape.groupId);
+		}
+
+		// Helper to check if a group exactly matches selection
+		const groupMatchesSelection = (groupId) => {
+			const groupShapes = data.getGroupShapes(groupId);
+			if (groupShapes.length !== selected.length) return false;
+			// Check both directions to ensure exact match
+			return groupShapes.every(s => selected.includes(s)) &&
+			       selected.every(s => groupShapes.includes(s));
+		};
+
+		// Case 1: All shapes in same direct group - check if that group is complete
+		if (groupIds.size === 1) {
+			const groupId = [...groupIds][0];
+			// First check direct group shapes
+			const directShapes = data.getDirectGroupShapes(groupId);
+			if (directShapes.length === selected.length &&
+				directShapes.every(s => selected.includes(s))) {
+				return groupId;
+			}
+			// If direct doesn't match, maybe this group has child groups
+			// and we have a nested structure all under this groupId
+			if (groupMatchesSelection(groupId)) {
+				return groupId;
+			}
+		}
+
+		// Case 2: Shapes in different groups - find common ancestor
+		// Get root group for each groupId
+		const rootIds = new Set();
+		for (const gid of groupIds) {
+			rootIds.add(data.getRootGroupId(gid));
+		}
+
+		// If all shapes share the same root, check if root group is complete
+		if (rootIds.size === 1) {
+			const rootId = [...rootIds][0];
+			if (groupMatchesSelection(rootId)) {
+				return rootId;
+			}
+		}
+
+		// Case 3: Check intermediate parent levels
+		// Collect parent IDs for groups that have parents
+		const parentIds = new Set();
+		for (const gid of groupIds) {
+			const group = data.groups.get(gid);
+			if (group && group.parentId) {
+				parentIds.add(group.parentId);
+			}
+		}
+
+		// If some groups share a parent, check those parents
+		for (const parentId of parentIds) {
+			if (groupMatchesSelection(parentId)) {
+				return parentId;
+			}
+		}
+
+		return null;
+	}
+
 	// Called when selection changes
 	update() {
 		if (!this.container) return;
 
 		const selected = data.getSelected();
+		console.log('[Inspector] update() called, selected:', selected.length);
 
 		if (selected.length === 0) {
-			if (this.currentShape !== null) {
+			if (this.currentShape !== null || this.currentGroupId !== null || this.lastMultiCount !== 0) {
 				this.currentShape = null;
 				this.currentSchema = null;
+				this.currentGroupId = null;
+				this.lastMultiCount = 0;
 				this.container.innerHTML = '<div class="inspector-empty">No selection</div>';
 			}
 			return;
 		}
 
+		// Check if selection represents a complete group (at any level)
+		const groupId = this.findSelectedGroup(selected);
+		if (groupId) {
+			if (this.currentGroupId !== groupId) {
+				this.currentShape = null;
+				this.currentGroupId = groupId;
+				this.buildGroupPanel(groupId);
+			}
+			return;
+		}
+
+		// Track if we were showing a group panel (need to rebuild if so)
+		const wasShowingGroup = this.currentGroupId !== null;
+		this.currentGroupId = null;
+
 		if (selected.length > 1) {
-			if (this.currentShape !== null || this.lastMultiCount !== selected.length) {
+			if (this.currentShape !== null || wasShowingGroup || this.lastMultiCount !== selected.length) {
 				this.currentShape = null;
 				this.currentSchema = null;
 				this.lastMultiCount = selected.length;
@@ -180,6 +275,119 @@ class Inspector {
 				}
 				stage.render();
 			});
+		}
+	}
+
+	buildGroupPanel(groupId) {
+		const schema = groupSchema(groupId);
+		if (!schema) return;
+
+		this.currentSchema = schema;
+
+		let html = '<div class="inspector-panel">';
+
+		// Header
+		html += `<div class="inspector-header">${schema.name}</div>`;
+
+		// Schema-driven fields (no pen style for groups)
+		if (schema.sections) {
+			for (const section of schema.sections) {
+				html += this.buildGroupSection(section, groupId);
+			}
+		}
+
+		html += '</div>';
+		this.container.innerHTML = html;
+
+		// Attach event listeners
+		this.attachGroupListeners(groupId, schema);
+	}
+
+	buildGroupSection(section, groupId) {
+		let html = `<div class="inspector-section">`;
+		html += `<div class="inspector-section-title">${section.title}</div>`;
+
+		for (const field of section.fields) {
+			html += this.buildGroupField(field, groupId);
+		}
+
+		html += `</div>`;
+		return html;
+	}
+
+	buildGroupField(field, groupId) {
+		const value = field.get ? field.get() : null;
+
+		if (field.type === 'readonly') {
+			return `<div class="inspector-row">
+				<label>${field.label}</label>
+				<span class="inspector-value">${value}</span>
+			</div>`;
+		}
+
+		if (field.type === 'select' && field.options) {
+			const optionsHtml = field.options.map(opt => {
+				const selected = opt.value === value ? 'selected' : '';
+				return `<option value="${opt.value}" ${selected}>${opt.label}</option>`;
+			}).join('');
+
+			return `<div class="inspector-row">
+				<label>${field.label}</label>
+				<select id="prop-${field.key}">${optionsHtml}</select>
+			</div>`;
+		}
+
+		if (field.type === 'length') {
+			const displayValue = value !== null && value !== undefined
+				? units.format(value, undefined, false)
+				: '';
+			return `<div class="inspector-row">
+				<label>${field.label}</label>
+				<input type="text" id="prop-${field.key}" value="${displayValue}">
+			</div>`;
+		}
+
+		if (field.type === 'button') {
+			return `<div class="inspector-row inspector-button-row">
+				<button id="prop-${field.key}" class="inspector-button">${field.label}</button>
+			</div>`;
+		}
+
+		return '';
+	}
+
+	attachGroupListeners(groupId, schema) {
+		if (!schema || !schema.sections) return;
+
+		for (const section of schema.sections) {
+			for (const field of section.fields) {
+				if (field.type === 'readonly') continue;
+
+				const el = document.getElementById(`prop-${field.key}`);
+				if (!el) continue;
+
+				if (field.type === 'button' && field.action) {
+					el.addEventListener('click', () => {
+						field.action();
+						// Refresh group panel after action
+						this.buildGroupPanel(groupId);
+					});
+					continue;
+				}
+
+				if (field.type === 'select') {
+					el.addEventListener('change', (e) => {
+						if (field.set) field.set(e.target.value);
+					});
+				} else if (field.type === 'length') {
+					el.addEventListener('change', (e) => {
+						const numValue = units.parse(e.target.value);
+						if (numValue !== null && field.set) {
+							field.set(numValue);
+						}
+					});
+				}
+			}
 		}
 	}
 

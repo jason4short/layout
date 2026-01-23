@@ -5,7 +5,7 @@ import toolManager			from '../tools/ToolManager.js';
 import { View } 			from "./View.js";
 import { Rectangle } 		from "../geometry/Rectangle.js";
 import { Renderer } 		from "./Renderer.js";
-import { InputHandler } 	from './InputHandler';
+import { InputHandler } 	from './InputHandler.js';
 
 // Lazy import to avoid circular dependency
 let inspector = null;

@@ -37,10 +37,14 @@ class FileManager
 		});
 		const constructions = data.constructions.map(c => c.toJSON());
 
-		// Serialize groups
+		// Serialize groups with layout properties
 		const groups = [];
 		for(const [id, group] of data.groups){
-			groups.push({ id: group.id, parentId: group.parentId });
+			groups.push({
+				id: group.id,
+				parentId: group.parentId,
+				layout: group.layout || { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' }
+			});
 		}
 
 		// Collect symbol definitions used by symbol instances in this document
@@ -97,11 +101,15 @@ class FileManager
 			stage.zoom = json.viewport.zoom || 1;
 		}
 
-		// Restore groups
+		// Restore groups with layout properties (with defaults for backward compatibility)
 		if(json.groups){
 			let maxId = 0;
 			for(const groupData of json.groups){
-				data.groups.set(groupData.id, { id: groupData.id, parentId: groupData.parentId || null });
+				data.groups.set(groupData.id, {
+					id: groupData.id,
+					parentId: groupData.parentId || null,
+					layout: groupData.layout || { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' }
+				});
 				// Track highest group ID number for _nextGroupId
 				const match = groupData.id.match(/group_(\d+)/);
 				if(match) maxId = Math.max(maxId, parseInt(match[1]));
