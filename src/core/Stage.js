@@ -48,6 +48,9 @@ class Stage extends View
 		this.spaceKey			= false;
 		this.toolSnaps			= false;
 
+		// Callback for mouse position updates (for coordinate display)
+		this.onMouseMoveCallback = null;
+
 		// View transform (pan & zoom)
 		this.panX				= 0;
 		this.panY				= 0;
@@ -574,22 +577,27 @@ class Stage extends View
 	onMouseMove(e)
 	{
 		this.mouse = this.normalizeMouseEvent(e);
-		
+
+		// Call coordinate display callback with world coordinates
+		if (this.onMouseMoveCallback) {
+			this.onMouseMoveCallback(this.mouse.x, this.mouse.y);
+		}
+
 		// right click and drag - pan the view
 		if(e.which == 3){
 			toolManager.handTool.onMouseMove(this.mouse);
-			
+
 		}else{
 			// Throttle snap calculations to prevent excessive computation
 			const now = performance.now();
-			
+
 			if (now - this._lastSnapTime >= this._snapThrottleMs) {
 				this._lastSnapTime = now;
 				const snapStart = performance.now();
 
 				// find a snap point
 				draftingAssistant.snap(this.mouse, toolManager.generateGuides());
-				
+
 				if (this._perfMonitorEnabled) {
 					this._snapTimes.push(performance.now() - snapStart);
 					if (this._snapTimes.length > this._maxFrameSamples) {
@@ -597,7 +605,7 @@ class Stage extends View
 					}
 				}
 			}
-			
+
 			this.dispatchEvent('mouseMove', this.mouse);
 			this.markDirty(); // Batches renders via RAF
 		}

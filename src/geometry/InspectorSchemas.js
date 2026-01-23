@@ -36,11 +36,9 @@ export function lineSchema(shape) {
 					{
 						key: 'length',
 						label: 'Length',
-						type: 'number',
+						type: 'length',
 						get: () => shape.length(),
 						set: (v) => shape.scaleToDim(v),
-						precision: 2,
-						step: 1,
 						min: 0.1
 					},
 					{
@@ -69,34 +67,32 @@ export function circleSchema(shape) {
 					{
 						key: 'radius',
 						label: 'Radius',
-						type: 'number',
-						precision: 2,
-						step: 1,
+						type: 'length',
+						get: () => shape.radius,
+						set: (v) => { shape.radius = v; },
 						min: 0.1
 					},
 					{
 						key: 'diameter',
 						label: 'Diameter',
-						type: 'number',
+						type: 'length',
 						get: () => shape.radius * 2,
 						set: (v) => { shape.radius = v / 2; },
-						precision: 2,
-						step: 1,
 						min: 0.1
 					},
 					{
 						key: 'circumference',
 						label: 'Circumference',
-						type: 'readonly',
-						get: () => shape.length(),
-						precision: 2
+						type: 'readonly-length',
+						get: () => shape.length()
 					},
 					{
 						key: 'area',
 						label: 'Area',
 						type: 'readonly',
 						get: () => Math.PI * shape.radius * shape.radius,
-						precision: 2
+						precision: 2,
+						suffix: ' mm²'
 					}
 				]
 			},
@@ -118,17 +114,16 @@ export function arcSchema(shape) {
 					{
 						key: 'radius',
 						label: 'Radius',
-						type: 'number',
-						precision: 2,
-						step: 1,
+						type: 'length',
+						get: () => shape.radius,
+						set: (v) => { shape.radius = v; },
 						min: 0.1
 					},
 					{
 						key: 'arcLength',
 						label: 'Arc Length',
-						type: 'readonly',
-						get: () => shape.length(),
-						precision: 2
+						type: 'readonly-length',
+						get: () => shape.length()
 					}
 				]
 			},
@@ -175,16 +170,14 @@ export function tangentArcSchema(shape) {
 					{
 						key: 'radius',
 						label: 'Radius',
-						type: 'readonly',
-						get: () => shape.radius,
-						precision: 2
+						type: 'readonly-length',
+						get: () => shape.radius
 					},
 					{
 						key: 'arcLength',
 						label: 'Arc Length',
-						type: 'readonly',
-						get: () => shape.length(),
-						precision: 2
+						type: 'readonly-length',
+						get: () => shape.length()
 					}
 				]
 			},
@@ -205,25 +198,24 @@ export function ellipseSchema(shape) {
 					{
 						key: 'radiusX',
 						label: 'Radius X',
-						type: 'number',
-						precision: 2,
-						step: 1,
+						type: 'length',
+						get: () => shape.radiusX,
+						set: (v) => { shape.radiusX = v; },
 						min: 0.1
 					},
 					{
 						key: 'radiusY',
 						label: 'Radius Y',
-						type: 'number',
-						precision: 2,
-						step: 1,
+						type: 'length',
+						get: () => shape.radiusY,
+						set: (v) => { shape.radiusY = v; },
 						min: 0.1
 					},
 					{
 						key: 'perimeter',
 						label: 'Perimeter',
-						type: 'readonly',
-						get: () => shape.length(),
-						precision: 2
+						type: 'readonly-length',
+						get: () => shape.length()
 					}
 				]
 			},
@@ -260,9 +252,8 @@ export function splineSchema(shape) {
 					{
 						key: 'arcLength',
 						label: 'Length',
-						type: 'readonly',
-						get: () => shape.length(),
-						precision: 2
+						type: 'readonly-length',
+						get: () => shape.length()
 					}
 				]
 			},
@@ -304,20 +295,18 @@ export function paperSchema(shape) {
 					{
 						key: 'width',
 						label: 'Width',
-						type: 'number',
-						precision: 1,
-						step: 1,
-						min: 10,
-						suffix: ' mm'
+						type: 'length',
+						get: () => shape.width,
+						set: (v) => { shape.width = v; shape.paperSize = 'custom'; },
+						min: 10
 					},
 					{
 						key: 'height',
 						label: 'Height',
-						type: 'number',
-						precision: 1,
-						step: 1,
-						min: 10,
-						suffix: ' mm'
+						type: 'length',
+						get: () => shape.height,
+						set: (v) => { shape.height = v; shape.paperSize = 'custom'; },
+						min: 10
 					}
 				]
 			},
@@ -354,9 +343,8 @@ export function dimensionSchema(shape) {
 					{
 						key: 'value',
 						label: 'Distance',
-						type: 'readonly',
-						get: () => shape.value,
-						precision: 2
+						type: 'readonly-length',
+						get: () => shape.value
 					}
 				]
 			},
@@ -386,9 +374,8 @@ export function radialDimensionSchema(shape) {
 					{
 						key: 'value',
 						label: shape.mode === 'diameter' ? 'Diameter' : 'Radius',
-						type: 'readonly',
-						get: () => shape.value,
-						precision: 2
+						type: 'readonly-length',
+						get: () => shape.value
 					},
 					{
 						key: 'mode',

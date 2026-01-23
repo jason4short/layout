@@ -203,6 +203,8 @@ export class Spline extends Geometry
 		]);
 		s.type = this.type;
 		s.groupId = this.groupId;
+		s.penStyle = this.penStyle;
+		s.colorToken = this.colorToken;
 		return s;
 	}
 

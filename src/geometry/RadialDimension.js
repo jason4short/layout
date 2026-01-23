@@ -7,6 +7,7 @@ import * as VectorUtils 	from './utils/VectorUtils.js';
 import * as TransformUtils 	from './utils/TransformUtils.js';
 import {radialDimensionSchema} from './InspectorSchemas.js';
 import {serializeRadialDimension, deserializeRadialDimension} from './GeometrySerializers.js';
+import units 				from '../core/Units.js';
 
 /**
  * Radial dimension for circles and arcs.
@@ -124,10 +125,9 @@ export class RadialDimension extends Geometry
 	}
 
 	// Get formatted display text with R or diameter symbol
-	getDisplayText(units = '', precision = 2) {
+	getDisplayText() {
 		const prefix = this.mode === 'diameter' ? '⌀' : 'R';
-		const formatted = this.value.toFixed(precision);
-		return units ? `${prefix}${formatted} ${units}` : `${prefix}${formatted}`;
+		return `${prefix}${units.format(this.value)}`;
 	}
 
 	clone(){
@@ -142,6 +142,7 @@ export class RadialDimension extends Geometry
 		d.type 		= this.type;
 		d.geometry	= this.geometry;
 		d.penStyle	= this.penStyle;
+		d.colorToken= this.colorToken;
 		d.groupId	= this.groupId;
 		return d;
 	}

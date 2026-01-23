@@ -13,7 +13,8 @@ function serializeBase(shape) {
 	return {
 		geometry: shape.geometry,
 		type: shape.type,
-		penStyle: shape.penStyle
+		penStyle: shape.penStyle,
+		colorToken: shape.colorToken
 	};
 }
 
@@ -31,6 +32,7 @@ export function deserializeLine(data, LineClass) {
 	const line = new LineClass([data.start.x, data.start.y, data.end.x, data.end.y]);
 	line.type = data.type;
 	if (data.penStyle) line.penStyle = data.penStyle;
+	if (data.colorToken) line.colorToken = data.colorToken;
 	return line;
 }
 
@@ -50,6 +52,7 @@ export function deserializeCircle(data, CircleClass) {
 	const circle = new CircleClass([data.x, data.y, data.radius, data.radiusAngle || 0]);
 	circle.type = data.type;
 	if (data.penStyle) circle.penStyle = data.penStyle;
+	if (data.colorToken) circle.colorToken = data.colorToken;
 	return circle;
 }
 
@@ -70,6 +73,7 @@ export function deserializeArc(data, ArcClass) {
 	const arc = new ArcClass([data.x, data.y, data.radius, data.startAngle, data.endAngle]);
 	arc.type = data.type;
 	if (data.penStyle) arc.penStyle = data.penStyle;
+	if (data.colorToken) arc.colorToken = data.colorToken;
 	return arc;
 }
 
@@ -92,6 +96,7 @@ export function deserializeTangentArc(data, TangentArcClass) {
 	]);
 	arc.type = data.type;
 	if (data.penStyle) arc.penStyle = data.penStyle;
+	if (data.colorToken) arc.colorToken = data.colorToken;
 	return arc;
 }
 
@@ -114,6 +119,7 @@ export function deserializeEllipse(data, EllipseClass) {
 	const ellipse = new EllipseClass([data.x, data.y, data.radiusX, data.radiusY, data.rotation, data.cornerAngle, data.controlMode || 'center']);
 	ellipse.type = data.type;
 	if (data.penStyle) ellipse.penStyle = data.penStyle;
+	if (data.colorToken) ellipse.colorToken = data.colorToken;
 	return ellipse;
 }
 
@@ -141,6 +147,7 @@ export function deserializeEllipticalArc(data, EllipticalArcClass) {
 	]);
 	arc.type = data.type;
 	if (data.penStyle) arc.penStyle = data.penStyle;
+	if (data.colorToken) arc.colorToken = data.colorToken;
 	return arc;
 }
 
@@ -165,6 +172,7 @@ export function deserializeSpline(data, SplineClass) {
 	]);
 	spline.type = data.type;
 	if (data.penStyle) spline.penStyle = data.penStyle;
+	if (data.colorToken) spline.colorToken = data.colorToken;
 	return spline;
 }
 
@@ -187,6 +195,7 @@ export function deserializeDimension(data, DimensionClass) {
 	]);
 	dim.type = data.type;
 	if (data.penStyle) dim.penStyle = data.penStyle;
+	if (data.colorToken) dim.colorToken = data.colorToken;
 	return dim;
 }
 
@@ -215,6 +224,7 @@ export function deserializeRadialDimension(data, RadialDimensionClass) {
 	]);
 	dim.type = data.type;
 	if (data.penStyle) dim.penStyle = data.penStyle;
+	if (data.colorToken) dim.colorToken = data.colorToken;
 	return dim;
 }
 
@@ -246,6 +256,7 @@ export function deserializeAngleDimension(data, AngleDimensionClass) {
 	]);
 	dim.type = data.type;
 	if (data.penStyle) dim.penStyle = data.penStyle;
+	if (data.colorToken) dim.colorToken = data.colorToken;
 	// Store IDs for later linking
 	dim._line1Id = data.line1Id || null;
 	dim._line2Id = data.line2Id || null;
@@ -285,6 +296,7 @@ export function deserializeText(data, TextClass, PenStyle) {
 	text.boxHeight = data.boxHeight || null;
 	text.rotation = data.rotation || 0;
 	text.penStyle = data.penStyle || PenStyle.VISIBLE;
+	if (data.colorToken) text.colorToken = data.colorToken;
 	return text;
 }
 
@@ -306,6 +318,7 @@ export function deserializePaper(data, PaperClass) {
 	const paper = new PaperClass([data.x, data.y, data.width, data.height, data.paperSize, data.scale]);
 	paper.type = data.type;
 	if (data.penStyle) paper.penStyle = data.penStyle;
+	if (data.colorToken) paper.colorToken = data.colorToken;
 	return paper;
 }
 
@@ -331,6 +344,7 @@ export function deserializeImage(data, ImageClass) {
 	const img = new ImageClass([data.x, data.y, data.width, data.height]);
 	img.type = data.type;
 	if (data.penStyle) img.penStyle = data.penStyle;
+	if (data.colorToken) img.colorToken = data.colorToken;
 	if (data.locked !== undefined) img.locked = data.locked;
 	if (data.rotation !== undefined) img.rotation = data.rotation;
 	if (data.flipX !== undefined) img.flipX = data.flipX;
@@ -363,5 +377,6 @@ export function deserializeSymbol(data, SymbolInstanceClass) {
 	]);
 	inst.type = data.type;
 	if (data.penStyle) inst.penStyle = data.penStyle;
+	if (data.colorToken) inst.colorToken = data.colorToken;
 	return inst;
 }

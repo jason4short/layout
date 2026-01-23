@@ -1,6 +1,7 @@
 import data from '../data/Data.js';
 import stage from './Stage.js';
 import { Shape, PenStyle } from '../geometry/Geometry.js';
+import units from './Units.js';
 
 class Inspector {
 	constructor() {
@@ -111,24 +112,45 @@ class Inspector {
 
 		// Check if all shapes have the same pen style
 		const firstStyle = selected[0].penStyle;
-		const allSame = selected.every(s => s.penStyle === firstStyle);
+		const allSamePen = selected.every(s => s.penStyle === firstStyle);
 
 		// Build pen style dropdown
-		const options = Object.entries(PenStyle).map(([key, value]) => {
-			const isSelected = allSame && firstStyle === value ? 'selected' : '';
+		const penOptions = Object.entries(PenStyle).map(([key, value]) => {
+			const isSelected = allSamePen && firstStyle === value ? 'selected' : '';
 			const label = key.charAt(0) + key.slice(1).toLowerCase();
 			return `<option value="${value}" ${isSelected}>${label}</option>`;
 		}).join('');
 
 		// Add "Mixed" option if styles differ
-		const mixedOption = allSame ? '' : '<option value="" selected disabled>Mixed</option>';
+		const mixedPenOption = allSamePen ? '' : '<option value="" selected disabled>Mixed</option>';
+
+		// Check if all shapes have the same color token
+		const firstToken = selected[0].colorToken;
+		const allSameColor = selected.every(s => s.colorToken === firstToken);
+
+		// Build color token dropdown
+		const colorOptions = data.colorPalette.tokens.map(t => {
+			const isSelected = allSameColor && firstToken === t.id ? 'selected' : '';
+			return `<option value="${t.id}" ${isSelected}>${t.name}</option>`;
+		}).join('');
+
+		const mixedColorOption = allSameColor ? '' : '<option value="" selected disabled>Mixed</option>';
+		const defaultColorOption = allSameColor && !firstToken ? 'selected' : '';
 
 		html += `
 			<div class="inspector-section">
 				<div class="inspector-section-title">Appearance</div>
 				<div class="inspector-row">
 					<label>Pen Style</label>
-					<select id="prop-penStyle-multi">${mixedOption}${options}</select>
+					<select id="prop-penStyle-multi">${mixedPenOption}${penOptions}</select>
+				</div>
+				<div class="inspector-row">
+					<label>Color</label>
+					<select id="prop-colorToken-multi">
+						${mixedColorOption}
+						<option value="" ${defaultColorOption}>Default</option>
+						${colorOptions}
+					</select>
 				</div>
 			</div>
 		`;
@@ -137,9 +159,9 @@ class Inspector {
 		this.container.innerHTML = html;
 
 		// Attach listener for multi-selection pen style change
-		const el = document.getElementById('prop-penStyle-multi');
-		if (el) {
-			el.addEventListener('change', (e) => {
+		const penEl = document.getElementById('prop-penStyle-multi');
+		if (penEl) {
+			penEl.addEventListener('change', (e) => {
 				const newStyle = e.target.value;
 				for (const shape of selected) {
 					shape.penStyle = newStyle;
@@ -147,13 +169,31 @@ class Inspector {
 				stage.render();
 			});
 		}
+
+		// Attach listener for multi-selection color token change
+		const colorEl = document.getElementById('prop-colorToken-multi');
+		if (colorEl) {
+			colorEl.addEventListener('change', (e) => {
+				const newToken = e.target.value || null;
+				for (const shape of selected) {
+					shape.colorToken = newToken;
+				}
+				stage.render();
+			});
+		}
 	}
 
 	buildPenStyleField(shape) {
-		const options = Object.entries(PenStyle).map(([key, value]) => {
+		const penOptions = Object.entries(PenStyle).map(([key, value]) => {
 			const selected = shape.penStyle === value ? 'selected' : '';
 			const label = key.charAt(0) + key.slice(1).toLowerCase();
 			return `<option value="${value}" ${selected}>${label}</option>`;
+		}).join('');
+
+		// Build color token dropdown
+		const colorOptions = data.colorPalette.tokens.map(t => {
+			const selected = shape.colorToken === t.id ? 'selected' : '';
+			return `<option value="${t.id}" ${selected}>${t.name}</option>`;
 		}).join('');
 
 		return `
@@ -161,7 +201,14 @@ class Inspector {
 				<div class="inspector-section-title">Appearance</div>
 				<div class="inspector-row">
 					<label>Pen Style</label>
-					<select id="prop-penStyle">${options}</select>
+					<select id="prop-penStyle">${penOptions}</select>
+				</div>
+				<div class="inspector-row">
+					<label>Color</label>
+					<select id="prop-colorToken">
+						<option value="" ${!shape.colorToken ? 'selected' : ''}>Default</option>
+						${colorOptions}
+					</select>
 				</div>
 			</div>
 		`;
@@ -181,15 +228,32 @@ class Inspector {
 
 	buildField(field, shape) {
 		const value = this.getFieldValue(field, shape);
-		const displayValue = field.precision !== undefined && value !== null && value !== undefined
-			? Number(value).toFixed(field.precision)
-			: value;
+		let displayValue;
+
+		if (field.type === 'length' || field.type === 'readonly-length') {
+			// Use units.format() for length values (stored in mm)
+			displayValue = value !== null && value !== undefined
+				? units.format(value, undefined, false)
+				: '';
+		} else {
+			displayValue = field.precision !== undefined && value !== null && value !== undefined
+				? Number(value).toFixed(field.precision)
+				: value;
+		}
 
 		if (field.type === 'readonly') {
 			const suffix = field.suffix || '';
 			return `<div class="inspector-row">
 				<label>${field.label}</label>
 				<span class="inspector-value" data-field="${field.key}">${displayValue}${suffix}</span>
+			</div>`;
+		}
+
+		if (field.type === 'readonly-length') {
+			const unitLabel = units.getUnitLabel();
+			return `<div class="inspector-row">
+				<label>${field.label}</label>
+				<span class="inspector-value" data-field="${field.key}">${displayValue} ${unitLabel}</span>
 			</div>`;
 		}
 
@@ -205,6 +269,14 @@ class Inspector {
 			return `<div class="inspector-row">
 				<label>${field.label}</label>
 				<input ${attrs}>
+			</div>`;
+		}
+
+		if (field.type === 'length') {
+			// Text input for length - accepts unit strings like "1in", "25mm"
+			return `<div class="inspector-row">
+				<label>${field.label}</label>
+				<input type="text" id="prop-${field.key}" value="${displayValue}">
 			</div>`;
 		}
 
@@ -238,7 +310,20 @@ class Inspector {
 	}
 
 	setFieldValue(field, shape, value) {
-		const numValue = parseFloat(value);
+		let numValue;
+
+		// Parse value based on field type
+		if (field.type === 'length') {
+			// Use units parser for length fields (handles "1in", "25mm", "1 1/2"", etc.)
+			numValue = units.parse(value);
+			if (numValue === null) {
+				numValue = parseFloat(value);
+			}
+		} else {
+			numValue = parseFloat(value);
+		}
+
+		if (isNaN(numValue)) return;
 
 		if (field.set) {
 			field.set.call(shape, numValue);
@@ -270,6 +355,15 @@ class Inspector {
 		if (penStyleEl) {
 			penStyleEl.addEventListener('change', (e) => {
 				shape.penStyle = e.target.value;
+				stage.render();
+			});
+		}
+
+		// Color Token (common to all)
+		const colorTokenEl = document.getElementById('prop-colorToken');
+		if (colorTokenEl) {
+			colorTokenEl.addEventListener('change', (e) => {
+				shape.colorToken = e.target.value || null;
 				stage.render();
 			});
 		}
@@ -347,15 +441,29 @@ class Inspector {
 				if (activeId === elementId) continue;
 
 				const value = this.getFieldValue(field, shape);
-				const displayValue = field.precision !== undefined && value !== null && value !== undefined
-					? Number(value).toFixed(field.precision)
-					: value;
+				let displayValue;
+
+				if (field.type === 'length' || field.type === 'readonly-length') {
+					displayValue = value !== null && value !== undefined
+						? units.format(value, undefined, false)
+						: '';
+				} else {
+					displayValue = field.precision !== undefined && value !== null && value !== undefined
+						? Number(value).toFixed(field.precision)
+						: value;
+				}
 
 				if (field.type === 'readonly') {
 					const el = this.container.querySelector(`[data-field="${field.key}"]`);
 					if (el) {
 						const suffix = field.suffix || '';
 						el.textContent = `${displayValue}${suffix}`;
+					}
+				} else if (field.type === 'readonly-length') {
+					const el = this.container.querySelector(`[data-field="${field.key}"]`);
+					if (el) {
+						const unitLabel = units.getUnitLabel();
+						el.textContent = `${displayValue} ${unitLabel}`;
 					}
 				} else {
 					const el = document.getElementById(elementId);

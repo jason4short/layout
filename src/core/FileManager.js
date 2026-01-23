@@ -68,7 +68,8 @@ class FileManager
 			shapes: shapes,
 			constructions: constructions,
 			groups: groups,
-			symbolDefinitions: symbolDefinitions
+			symbolDefinitions: symbolDefinitions,
+			colorPalette: data.colorPalette
 		};
 	}
 
@@ -106,6 +107,11 @@ class FileManager
 				if(match) maxId = Math.max(maxId, parseInt(match[1]));
 			}
 			data._nextGroupId = maxId + 1;
+		}
+
+		// Restore color palette
+		if(json.colorPalette){
+			data.colorPalette = json.colorPalette;
 		}
 
 		// Recreate shapes

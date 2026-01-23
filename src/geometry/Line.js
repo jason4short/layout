@@ -78,6 +78,7 @@ export class Line extends Geometry
 		l.type 		= this.type;
 		l.geometry	= this.geometry;
 		l.penStyle	= this.penStyle;
+		l.colorToken= this.colorToken;
 		l.groupId	= this.groupId;
 		return l;
 	}

@@ -258,6 +258,7 @@ export class AngleDimension extends Geometry
 		d.type 		= this.type;
 		d.geometry	= this.geometry;
 		d.penStyle	= this.penStyle;
+		d.colorToken= this.colorToken;
 		d.groupId	= this.groupId;
 		return d;
 	}

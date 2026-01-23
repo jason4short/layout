@@ -1,4 +1,5 @@
 import { Shape, PenStyle } from '../geometry/Geometry.js';
+import data from '../data/Data.js';
 
 /**
  * Convert shapes to SVG format for export
@@ -26,12 +27,22 @@ function penStyleToSVG(penStyle) {
 	}
 }
 
-// Build SVG style string from pen style
-function buildStyleAttr(penStyle) {
-	const style = penStyleToSVG(penStyle);
-	let attrs = `stroke="${style.stroke}" stroke-width="${style.strokeWidth}" fill="none"`;
-	if (style.dashArray) {
-		attrs += ` stroke-dasharray="${style.dashArray}"`;
+// Get shape color (from token or pen style default)
+function getShapeColor(shape) {
+	if (shape.colorToken) {
+		const token = data.getColorToken(shape.colorToken);
+		if (token) return token.color;
+	}
+	return penStyleToSVG(shape.penStyle).stroke;
+}
+
+// Build SVG style string from shape (uses color token if present)
+function buildStyleAttr(shape) {
+	const penStyle = penStyleToSVG(shape.penStyle);
+	const color = getShapeColor(shape);
+	let attrs = `stroke="${color}" stroke-width="${penStyle.strokeWidth}" fill="none"`;
+	if (penStyle.dashArray) {
+		attrs += ` stroke-dasharray="${penStyle.dashArray}"`;
 	}
 	return attrs;
 }
@@ -46,7 +57,7 @@ function worldToPaper(worldX, worldY, paper) {
 
 // Convert a single shape to SVG element string
 function shapeToSVG(shape, paper) {
-	const style = buildStyleAttr(shape.penStyle);
+	const style = buildStyleAttr(shape);
 
 	switch (shape.geometry) {
 		case Shape.LINE: {

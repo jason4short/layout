@@ -1,4 +1,5 @@
 import toolManager from '../tools/ToolManager.js';
+import units from './Units.js';
 
 export class InputHandler
 {
@@ -29,11 +30,19 @@ export class InputHandler
 	parseValue(value)
 	{
 		this.dimensionInputValue = value;
+
+		// Try units parser first (handles "1in", "3 ft", "1 1/2"", etc.)
+		const parsedWithUnits = units.parse(value);
+		if (parsedWithUnits !== null) {
+			this.dimensionInputNumber = parsedWithUnits;
+			return;
+		}
+
+		// Fall back to plain number parsing
 		const parsedNumber = Number(value);
-		
-		if(Number.isFinite(parsedNumber)){
+		if (Number.isFinite(parsedNumber)) {
 			this.dimensionInputNumber = parsedNumber;
-		}else{
+		} else {
 			this.dimensionInputNumber = null;
 		}
 	}

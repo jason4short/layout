@@ -197,6 +197,7 @@ export class Text extends Geometry
 		t.rotation = this.rotation;
 		t.type = this.type;
 		t.penStyle = this.penStyle;
+		t.colorToken = this.colorToken;
 		t.groupId = this.groupId;
 		return t;
 	}

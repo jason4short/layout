@@ -194,6 +194,8 @@ export class TangentArc extends Geometry
 		]);
 		t.type = this.type;
 		t.groupId = this.groupId;
+		t.penStyle = this.penStyle;
+		t.colorToken = this.colorToken;
 		return t;
 	}
 

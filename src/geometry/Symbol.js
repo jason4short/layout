@@ -145,6 +145,7 @@ export class SymbolInstance extends Geometry {
 		]);
 		inst._definition = this._definition;
 		inst.penStyle = this.penStyle;
+		inst.colorToken = this.colorToken;
 		inst.groupId = this.groupId;
 		return inst;
 	}

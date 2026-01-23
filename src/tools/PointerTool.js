@@ -239,14 +239,10 @@ export class PointerTool extends Tool
 			const geo = this.moveTarget.geometry;
 			const poi = data.snapPoint.poiIndex;
 
-			// Image corners (0-3)
-			if(geo === Shape.IMAGE && poi >= 0 && poi <= 3) {
-				this.cornerResize = { shape: this.moveTarget, cornerIndex: poi };
-			}
 			// Ellipse control points (0 and 1)
 			// In 'center' mode: 0=center (move), 1=corner (resize)
 			// In 'corners' mode: 0=corner1 (resize), 1=corner2 (resize)
-			else if(geo === Shape.ELLIPSE && (poi === 0 || poi === 1)) {
+			if(geo === Shape.ELLIPSE && (poi === 0 || poi === 1)) {
 				// For corners mode, both are resize points
 				// For center mode, 0 is move (handled by normal move), 1 is resize
 				if(this.moveTarget.controlMode === 'corners' || poi === 1) {

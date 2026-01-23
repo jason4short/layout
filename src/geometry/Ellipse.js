@@ -142,6 +142,8 @@ export class Ellipse extends Geometry
 		let e = new Ellipse([this.x, this.y, this.radiusX, this.radiusY, this.rotation, this.cornerAngle, this.controlMode]);
 		e.type = this.type;
 		e.groupId = this.groupId;
+		e.penStyle = this.penStyle;
+		e.colorToken = this.colorToken;
 		return e;
 	}
 

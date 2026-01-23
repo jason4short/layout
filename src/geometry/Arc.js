@@ -27,6 +27,8 @@ export class Arc extends Circle
 		const a 	= new Arc([this.x, this.y, this.radius, this.startAngle, this.endAngle]);
 		a.type 		= this.type;
 		a.groupId	= this.groupId;
+		a.penStyle	= this.penStyle;
+		a.colorToken= this.colorToken;
 		return a;
 	}
 	

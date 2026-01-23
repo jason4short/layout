@@ -147,6 +147,8 @@ export class EllipticalArc extends Ellipse
 			this.rotation, this.startAngle, this.endAngle
 		]);
 		e.groupId = this.groupId;
+		e.penStyle = this.penStyle;
+		e.colorToken = this.colorToken;
 		return e;
 	}
 

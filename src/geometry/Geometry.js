@@ -77,6 +77,7 @@ export class Geometry
 		this.bounds 			= new Rectangle();
 		this.penStyle 			= PenStyle.VISIBLE;  // Default pen style
 		this.groupId 			= null;  // ID of group this shape belongs to (null = ungrouped)
+		this.colorToken 		= null;  // Reference to color palette token ID
 	}
 
 	/**

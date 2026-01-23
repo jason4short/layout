@@ -74,7 +74,13 @@ export class Renderer
 		const penStyle 		= shape.penStyle || PenStyle.VISIBLE;
 		const style			= this.penStyles[penStyle] || this.penStyles[PenStyle.VISIBLE];
 
-		ctx.strokeStyle 	= style.color;
+		// Use color token if assigned, otherwise use pen style default
+		if (shape.colorToken) {
+			const token = data.getColorToken(shape.colorToken);
+			ctx.strokeStyle = token ? token.color : style.color;
+		} else {
+			ctx.strokeStyle = style.color;
+		}
 		ctx.lineWidth 		= style.width;
 		ctx.setLineDash(style.dash);
 	}

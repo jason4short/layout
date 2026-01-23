@@ -62,6 +62,8 @@ export class Paper extends Geometry
 		const p = new Paper([this.x, this.y, this.width, this.height, this.paperSize, this.scale]);
 		p.type = this.type;
 		p.groupId = this.groupId;
+		p.penStyle = this.penStyle;
+		p.colorToken = this.colorToken;
 		return p;
 	}
 

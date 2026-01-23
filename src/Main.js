@@ -4,6 +4,8 @@ import data from './data/Data.js';
 import toolManager from './tools/ToolManager.js';
 import fileManager from './core/FileManager.js';
 import inspector from './core/Inspector.js';
+import palettePanel from './core/PalettePanel.js';
+import units from './core/Units.js';
 
 import {Shape} from './geometry/Geometry.js';
 import {Intersections} from './data/Intersections.js';
@@ -18,6 +20,30 @@ let intersections = new Intersections();
 stage.init();
 toolManager.init();
 inspector.init();
+palettePanel.init();
+
+// Unit selector
+const unitSelector = document.getElementById('unitSelector');
+if (unitSelector) {
+	// Set initial value from saved preference
+	unitSelector.value = units.getUnit();
+
+	unitSelector.addEventListener('change', (e) => {
+		units.setUnit(e.target.value);
+		stage.render();  // Re-render to update dimensions
+		inspector.update();  // Refresh inspector values
+	});
+}
+
+// Coordinate display
+const coordDisplay = document.getElementById('coordDisplay');
+stage.onMouseMoveCallback = (worldX, worldY) => {
+	if (coordDisplay) {
+		const x = units.format(worldX, undefined, false);
+		const y = units.format(worldY, undefined, false);
+		coordDisplay.textContent = `X: ${x}  Y: ${y}`;
+	}
+};
 
 // Wire up file operation buttons
 document.getElementById('btnNew').addEventListener('click', () => fileManager.newDocument());

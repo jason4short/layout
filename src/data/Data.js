@@ -72,6 +72,17 @@ class Data
 		this.groups					= new Map();
 		this._nextGroupId			= 1;
 
+		// Color palette: named color tokens that shapes can reference
+		this.colorPalette = {
+			tokens: [
+				{ id: 'black', name: 'Black', color: '#111111' },
+				{ id: 'red', name: 'Red', color: '#CC0000' },
+				{ id: 'blue', name: 'Blue', color: '#0066CC' },
+				{ id: 'green', name: 'Green', color: '#00AA00' }
+			],
+			_nextId: 1
+		};
+
 		// This is a singleton class
         return Data.instance;
 	}
@@ -935,7 +946,49 @@ class Data
 		this.guides.push(guide);
 	}
 
-	
+	// --------------------------------------------------------------------------------
+	// Color Palette Management
+	// --------------------------------------------------------------------------------
+
+	addColorToken(name, color) {
+		const id = `color_${this.colorPalette._nextId++}`;
+		this.colorPalette.tokens.push({ id, name, color });
+		return id;
+	}
+
+	updateColorToken(id, name, color) {
+		const token = this.colorPalette.tokens.find(t => t.id === id);
+		if (token) {
+			if (name !== null) token.name = name;
+			if (color !== null) token.color = color;
+		}
+	}
+
+	deleteColorToken(id) {
+		const index = this.colorPalette.tokens.findIndex(t => t.id === id);
+		if (index !== -1) {
+			this.colorPalette.tokens.splice(index, 1);
+			// Clear colorToken from shapes using this token
+			for (const shape of this.shapes) {
+				if (shape.colorToken === id) {
+					shape.colorToken = null;
+				}
+			}
+		}
+	}
+
+	getColorToken(id) {
+		return this.colorPalette.tokens.find(t => t.id === id);
+	}
+
+	getColorTokenOptions() {
+		return this.colorPalette.tokens.map(t => ({
+			value: t.id,
+			label: t.name
+		}));
+	}
+
+
 }
 
 

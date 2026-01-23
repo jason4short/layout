@@ -35,6 +35,7 @@ export class Circle extends Geometry
 		c.type 		= this.type;
 		c.groupId	= this.groupId;
 		c.penStyle	= this.penStyle;
+		c.colorToken= this.colorToken;
 		return c;
 	}
 

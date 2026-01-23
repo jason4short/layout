@@ -5,6 +5,7 @@ import {Shape,
 
 import * as VectorUtils 	from './utils/VectorUtils.js';
 import {serializeDimension, deserializeDimension} from './GeometrySerializers.js';
+import units 				from '../core/Units.js';
 
 export class Dimension extends Geometry
 {
@@ -125,10 +126,9 @@ export class Dimension extends Geometry
 		return this.value;
 	}
 
-	// Get formatted display text
-	getDisplayText(units = '', precision = 2) {
-		const formatted = this.value.toFixed(precision);
-		return units ? `${formatted} ${units}` : formatted;
+	// Get formatted display text using the units system
+	getDisplayText() {
+		return units.format(this.value);
 	}
 
 	clone(){
@@ -140,6 +140,7 @@ export class Dimension extends Geometry
 		d.type 		= this.type;
 		d.geometry	= this.geometry;
 		d.penStyle	= this.penStyle;
+		d.colorToken= this.colorToken;
 		d.groupId	= this.groupId;
 		return d;
 	}

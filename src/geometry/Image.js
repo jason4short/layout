@@ -274,6 +274,8 @@ export class Image extends Geometry
 		img.flipX 			= this.flipX;
 		img.flipY 			= this.flipY;
 		img.opacity 		= this.opacity;
+		img.penStyle 		= this.penStyle;
+		img.colorToken 		= this.colorToken;
 		img.groupId 		= this.groupId;
 		return img;
 	}
