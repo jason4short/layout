@@ -1,4 +1,11 @@
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<!-- Stadium/slot shape - horizontal rounded rectangle -->
-<path d="M6 8 L18 8 A4 4 0 0 1 18 16 L6 16 A4 4 0 0 1 6 8 Z" stroke="black" stroke-width="2" fill="none"/>
+<g clip-path="url(#clip0_280_13)">
+<path d="M1.87868 1.87868C3.05025 0.707107 4.94929 0.707107 6.12087 1.87868L22.1209 17.8787C23.2924 19.0503 23.2924 20.9493 22.1209 22.1209C20.9493 23.2924 19.0503 23.2924 17.8787 22.1209L1.87868 6.12087C0.707107 4.94929 0.707107 3.05025 1.87868 1.87868Z" stroke="#FF0000" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M4 4L20 20" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<defs>
+<clipPath id="clip0_280_13">
+<rect width="24" height="24" fill="white"/>
+</clipPath>
+</defs>
 </svg>
