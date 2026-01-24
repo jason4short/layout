@@ -149,6 +149,18 @@ export function arcSchema(shape) {
 						precision: 1,
 						step: 1,
 						suffix: '°'
+					},
+					{
+						key: 'flipArc',
+						label: 'Flip Arc',
+						type: 'button',
+						action: () => {
+							const temp = shape.startAngle;
+							shape.startAngle = shape.endAngle;
+							shape.endAngle = temp;
+							shape.update();
+							stage.render();
+						}
 					}
 				]
 			},

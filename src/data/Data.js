@@ -286,9 +286,22 @@ class Data
 	{
 		const intersections = [];
 		for (const boundary of boundaries) {
-			const points = this.intersections.intersect_shapes(shape, boundary);
-			if (points && points.length) {
-				intersections.push(...points);
+			// Expand primitives to their constituent shapes
+			let boundaryShapes;
+			if (typeof boundary.createLines === 'function') {
+				boundaryShapes = boundary.createLines();
+			} else if (typeof boundary.createShapes === 'function') {
+				boundaryShapes = boundary.createShapes();
+			} else {
+				boundaryShapes = [boundary];
+			}
+
+			// Find intersections with each constituent shape
+			for (const subShape of boundaryShapes) {
+				const points = this.intersections.intersect_shapes(shape, subShape);
+				if (points && points.length) {
+					intersections.push(...points);
+				}
 			}
 		}
 		// returns a array of points

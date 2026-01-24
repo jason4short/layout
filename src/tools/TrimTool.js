@@ -70,6 +70,8 @@ export class TrimTool extends Tool
 			// Option key: extend OR trim-to-boundaries (keep only clicked segment)
 			if(clickedShape.geometry === Shape.LINE){
 				this.extendOrTrimToLine(clickedShape, boundaries, e);
+			}else if(clickedShape.geometry === Shape.BOARD || clickedShape.geometry === Shape.SLOT){
+				this.extendPrimitive(clickedShape, boundaries, e);
 			}else{
 				this.extendLine(clickedShape, boundaries, e);
 			}
@@ -86,6 +88,9 @@ export class TrimTool extends Tool
 
 			}else if(clickedShape.geometry === Shape.ELLIPSE || clickedShape.geometry === Shape.ELLIPTICAL_ARC){
 				this.trimEllipse(clickedShape, boundaries, e);
+
+			}else if(clickedShape.geometry === Shape.BOARD || clickedShape.geometry === Shape.SLOT){
+				this.trimPrimitive(clickedShape, boundaries, e);
 			}
 		}
 
@@ -122,95 +127,173 @@ export class TrimTool extends Tool
 // 	}
 //
 
+	// Helper: get trim info for a line (intersections, click position, brackets)
+	getTrimInfo(line, boundaries, clickPoint){
+		const intersections = data.findIntersectionsWithBoundaries(line, boundaries);
+		if(intersections.length === 0) return null;
+
+		const clickT = line.getParametricT(clickPoint);
+
+		const tPoints = intersections
+			.map(p => ({ t: line.getParametricT(p), point: p }))
+			.filter(tp => tp.t >= -EPSILON && tp.t <= 1 + EPSILON);
+
+		if(tPoints.length === 0) return { clickT, tPoints: [], noValidIntersections: true };
+
+		tPoints.sort((a, b) => a.t - b.t);
+
+		// Find brackets
+		let bracketBefore = null, bracketAfter = null;
+		for(const tp of tPoints){
+			if(tp.t <= clickT) bracketBefore = tp;
+			if(tp.t >= clickT && !bracketAfter) bracketAfter = tp;
+		}
+
+		return {
+			clickT,
+			tPoints,
+			first: tPoints[0],
+			last: tPoints[tPoints.length - 1],
+			bracketBefore,
+			bracketAfter
+		};
+	}
 
 	// Trim line by removing the clicked segment
 	trimLine(line, boundaries, clickPoint){
+		const info = this.getTrimInfo(line, boundaries, clickPoint);
+		if(!info) return;
 
-		// Find all intersections with boundaries
-		const intersections = data.findIntersectionsWithBoundaries(line, boundaries);
-
-		// XXX make is so we need to shift click or something - not sure yet
-		if(intersections.length === 0){
-			return;
-		}
-
-		// Convert click point to parametric t (t=0-1, start to end)
-		const clickT = line.getParametricT(clickPoint);
-
-		// Convert all intersections to t values and pair with points
-		// Filter to only intersections actually on the line segment (t between 0 and 1, with epsilon tolerance)
-		const tPoints = intersections.map(p => ({
-			t: line.getParametricT(p),
-			point: p }))
-				.filter(tp => tp.t >= -EPSILON && tp.t <= 1 + EPSILON);
-
-		if(tPoints.length === 0){
-			// Track removal
+		if(info.noValidIntersections){
 			this.shapesRemoved.push(line);
 			data.deleteShape(line);
 			return;
 		}
 
-		// Sort by t value
-		tPoints.sort((a, b) => a.t - b.t);
-
-		// Find the two intersections that bracket the click point
-		let bracketBefore = null;  // nearest intersection before click
-		let bracketAfter = null;   // nearest intersection after click
-
-		for (const tp of tPoints) {
-			if (tp.t <= clickT) {
-				bracketBefore = tp;
-			}
-			if (tp.t >= clickT && bracketAfter === null) {
-				bracketAfter = tp;
-			}
-		}
-
-		// Determine trim behavior based on where click falls
-		const firstIntersection = tPoints[0];
-		const lastIntersection = tPoints[tPoints.length - 1];
-
-		if (clickT < firstIntersection.t) {
-			// Clicked before first intersection - trim start to first intersection
-			// Save original state before modifying
+		if(info.clickT < info.first.t){
+			// Trim start
 			this.originalStates.push(line.clone());
 			this.shapesRemoved.push(line);
-			line.trimToPoints(firstIntersection.point, null);
+			line.trimToPoints(info.first.point, null);
 			this.shapesAdded.push(line);
 
-		} else if (clickT > lastIntersection.t) {
-			// Clicked after last intersection - trim end to last intersection
-			// Save original state before modifying
+		}else if(info.clickT > info.last.t){
+			// Trim end
 			this.originalStates.push(line.clone());
 			this.shapesRemoved.push(line);
-			line.trimToPoints(null, lastIntersection.point);
+			line.trimToPoints(null, info.last.point);
 			this.shapesAdded.push(line);
 
-		} else if (bracketBefore && bracketAfter) {
-			// Clicked a middle segment - delete this segment, keep both sides
+		}else if(info.bracketBefore && info.bracketAfter){
+			// Middle segment - split into two lines
 			const originalEnd = {x: line.end.x, y: line.end.y};
 
-			// Save original state before modifying
 			this.originalStates.push(line.clone());
 			this.shapesRemoved.push(line);
 
-			// Trim existing line to: start → bracketBefore
-			line.trimToPoints(null, bracketBefore.point);
+			line.trimToPoints(null, info.bracketBefore.point);
 			this.shapesAdded.push(line);
 
-			// Create new line from: bracketAfter → originalEnd
 			const newLine = new Line([
-				bracketAfter.point.x,
-				bracketAfter.point.y,
-				originalEnd.x,
-				originalEnd.y
+				info.bracketAfter.point.x, info.bracketAfter.point.y,
+				originalEnd.x, originalEnd.y
 			]);
 			this.shapesAdded.push(newLine);
 			data.addShape(newLine);
 		}
 	}
 
+	// Trim primitive (Board, Slot) control line
+	trimPrimitive(primitive, boundaries, clickPoint){
+		// Create virtual line from control line
+		const controlLine = new Line([
+			primitive.start.x, primitive.start.y,
+			primitive.end.x, primitive.end.y
+		]);
+
+		// Snap to control line if not already on it
+		const snapPoint = controlLine.getGeoSnap(clickPoint, primitive.bounds, 1000) || clickPoint;
+
+		const info = this.getTrimInfo(controlLine, boundaries, snapPoint);
+		if(!info || info.noValidIntersections) return;
+
+		// Only trim ends - no split for primitives
+		if(info.clickT < info.first.t){
+			this.originalStates.push(primitive.clone());
+			this.shapesRemoved.push(primitive);
+			primitive.start.x = info.first.point.x;
+			primitive.start.y = info.first.point.y;
+			primitive.update();
+			this.shapesAdded.push(primitive);
+
+		}else if(info.clickT > info.last.t){
+			this.originalStates.push(primitive.clone());
+			this.shapesRemoved.push(primitive);
+			primitive.end.x = info.last.point.x;
+			primitive.end.y = info.last.point.y;
+			primitive.update();
+			this.shapesAdded.push(primitive);
+		}
+		// Middle click - do nothing for primitives
+	}
+
+	// Extend primitive (Board, Slot) control line to nearest boundary
+	extendPrimitive(primitive, boundaries, clickPoint){
+		if(boundaries.length === 0) return;
+
+		// Create control line and get snap point on it
+		const controlLine = new Line([
+			primitive.start.x, primitive.start.y,
+			primitive.end.x, primitive.end.y
+		]);
+		const snapPoint = controlLine.getGeoSnap(clickPoint, primitive.bounds, 1000) || clickPoint;
+
+		// Extend the control line for intersection testing
+		const dir = { x: primitive.end.x - primitive.start.x, y: primitive.end.y - primitive.start.y };
+		const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y);
+		if(len === 0) return;
+		dir.x /= len;
+		dir.y /= len;
+
+		const extendedLine = new Line([
+			primitive.start.x - dir.x * 10000, primitive.start.y - dir.y * 10000,
+			primitive.end.x + dir.x * 10000, primitive.end.y + dir.y * 10000
+		]);
+
+		const intersections = data.findIntersectionsWithBoundaries(extendedLine, boundaries);
+		if(intersections.length === 0) return;
+
+		const clickT = controlLine.getParametricT(snapPoint);
+		const tPoints = intersections
+			.map(p => ({ t: controlLine.getParametricT(p), point: p }))
+			.sort((a, b) => a.t - b.t);
+
+		const extendStart = clickT < 0.5;
+
+		if(extendStart){
+			const beforeStart = tPoints.filter(tp => tp.t < 0);
+			if(beforeStart.length > 0){
+				this.originalStates.push(primitive.clone());
+				this.shapesRemoved.push(primitive);
+				const nearest = beforeStart[beforeStart.length - 1];
+				primitive.start.x = nearest.point.x;
+				primitive.start.y = nearest.point.y;
+				primitive.update();
+				this.shapesAdded.push(primitive);
+			}
+		}else{
+			const afterEnd = tPoints.filter(tp => tp.t > 1);
+			if(afterEnd.length > 0){
+				this.originalStates.push(primitive.clone());
+				this.shapesRemoved.push(primitive);
+				const nearest = afterEnd[0];
+				primitive.end.x = nearest.point.x;
+				primitive.end.y = nearest.point.y;
+				primitive.update();
+				this.shapesAdded.push(primitive);
+			}
+		}
+	}
 
 	// Option+click: Extend/trim line to boundaries on both ends
 	extendOrTrimToLine(line, boundaries, clickPoint){

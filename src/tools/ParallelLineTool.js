@@ -1,5 +1,6 @@
 import {Tool} 			from './Tool.js';
 import {Shape} 			from '../geometry/Geometry.js';
+import * as VectorUtils from '../geometry/utils/VectorUtils.js';
 
 import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
@@ -56,6 +57,23 @@ export class ParallelLineTool extends Tool
 		stage.setCursor('parallel');
 	}
 
+	// Find the line closest to a point
+	findClosestLine(lines, point) {
+		let closest = null;
+		let closestDist = Infinity;
+
+		for (const line of lines) {
+			const nearestPt = VectorUtils.closestPointOnSegment(point, line.start, line.end);
+			const dist = VectorUtils.distance(point, nearestPt);
+			if (dist < closestDist) {
+				closestDist = dist;
+				closest = line;
+			}
+		}
+
+		return closest;
+	}
+
 
 	reset() {
 		if (this.previewLine) {
@@ -81,13 +99,26 @@ export class ParallelLineTool extends Tool
 		}
 
 		const clickedShape = data.getTargetShape();
+		if (!clickedShape) return;
 
-		if (!clickedShape || clickedShape.geometry !== Shape.LINE) {
-			return;
+		let sourceLine = null;
+
+		if (clickedShape.geometry === Shape.LINE) {
+			// Direct line - use as-is
+			sourceLine = clickedShape;
+		} else if (typeof clickedShape.createLines === 'function') {
+			// Primitive with edges (Board, Polygon) - find closest edge to snap point
+			sourceLine = this.findClosestLine(clickedShape.createLines(), data.snapPoint);
+		} else if (typeof clickedShape.createShapes === 'function') {
+			// Slot - filter to just lines, find closest
+			const lines = clickedShape.createShapes().filter(s => s.geometry === Shape.LINE);
+			sourceLine = this.findClosestLine(lines, data.snapPoint);
 		}
 
+		if (!sourceLine) return;
+
 		// Start dragging
-		this.originalLine = clickedShape;
+		this.originalLine = sourceLine;
 		this.previewLine = this.originalLine.clone();
 		data.addTempShape(this.previewLine);
 
