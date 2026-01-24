@@ -241,13 +241,13 @@ class ToolManager extends EventDispatcher
 	{
 		if(stage.spaceKey){
 			this.handTool.onMouseDown(e);
-			
+
 		}else if(stage.commandKey){
 			this.strokeTool.onMouseDown(e);
-			
+
 		}else if(stage.shiftKey){
 			this.pointerTool.onMouseDown(e);
-			
+
 		}else{
 			this.currentTool.onMouseDown(e);
 		}

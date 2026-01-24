@@ -1,8 +1,6 @@
 import {Tool} 				from "./Tool.js";
 import {Rectangle} 			from '../geometry/Rectangle.js';
 import {Shape} 				from '../geometry/Geometry.js';
-import {SymbolInstance}		from '../geometry/Symbol.js';
-import {Frame}				from '../geometry/Frame.js';
 
 import stage 				from '../core/Stage.js';
 import toolManager			from './ToolManager.js';
@@ -115,100 +113,57 @@ export class PointerTool extends Tool
 	}
 
 	// Clone selected shapes and switch selection to clones
-	// Special handling: Option+drag Frame (symbol source) creates instance, Option+drag instance creates another instance
+	// Shapes decide how to clone themselves via cloneForDrag()
 	cloneSelectedShapes(){
 		this.isCloning = true;
 		this.clonedShapes = [];
 
 		const selected = data.getSelected();
 
-		// Check if we're dragging a Frame (symbol source)
-		const selectedFrames = selected.filter(s => s.geometry === Shape.FRAME && s.isSymbolSource);
-
-		if(selectedFrames.length === 1){
-			const frame = selectedFrames[0];
-			// Create a symbol instance at the frame's position
-			const instance = new SymbolInstance([frame.id, frame.x, frame.y]);
-			data.addShape(instance);
-			instance.selected = true;
-			this.clonedShapes.push(instance);
-
-			// Deselect the frame
-			frame.selected = false;
-
-			// Update moveTarget to the new instance
-			this.moveTarget = { type: 'shape', shape: instance };
-			return;
-		}
-
-		// Check if we're dragging symbol instances - create new instances
-		const instancesToCopy = selected.filter(s => s.geometry === Shape.SYMBOL);
-		const nonInstances = selected.filter(s => s.geometry !== Shape.SYMBOL && s.geometry !== Shape.FRAME);
-
-		// Create new instances for each dragged instance
-		for(const instance of instancesToCopy){
-			const newInstance = new SymbolInstance([
-				instance.sourceFrameId,
-				instance.x,
-				instance.y
-			]);
-			data.addShape(newInstance);
-			newInstance.selected = true;
-			this.clonedShapes.push(newInstance);
-			instance.selected = false;
-		}
-
-		// Handle non-instance, non-frame shapes with normal cloning
-		if(nonInstances.length > 0){
-			// Build mapping from old groupIds to new groupIds
-			const groupIdMap = new Map();
-			for(const shape of nonInstances){
-				if(shape.groupId && !groupIdMap.has(shape.groupId)){
-					// Walk up the group hierarchy to capture all ancestor groups
-					let currentId = shape.groupId;
-					while(currentId && !groupIdMap.has(currentId)){
-						const newId = `group_${data._nextGroupId++}`;
-						groupIdMap.set(currentId, newId);
-						const group = data.groups.get(currentId);
-						currentId = group ? group.parentId : null;
-					}
+		// Build mapping from old groupIds to new groupIds for group preservation
+		const groupIdMap = new Map();
+		for(const shape of selected){
+			if(shape.groupId && !groupIdMap.has(shape.groupId)){
+				let currentId = shape.groupId;
+				while(currentId && !groupIdMap.has(currentId)){
+					const newId = `group_${data._nextGroupId++}`;
+					groupIdMap.set(currentId, newId);
+					const group = data.groups.get(currentId);
+					currentId = group ? group.parentId : null;
 				}
 			}
+		}
 
-			// Create new groups with remapped parentIds
-			for(const [oldId, newId] of groupIdMap){
-				const oldGroup = data.groups.get(oldId);
-				const newParentId = oldGroup && oldGroup.parentId ? groupIdMap.get(oldGroup.parentId) : null;
-				const layout = oldGroup && oldGroup.layout
-					? { ...oldGroup.layout }
-					: { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' };
-				data.groups.set(newId, { id: newId, parentId: newParentId, layout });
+		// Create new groups with remapped parentIds
+		for(const [oldId, newId] of groupIdMap){
+			const oldGroup = data.groups.get(oldId);
+			const newParentId = oldGroup && oldGroup.parentId ? groupIdMap.get(oldGroup.parentId) : null;
+			const layout = oldGroup && oldGroup.layout
+				? { ...oldGroup.layout }
+				: { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' };
+			data.groups.set(newId, { id: newId, parentId: newParentId, layout });
+		}
+
+		// Clone each shape using its cloneForDrag() method
+		for(const shape of selected){
+			if(shape.frameId) continue;  // Skip shapes that belong to frames
+
+			const clone = shape.cloneForDrag();
+			if(clone.groupId){
+				clone.groupId = groupIdMap.get(clone.groupId) || null;
 			}
-
-			// Clone each non-instance shape with remapped groupId
-			// Note: Shapes in frames are NOT cloned here - they're part of the symbol source
-			for(const shape of nonInstances){
-				if(shape.frameId) continue;  // Skip shapes that belong to frames
-
-				const clone = shape.clone();
-				if(clone.groupId){
-					clone.groupId = groupIdMap.get(clone.groupId) || null;
-				}
-				data.addShape(clone);
-				clone.selected = true;
-				this.clonedShapes.push(clone);
-				shape.selected = false;
-			}
+			data.addShape(clone);
+			clone.selected = true;
+			this.clonedShapes.push(clone);
+			shape.selected = false;
 		}
 
 		// Update moveTarget to reference a cloned shape
 		if(this.moveTarget && this.clonedShapes.length > 0){
-			// Find the clone corresponding to the original target
 			const originalIndex = selected.indexOf(this.moveTarget.shape);
 			if(originalIndex >= 0 && originalIndex < this.clonedShapes.length){
 				this.moveTarget.shape = this.clonedShapes[originalIndex];
 			} else {
-				// Default to first cloned shape
 				this.moveTarget.shape = this.clonedShapes[0];
 			}
 		}
@@ -307,17 +262,16 @@ export class PointerTool extends Tool
 
 			if(now - this.lastClickTime < this.doubleClickThreshold && dist < this.doubleClickDistance){
 
-				// Double-click detected - check if on text
-				const textShape = this.findTextAtPoint(clickPos);
-				if(textShape){
-					this.editText(textShape, clickPos);
-					this.lastClickTime = 0;
-					this.lastClickPos = null;
-					return;
-				}
-
-				// Double-click on grouped shape - enter group for editing
+				// Double-click detected - let the shape handle it
 				const clickedShape = data.getTargetShape();
+				if(clickedShape){
+					const context = { toolManager, data, stage };
+					if(clickedShape.handleDoubleClick(clickPos, context)){
+						this.lastClickTime = 0;
+						this.lastClickPos = null;
+						return;
+					}
+				}
 
 				// is it a group?
 				if(clickedShape && clickedShape.groupId){
@@ -350,14 +304,6 @@ export class PointerTool extends Tool
 		this.lastClickPos = clickPos;
 		
 
-		// Cmd+click toggles control point visibility
-		// XXX not working
-		if(stage.commandKey){
-			data.toggleControlPoints();
-			stage.render();
-			return;
-		}
-
 		// Store both world and screen coords
 		// XXX drag manager?
 		this.dragStart 	= {x: data.snapPoint.x, y: data.snapPoint.y, screenX: e.screenX, screenY: e.screenY};
@@ -367,35 +313,22 @@ export class PointerTool extends Tool
 		// Check if clicking on a shape
 		this.moveTarget = data.getTargetShape();
 
-		// Check if clicking on a control point for resizing FIRST
-		// For Image: corners are POI indices 0-3, center is 4
-		// For Ellipse: center is 0, corner is 1, axis points are 2-5
-		// For Circle: center is 0, radius point is 1
+		// Check if clicking on a resize control point
+		// Shapes define their own control point types via getControlPointType()
 		this.cornerResize = null;
 
 		if(this.moveTarget && data.snapPoint.poiIndex !== undefined) {
-			const geo = this.moveTarget.geometry;
 			const poi = data.snapPoint.poiIndex;
+			const controlType = this.moveTarget.getControlPointType(poi);
 
-			// Ellipse control points (0 and 1)
-			// In 'center' mode: 0=center (move), 1=corner (resize)
-			// In 'corners' mode: 0=corner1 (resize), 1=corner2 (resize)
-			if(geo === Shape.ELLIPSE && (poi === 0 || poi === 1)) {
-				// For corners mode, both are resize points
-				// For center mode, 0 is move (handled by normal move), 1 is resize
-				if(this.moveTarget.controlMode === 'corners' || poi === 1) {
-					this.cornerResize = { shape: this.moveTarget, cornerIndex: poi };
-				}
-			}
-			// Circle radius control point (1)
-			else if(geo === Shape.CIRCLE && poi === 1) {
+			if(controlType === 'resize') {
 				this.cornerResize = { shape: this.moveTarget, cornerIndex: poi };
-			}
 
-			// Select the shape for control point resize
-			if(this.cornerResize && !this.moveTarget.selected){
-				data.selectNone();
-				this.moveTarget.selected = true;
+				// Select the shape for control point resize
+				if(!this.moveTarget.selected){
+					data.selectNone();
+					this.moveTarget.selected = true;
+				}
 			}
 		}
 
@@ -405,28 +338,21 @@ export class PointerTool extends Tool
 			const clickingOnPOI = data.snapPoint.poiIndex !== undefined;
 			const shapeAlreadySelected = shape.selected || data.getSelectedPoints().has(shape);
 
-			// If there's a partial point selection, check if we should clear it
+			// If there's a partial point selection, only clear it if clicking on an UNSELECTED shape
+			// This preserves mixed selections (whole shapes + individual points) during drag
 			const selectedPoints = data.getSelectedPoints();
-			if(selectedPoints.size > 0){
-				if(!selectedPoints.has(shape)){
-					// Clicking on a different shape - clear partial selection
-					data.selectedPoints.clear();
-				} else {
-					// Clicking on the same shape - check if clicking on a selected POI
-					const selectedIndices = selectedPoints.get(shape);
-					const clickedIndex = data.snapPoint.poiIndex;
-					if(clickedIndex === undefined || !selectedIndices.has(clickedIndex)){
-						// Not clicking on a selected POI - clear partial and select whole shape
-						data.selectedPoints.clear();
-						shape.selected = true;
-					}
-				}
+			if(selectedPoints.size > 0 && !shapeAlreadySelected){
+				// Clicking on an unselected shape - clear partial selections
+				data.selectedPoints.clear();
 			}
 
 			// If shape is already selected and clicking on a POI, allow point dragging
 			// (don't change selection - just let the drag happen)
 			if(shapeAlreadySelected && clickingOnPOI){
 				// Don't change selection - point drag will be handled by move logic
+				stage.render();
+			} else if(shapeAlreadySelected && !clickingOnPOI){
+				// Clicking on an already-selected shape (not on a POI) - maintain selection for drag
 				stage.render();
 			} else if(stage.shiftKey){
 				// Shift+click toggles selection (including group)
@@ -554,12 +480,12 @@ export class PointerTool extends Tool
 		const worldDx = snapPt.x - this.moveStart.x;
 		const worldDy = snapPt.y - this.moveStart.y;
 
-		// Find which frames are being moved (their children DON'T need separate movement)
-		// When a frame moves, its children stay in LOCAL coords - they move with the frame automatically
-		const movingFrameIds = new Set();
+		// Find which containers are being moved (their children DON'T need separate movement)
+		// When a container moves, its children stay in LOCAL coords - they move with it automatically
+		const movingContainerIds = new Set();
 		for(const original of this.originalPositions){
-			if(original.shape.geometry === Shape.FRAME){
-				movingFrameIds.add(original.shape.id);
+			if(original.shape.isContainer()){
+				movingContainerIds.add(original.shape.id);
 			}
 		}
 
@@ -567,9 +493,9 @@ export class PointerTool extends Tool
 		for(const original of this.originalPositions){
 			const shape = original.shape;
 
-			// Skip shapes whose parent frame is also being moved
+			// Skip shapes whose parent container is also being moved
 			// (they'll move automatically since they store LOCAL coords)
-			if(shape.frameId && movingFrameIds.has(shape.frameId)){
+			if(shape.frameId && movingContainerIds.has(shape.frameId)){
 				continue;
 			}
 
@@ -611,11 +537,10 @@ export class PointerTool extends Tool
 			// so we need to recalculate intersections for frame children too
 			const movedShapes = new Set(this.originalPositions.map(p => p.shape));
 
-			// Add frame children to movedShapes for intersection recalc
+			// Add container children to movedShapes for intersection recalc
 			for(const orig of this.originalPositions){
-				if(orig.shape.geometry === Shape.FRAME){
-					const frameChildren = data.getFrameShapes(orig.shape.id);
-					for(const child of frameChildren){
+				if(orig.shape.isContainer()){
+					for(const child of orig.shape.getContainedShapes()){
 						movedShapes.add(child);
 					}
 				}
@@ -697,36 +622,4 @@ export class PointerTool extends Tool
 	getMarqueeRect(){
 		return this.marqueeRect;
 	}
-
-	findTextAtPoint(point){
-		for(const shape of data.shapes){
-			if(shape.geometry === Shape.TEXT){
-				const hit = shape.getGeoSnap(point, null, 5);
-				if(hit){
-					return shape;
-				}
-			}
-		}
-		return null;
-	}
-
-	editText(textShape, clickPos){
-		// Switch to text tool and start editing
-		toolManager.setTool(toolManager.textTool);
-
-		// Set up the text tool to edit this shape
-		const textTool = toolManager.textTool;
-		textTool.text = textShape;
-		textTool.cursorPos = textTool.getCursorPosFromClick(textShape, clickPos);
-		textTool.isEditingExisting = true;
-
-		// Remove from shapes and add to temp
-		data.deleteShape(textShape);
-		data.addTempShape(textShape);
-
-		textTool.state = 1; // STATE.EDITING
-		textTool.startCursorBlink();
-		stage.render();
-	}
-
 }

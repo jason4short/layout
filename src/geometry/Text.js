@@ -491,4 +491,32 @@ export class Text extends Geometry
 	drawHandles(ctx, renderer) {
 		// Handles are drawn as part of drawTextBounds when selected
 	}
+
+	/**
+	 * Handle double-click to start editing.
+	 * @param {Object} clickPos - {x, y} world coordinates
+	 * @param {Object} context - {toolManager, data, stage}
+	 * @returns {boolean} true if handled
+	 */
+	handleDoubleClick(clickPos, context) {
+		const { toolManager, data, stage } = context;
+
+		// Switch to text tool and start editing
+		toolManager.setTool(toolManager.textTool);
+
+		const textTool = toolManager.textTool;
+		textTool.text = this;
+		textTool.cursorPos = textTool.getCursorPosFromClick(this, clickPos);
+		textTool.isEditingExisting = true;
+
+		// Remove from shapes and add to temp
+		data.deleteShape(this);
+		data.addTempShape(this);
+
+		textTool.state = 1; // STATE.EDITING
+		textTool.startCursorBlink();
+		stage.render();
+
+		return true;
+	}
 }

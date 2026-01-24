@@ -299,4 +299,55 @@ export class Geometry
 	update() {
 		// Base implementation does nothing
 	}
+
+	// ========== Abstract Tool Interface ==========
+	// These methods allow tools to interact with shapes without
+	// knowing their specific types. Override in subclasses as needed.
+
+	/**
+	 * Clone this shape for drag operations (Option+drag).
+	 * Override in subclasses that need special clone behavior.
+	 * e.g., symbol sources create instances instead of clones.
+	 * @returns {Geometry} The cloned shape (or instance)
+	 */
+	cloneForDrag() {
+		return this.clone();
+	}
+
+	/**
+	 * Get the type of a control point for tool behavior.
+	 * @param {number} index - POI index
+	 * @returns {string} 'move' | 'resize' | 'rotate' | etc.
+	 */
+	getControlPointType(index) {
+		return 'move';
+	}
+
+	/**
+	 * Check if this shape is a container (has child shapes).
+	 * @returns {boolean}
+	 */
+	isContainer() {
+		return false;
+	}
+
+	/**
+	 * Get shapes contained within this shape.
+	 * Only meaningful if isContainer() returns true.
+	 * @returns {Geometry[]}
+	 */
+	getContainedShapes() {
+		return [];
+	}
+
+	/**
+	 * Handle double-click on this shape.
+	 * Override to implement edit-on-double-click behavior.
+	 * @param {Object} clickPos - {x, y} world coordinates
+	 * @param {Object} context - {toolManager, data, stage} for actions
+	 * @returns {boolean} true if handled, false to continue default behavior
+	 */
+	handleDoubleClick(clickPos, context) {
+		return false;
+	}
 }

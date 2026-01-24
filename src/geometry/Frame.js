@@ -3,6 +3,7 @@ import {Point} from './Point.js';
 import {Transform} from './Transform.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
+import data from '../data/Data.js';
 
 /**
  * Frame - A rectangular container that establishes a local coordinate system.
@@ -61,6 +62,33 @@ export class Frame extends Geometry {
 		f.colorToken = this.colorToken;
 		f.transform.copyFrom(this.transform);
 		return f;
+	}
+
+	/**
+	 * Clone for drag operations.
+	 * Symbol sources create instances instead of clones.
+	 */
+	cloneForDrag() {
+		if (this.isSymbolSource) {
+			// Lazy import to avoid circular dependency
+			const { SymbolInstance } = require('./Symbol.js');
+			return new SymbolInstance([this.id, this.x, this.y]);
+		}
+		return this.clone();
+	}
+
+	/**
+	 * Frames are containers that hold shapes.
+	 */
+	isContainer() {
+		return true;
+	}
+
+	/**
+	 * Get shapes contained within this frame.
+	 */
+	getContainedShapes() {
+		return data.getFrameShapes(this.id);
 	}
 
 	copyFrom(other) {

@@ -24,14 +24,5 @@ export class Tool extends InteractiveObject
 	updateCursor(){}
 	reset(){}
 
-	// remove XXX	
-	distanceBetweenPoints(firstPoint, secondPoint)
-	{
-		const deltaX = firstPoint.x - secondPoint.x;
-		const deltaY = firstPoint.y - secondPoint.y;
-
-		return Math.sqrt((deltaX * deltaX) + (deltaY * deltaY));
-	}
-
 }
 

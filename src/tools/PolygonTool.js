@@ -2,6 +2,7 @@ import { Tool } from './Tool.js';
 import { Shape } from '../geometry/Geometry.js';
 import { Polygon } from '../geometry/Polygon.js';
 import { AddShapeCommand } from '../core/Commands.js';
+import * as VectorUtils from '../geometry/utils/VectorUtils.js';
 
 import stage from '../core/Stage.js';
 import data from '../data/Data.js';
@@ -92,7 +93,7 @@ export class PolygonTool extends Tool {
 		if (!this.polygon) return;
 
 		const currentPoint = da.getCurrentSnapPoint();
-		this.polygon.radius = this.distanceBetweenPoints(this.polygon, currentPoint);
+		this.polygon.radius = VectorUtils.distance(this.polygon, currentPoint);
 		// Update angle to current drag direction
 		this.polygon.radiusAngle = Math.atan2(currentPoint.y - this.polygon.y, currentPoint.x - this.polygon.x);
 		this.polygon.update();
@@ -106,7 +107,7 @@ export class PolygonTool extends Tool {
 
 		// Update radius and angle from current snap point
 		const currentPoint = da.getCurrentSnapPoint();
-		this.polygon.radius = this.distanceBetweenPoints(this.polygon, currentPoint);
+		this.polygon.radius = VectorUtils.distance(this.polygon, currentPoint);
 		this.polygon.radiusAngle = Math.atan2(currentPoint.y - this.polygon.y, currentPoint.x - this.polygon.x);
 
 		// Check minimum radius in screen space

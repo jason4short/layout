@@ -88,12 +88,16 @@ export class StrokeTool extends Tool
 		this.screenCurrent 		= null;
 		this.worldStart 		= null;
 		this.worldCurrent 		= null;
+		this.clickedShape 		= null;
 		stage.renderer.zoomRect = null;
 		stage.render();
 	}
 
 	onMouseDown(e)
 	{
+		// Remember if we started on a shape (for control point toggle on release)
+		this.clickedShape = data.getTargetShape();
+
 		// Track both screen and world coordinates
 		this.screenStart 	= { x: e.screenX, y: e.screenY };
 		this.screenCurrent 	= { x: e.screenX, y: e.screenY };
@@ -149,10 +153,17 @@ export class StrokeTool extends Tool
 
 	onMouseUp(e){
 		if(!this.screenStart) return;
-		
-		//this.worldCurrent = { x: e.x, y: e.y };
+
 		const gesture = this.gestures.join('');
-		this.executeGesture(gesture);
+
+		// If no gesture was made and we clicked on a shape, toggle control points
+		if(!gesture && this.clickedShape){
+			this.clickedShape.showControlPoints = !this.clickedShape.showControlPoints;
+			stage.render();
+		} else {
+			this.executeGesture(gesture);
+		}
+
 		this.reset();
 	}
 

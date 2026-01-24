@@ -77,6 +77,19 @@ export class Ellipse extends Geometry
 		}
 	}
 
+	/**
+	 * Get control point type for tool behavior.
+	 * 'center' mode: POI 0 = center (move), POI 1 = corner (resize)
+	 * 'corners' mode: POI 0 & 1 = corners (both resize)
+	 */
+	getControlPointType(index) {
+		if (this.controlMode === 'corners') {
+			return (index === 0 || index === 1) ? 'resize' : 'move';
+		}
+		// 'center' mode
+		return index === 1 ? 'resize' : 'move';
+	}
+
 	getGeoSnap(mouse, mouseRect, pixelTolerance)
 	{
 		// Quick reject

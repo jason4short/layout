@@ -2,6 +2,7 @@ import {Tool} 		from './Tool.js';
 import {Shape} 		from '../geometry/Geometry.js';
 import {Circle} 	from '../geometry/Circle.js';
 import {AddShapeCommand} from '../core/Commands.js';
+import * as VectorUtils from '../geometry/utils/VectorUtils.js';
 
 import stage 			from '../core/Stage.js';
 import toolManager		from './ToolManager.js';
@@ -84,7 +85,7 @@ export class CircleTool extends Tool
 			return;
 		}
 		const currentPoint = da.getCurrentSnapPoint();
-		this.circle.radius = this.distanceBetweenPoints(this.circle, currentPoint);
+		this.circle.radius = VectorUtils.distance(this.circle, currentPoint);
 		// Update angle to current drag direction
 		this.circle.radiusAngle = Math.atan2(currentPoint.y - this.circle.y, currentPoint.x - this.circle.x);
 
@@ -98,7 +99,7 @@ export class CircleTool extends Tool
 
 		// Update radius and angle from current snap point
 		const currentPoint = da.getCurrentSnapPoint();
-		this.circle.radius = this.distanceBetweenPoints(this.circle, currentPoint);
+		this.circle.radius = VectorUtils.distance(this.circle, currentPoint);
 		this.circle.radiusAngle = Math.atan2(currentPoint.y - this.circle.y, currentPoint.x - this.circle.x);
 
 		// Check minimum radius in screen space for consistent UX at any zoom level

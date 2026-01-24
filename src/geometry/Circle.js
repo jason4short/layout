@@ -67,6 +67,14 @@ export class Circle extends Geometry
 		];
 	}
 
+	/**
+	 * Get control point type for tool behavior.
+	 * POI 0 = center (move), POI 1 = radius (resize)
+	 */
+	getControlPointType(index) {
+		return index === 1 ? 'resize' : 'move';
+	}
+
 	getGeoSnap(mouse, mouseRect, pixelTolerance)
 	{
 		// Quick reject
