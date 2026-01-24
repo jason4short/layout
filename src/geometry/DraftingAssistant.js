@@ -26,7 +26,6 @@ class DraftingAssistant
             DraftingAssistant.instance = this;
         }
 	}
-	  // In Renderer.draw(), temporarily add:
 
 	// seek the nearest relevant snap point
 	snap(mouse, generateGuides = true){

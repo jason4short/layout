@@ -2,7 +2,6 @@ import stage from './Stage.js';
 import data from '../data/Data.js';
 import {Shape, PenStyle} from '../geometry/Geometry.js';
 import toolManager from '../tools/ToolManager.js';
-import events from './Events.js';
 
 // Cache for frame transforms during render
 let frameTransformCache = new Map();
@@ -16,11 +15,6 @@ export class Renderer
 		this.zoomRect = null;    // Set by StrokeTool during zoom gesture
 		this.textCursorInfo = null; // Updated via events from TextTool
 
-		// Subscribe to text cursor updates
-		events.on('text-cursor-update', (info) => {
-			this.textCursorInfo = info;
-		});
-
 		// Pen style definitions: [color, dashPattern, lineWidth]
 		this.penStyles = {
 			[PenStyle.VISIBLE]:      { color: '#111111', dash: [],           width: 0.5 },
@@ -33,6 +27,11 @@ export class Renderer
 		};
 	}
 
+	init(){
+		// Subscribe to text cursor updates
+		stage.addEventListener('text-cursor-update', (info) => {this.textCursorInfo = info;});	
+	}
+	
 	// Helper to convert world point to screen
 	toScreen(worldX, worldY) {
 		return stage.worldToScreen(worldX, worldY);
@@ -276,9 +275,6 @@ export class Renderer
 	drawSnapLabel(ctx, screenPos, label){
 		if(!label) return;
 
-
-		// XXX why is labels an array - should only be ONE label!
-		//const labelText = labels.join(' ');
 		const offsetX = 8;  // Offset from snap point
 		const offsetY = -8;
 

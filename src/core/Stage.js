@@ -108,6 +108,7 @@ class Stage extends View
 		window.addEventListener('mousemove',	this.onMouseMove);
 		window.addEventListener('mouseup',		this.onMouseUp);
 
+		this.renderer.init();
 		this.render();
     }
 
@@ -579,9 +580,9 @@ class Stage extends View
 		this.mouse = this.normalizeMouseEvent(e);
 
 		// Call coordinate display callback with world coordinates
-		if (this.onMouseMoveCallback) {
-			this.onMouseMoveCallback(this.mouse.x, this.mouse.y);
-		}
+// 		if (this.onMouseMoveCallback) {
+// 			this.onMouseMoveCallback(this.mouse.x, this.mouse.y);
+// 		}
 
 		// right click and drag - pan the view
 		if(e.which == 3){

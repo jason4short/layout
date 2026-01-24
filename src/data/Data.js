@@ -946,9 +946,7 @@ class Data
 
 
 	/* 	for drawing Previews */
-	// XXX combine into array so we can handle complex previews
 	addTempShape(newShape){
-		//this.shapePreview = newShape;
 		this.shapePreviews.push(newShape)
 	}
 
@@ -1171,10 +1169,7 @@ class Data
 		return this.guides;
 	}
 
-	getNewShape(type){
-		// XXX what is this???
-		//da.setCurrentSnapPoint(this.snapPoint, true);
-		
+	getNewShape(type){		
 		if(type == Shape.LINE){
 			return new Line([this.snapPoint.x, this.snapPoint.y, this.snapPoint.x, this.snapPoint.y]);
 			
@@ -1205,9 +1200,6 @@ class Data
 	resetSnaps(){
 		this.snapPoints			= []	
 		this.snapIndex 			= 0;
-
-		// XXX
-		//this.clearGuides();
 	}
 
 	// reset DA guides

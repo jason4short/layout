@@ -74,13 +74,11 @@ export class StrokeTool extends Tool
 
 	activate(){
 		data.resetSnaps();		
-		this.active 		= true;
-// 		console.log("begin Stroke Tool");
+		this.active 			= true;
 	}
 
 	deactivate(){
-// 		console.log("exit Stroke Tool");
-		this.active 		= false;
+		this.active 			= false;
 		this.reset();
 	}
 	

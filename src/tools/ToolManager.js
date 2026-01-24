@@ -142,7 +142,9 @@ class ToolManager extends EventDispatcher
 	}
 
 	/** Redraw everything. */
-	render(){this.renderer.draw();}
+	
+	//XXX
+///	render(){this.renderer.draw();}
 
 
 	// Build the tool palette UI
@@ -618,8 +620,6 @@ class ToolManager extends EventDispatcher
 	
 	onKeyUp(e)
 	{
-//		console.log("onKeyUp toolMan"+ e);
-
 		// Handle command key release - deactivate strokeTool and restore cursor
 		if(e.key == 'Meta'){
 			if(this.strokeTool.active){
@@ -630,16 +630,6 @@ class ToolManager extends EventDispatcher
 		if(!(stage.commandKey && stage.spaceKey && stage.shiftKey)){
 			this.currentTool.updateCursor();
 		}
-			
-// 
-// 		// Handle shift key release - restore cursor
-// 		if(stage.shiftKey){
-// 			this.currentTool.updateCursor();
-// 			return;
-// 		} else if(stage.spaceKey){
-// 			this.currentTool.updateCursor();
-// 		}
-
 	}
 }
 
