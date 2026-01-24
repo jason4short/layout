@@ -390,6 +390,24 @@ export class PointerTool extends Tool
 			const clickingOnPOI = data.snapPoint.poiIndex !== undefined;
 			const shapeAlreadySelected = shape.selected || data.getSelectedPoints().has(shape);
 
+			// If there's a partial point selection, check if we should clear it
+			const selectedPoints = data.getSelectedPoints();
+			if(selectedPoints.size > 0){
+				if(!selectedPoints.has(shape)){
+					// Clicking on a different shape - clear partial selection
+					data.selectedPoints.clear();
+				} else {
+					// Clicking on the same shape - check if clicking on a selected POI
+					const selectedIndices = selectedPoints.get(shape);
+					const clickedIndex = data.snapPoint.poiIndex;
+					if(clickedIndex === undefined || !selectedIndices.has(clickedIndex)){
+						// Not clicking on a selected POI - clear partial and select whole shape
+						data.selectedPoints.clear();
+						shape.selected = true;
+					}
+				}
+			}
+
 			// If shape is already selected and clicking on a POI, allow point dragging
 			// (don't change selection - just let the drag happen)
 			if(shapeAlreadySelected && clickingOnPOI){
@@ -443,6 +461,11 @@ export class PointerTool extends Tool
 				stage.render();
 			}
 			// If already selected (not on POI), keep it selected (for move operation)
+		} else if(!stage.shiftKey) {
+			// No target shape (clicked on empty space or intersection)
+			// Clear selection so marquee can start fresh
+			data.selectNone();
+			stage.render();
 		}
 
 		// create a guide reference from initial point

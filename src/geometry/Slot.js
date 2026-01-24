@@ -235,6 +235,14 @@ export class Slot extends Geometry {
 			closestDist = Math.abs(distToEnd - r);
 		}
 
+		// Check centerline (start to end)
+		const centerPoint = VectorUtils.closestPointOnSegment(mouse, this.start, this.end);
+		const centerDist = VectorUtils.distance(mouse, centerPoint);
+		if (centerDist < pixelTolerance && centerDist < closestDist) {
+			closest = centerPoint;
+			closestDist = centerDist;
+		}
+
 		if (closest) {
 			closest.distance = closestDist;
 			return closest;
