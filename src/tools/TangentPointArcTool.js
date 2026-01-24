@@ -67,12 +67,12 @@ export class TangentPointArcTool extends Tool
 	onMouseDown(e)
 	{
 		data.resetSnaps();
-		const currentPoint = draftingAssistant.getCurrentSnapPoint();
 
 		if(this.state === STATE.START){
 			// First click: set start point, show tangent line
-			this.startPoint = {x: currentPoint.x, y: currentPoint.y};
-			this.dragStart = {x: currentPoint.x, y: currentPoint.y};
+			// Use data.snapPoint to capture DA snap for guide generation
+			this.startPoint = {x: data.snapPoint.x, y: data.snapPoint.y};
+			this.dragStart = {x: data.snapPoint.x, y: data.snapPoint.y};
 			this.isDragging = false;
 
 			this.tangentLine = new Line([
@@ -83,11 +83,11 @@ export class TangentPointArcTool extends Tool
 			this.state = STATE.TANGENT;
 
 			// create a guide reference from initial point
-			draftingAssistant.setCurrentSnapPoint(currentPoint, true);
+			draftingAssistant.setCurrentSnapPoint(data.snapPoint, true);
 
 		} else if(this.state === STATE.TANGENT && !this.isDragging){
 			// Second click (click-click mode): set tangent direction
-			this.commitTangent(currentPoint);
+			this.commitTangent(data.snapPoint);
 
 		} else if(this.state === STATE.END){
 			// Third click: commit the arc
@@ -111,13 +111,11 @@ export class TangentPointArcTool extends Tool
 
 	onMouseMove(e)
 	{
-		const currentPoint = draftingAssistant.getCurrentSnapPoint();
-
 		if(this.state === STATE.TANGENT && this.tangentLine){
 			// Check if we've moved enough to consider this a drag
 			if(this.dragStart && !this.isDragging){
-				const dx = currentPoint.x - this.dragStart.x;
-				const dy = currentPoint.y - this.dragStart.y;
+				const dx = data.snapPoint.x - this.dragStart.x;
+				const dy = data.snapPoint.y - this.dragStart.y;
 				const screenDist = stage.worldToScreenScale(Math.sqrt(dx * dx + dy * dy));
 				if(screenDist > 5){
 					this.isDragging = true;
@@ -125,8 +123,8 @@ export class TangentPointArcTool extends Tool
 			}
 
 			// Update tangent line preview
-			this.tangentLine.end.x = currentPoint.x;
-			this.tangentLine.end.y = currentPoint.y;
+			this.tangentLine.end.x = data.snapPoint.x;
+			this.tangentLine.end.y = data.snapPoint.y;
 			this.tangentLine.update();
 			stage.render();
 			return;
@@ -141,24 +139,23 @@ export class TangentPointArcTool extends Tool
 				this.arc = new TangentArc([
 					this.startPoint.x, this.startPoint.y,
 					this.tangentPoint.x, this.tangentPoint.y,
-					currentPoint.x, currentPoint.y
+					data.snapPoint.x, data.snapPoint.y
 				]);
 				data.addTempShape(this.arc);
 			} else {
 				// Update endpoint
-				this.arc.endPoint.x = currentPoint.x;
-				this.arc.endPoint.y = currentPoint.y;
+				this.arc.endPoint.x = data.snapPoint.x;
+				this.arc.endPoint.y = data.snapPoint.y;
 				this.arc.recalculate();
 			}
 			stage.render();
 		}
 	}
-	
+
 	onMouseUp(e){
 		if(this.state === STATE.TANGENT && this.isDragging){
 			// Drag complete: commit tangent direction
-			const currentPoint = draftingAssistant.getCurrentSnapPoint();
-			this.commitTangent(currentPoint);
+			this.commitTangent(data.snapPoint);
 			stage.render();
 		}
 	}
