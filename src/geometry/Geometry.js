@@ -21,6 +21,7 @@ export const Shape = Object.freeze({
 	PAPER: "paper",
 	FRAME: "frame",
 	SYMBOL: "symbol",
+	BOARD: "board",
 
 	/*types*/
 	CONSTRUCTION: "construction",

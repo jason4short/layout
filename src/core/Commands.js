@@ -901,3 +901,40 @@ export class BreakApartInstanceCommand extends Command {
 		data.rebuildPOIs();
 	}
 }
+
+export class BreakApartBoardCommand extends Command {
+	constructor(board) {
+		super('Break Apart Board');
+		this.board = board;
+		this.newLines = [];
+	}
+
+	execute() {
+		// Create 4 lines from the board
+		this.newLines = this.board.createLines();
+
+		// Add lines to data
+		for (const line of this.newLines) {
+			data.addShape(line);
+			line.selected = true;
+		}
+
+		// Remove the board
+		data.deleteShape(this.board);
+
+		data.rebuildPOIs();
+	}
+
+	undo() {
+		// Remove the lines
+		for (const line of this.newLines) {
+			data.deleteShape(line);
+		}
+
+		// Restore the board
+		data.addShape(this.board);
+		this.board.selected = true;
+
+		data.rebuildPOIs();
+	}
+}

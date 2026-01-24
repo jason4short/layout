@@ -31,6 +31,7 @@ import { AngleDimensionTool } 			from "./AngleDimensionTool.js";
 import { TextTool } 					from "./TextTool.js";
 import { PaperTool } 					from "./PaperTool.js";
 import { FrameTool } 					from "./FrameTool.js";
+import { BoardTool } 					from "./BoardTool.js";
 
 
 
@@ -78,6 +79,7 @@ class ToolManager extends EventDispatcher
 		this.textTool					= new TextTool();
 		this.paperTool					= new PaperTool();
 		this.frameTool					= new FrameTool();
+		this.boardTool					= new BoardTool();
 
 		// Tool palette configuration: [tool, displayName, shortcut, icon]
 		this.toolPaletteConfig = [
@@ -92,6 +94,7 @@ class ToolManager extends EventDispatcher
 			{ tool: this.oppositeCornerEllipseTool, name: 'Ellipse', shortcut: 'E', icon: 'ellipse' },
 			{ tool: this.centerPointEllipseTool, 	name: 'Ellipse (Center)', shortcut: '4', icon: 'ellipse-center' },
 			{ tool: this.splineTool, 				name: 'Spline', shortcut: 'S', icon: 'spline' },
+			{ tool: this.boardTool, 				name: 'Board', shortcut: 'W', icon: 'board' },
 			{ category: 'Arcs' },
 			{ tool: this.threePointArcTool, 		name: '3-Point Arc', shortcut: 'A', icon: 'arc-3point' },
 			{ tool: this.centerPointArcTool, 		name: 'Center Arc', shortcut: '1', icon: 'arc-center' },

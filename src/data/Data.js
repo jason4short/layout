@@ -648,6 +648,8 @@ class Data
 				return []; // No control points - instances drag as a whole unit
 			case Shape.FRAME:
 				return []; // No control points - frames drag as a whole unit
+			case Shape.BOARD:
+				return [0, 1]; // start, end control points only
 			default:
 				return [];
 		}

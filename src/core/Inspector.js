@@ -517,25 +517,28 @@ class Inspector {
 	}
 
 	setFieldValue(field, shape, value) {
-		let numValue;
+		let finalValue;
 
 		// Parse value based on field type
-		if (field.type === 'length') {
+		if (field.type === 'select') {
+			// Select fields pass string value directly
+			finalValue = value;
+		} else if (field.type === 'length') {
 			// Use units parser for length fields (handles "1in", "25mm", "1 1/2"", etc.)
-			numValue = units.parse(value);
-			if (numValue === null) {
-				numValue = parseFloat(value);
+			finalValue = units.parse(value);
+			if (finalValue === null) {
+				finalValue = parseFloat(value);
 			}
+			if (isNaN(finalValue)) return;
 		} else {
-			numValue = parseFloat(value);
+			finalValue = parseFloat(value);
+			if (isNaN(finalValue)) return;
 		}
 
-		if (isNaN(numValue)) return;
-
 		if (field.set) {
-			field.set.call(shape, numValue);
+			field.set.call(shape, finalValue);
 		} else {
-			this.setNestedValue(shape, field.key, numValue);
+			this.setNestedValue(shape, field.key, finalValue);
 		}
 		shape.update();
 		data.rebuildPOIs();
