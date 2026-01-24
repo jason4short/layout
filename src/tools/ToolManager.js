@@ -475,6 +475,10 @@ class ToolManager extends EventDispatcher
 			case 'Escape':
 				// First let the tool handle escape (may commit work)
 				this.currentTool.reset();
+				// Exit group editing mode if active
+				if(data.isEditingGroup()){
+					data.exitGroup();
+				}
 				// Then switch to pointer if not already there
 				if(this.currentTool !== this.pointerTool){
 					this.setTool(this.pointerTool);

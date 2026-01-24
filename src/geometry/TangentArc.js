@@ -263,7 +263,7 @@ export class TangentArc extends Geometry
 	}
 
 	drawHandles(ctx, renderer) {
-		if (!this.selected && !this.showControlPoints) return;
+		if (!this.showControlPoints) return;
 
 		const startPt = renderer.toScreen(this.startPoint.x, this.startPoint.y);
 		const tangentPt = renderer.toScreen(this.tangentPoint.x, this.tangentPoint.y);

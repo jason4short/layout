@@ -73,10 +73,10 @@ export class InputHandler
 	
 	setInputValue(value)
 	{
-		this.input.value = Number(value);
+		// Format the value in current display units (without unit suffix for easy editing)
+		this.input.value = units.format(value, units.currentUnit, false);
 		this.input.focus();
 		this.input.select();
-		
 	};
 	
 	setCallback(handler)

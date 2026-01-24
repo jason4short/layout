@@ -308,6 +308,29 @@ export class PointerTool extends Tool
 					return;
 				}
 
+				// Double-click on grouped shape - enter group for editing
+				const clickedShape = data.getTargetShape();
+				if(clickedShape && clickedShape.groupId){
+					// If already editing a group, go deeper into child group
+					if(data.isEditingGroup()){
+						// Check if clicking on a child group - enter that
+						if(data.isChildGroupOfEditingGroup(clickedShape.groupId)){
+							data.enterGroup(clickedShape.groupId);
+							stage.render();
+							this.lastClickTime = 0;
+							this.lastClickPos = null;
+							return;
+						}
+					} else {
+						// Enter the root group for editing
+						const rootId = data.getRootGroupId(clickedShape.groupId);
+						data.enterGroup(rootId);
+						stage.render();
+						this.lastClickTime = 0;
+						this.lastClickPos = null;
+						return;
+					}
+				}
 			}
 		}
 
@@ -388,8 +411,31 @@ export class PointerTool extends Tool
 			} else if(!shapeAlreadySelected){
 				// Click on unselected shape - select it (deselect others)
 				data.selectNone();
-				if(shape.groupId){
-					// Select entire group hierarchy
+
+				// Check if we're editing a group
+				if(data.isEditingGroup()){
+					// When editing a group, select items at the editing level
+					if(data.isDirectChildOfEditingGroup(shape)){
+						// Direct child shape - select just this shape
+						shape.selected = true;
+					} else if(shape.groupId && data.isChildGroupOfEditingGroup(shape.groupId)){
+						// Shape in a child group - select the whole child group
+						const childGroupShapes = data.getGroupShapes(shape.groupId);
+						for(const s of childGroupShapes){
+							if(!s.locked) s.selected = true;
+						}
+					} else {
+						// Clicked outside the editing group - exit editing mode
+						data.exitGroup();
+						// Then do normal selection
+						if(shape.groupId){
+							data.selectGroup(shape);
+						} else {
+							shape.selected = true;
+						}
+					}
+				} else if(shape.groupId){
+					// Not editing - select entire group hierarchy
 					data.selectGroup(shape);
 				} else {
 					shape.selected = true;
@@ -584,9 +630,10 @@ export class PointerTool extends Tool
 			this.marqueeRect = null;
 
 		} else if(this.dragStart && !this.isDragging && !this.isMoving && !this.moveTarget){
-			// Click on empty space (no shape) - deselect all
+			// Click on empty space (no shape) - deselect all and exit group editing
 			if(!stage.shiftKey){
 				data.selectNone();
+				data.exitGroup();
 			}
 		}
 

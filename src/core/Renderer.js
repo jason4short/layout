@@ -262,6 +262,9 @@ export class Renderer
 		// Draw selected control points
 		this.drawSelectedControlPoints(ctx);
 
+		// Draw editing group indicator
+		this.drawEditingGroup(ctx);
+
 		// Draw marquee selection box
 		this.drawMarquee(ctx);
 
@@ -331,6 +334,40 @@ export class Renderer
 				ctx.strokeRect(pt.x - size, pt.y - size, size * 2, size * 2);
 			}
 		}
+	}
+
+	drawEditingGroup(ctx){
+		if(!data.isEditingGroup()) return;
+
+		const bounds = data.getGroupBounds(data.editingGroupId);
+		if(!bounds) return;
+
+		// Convert to screen coords
+		const topLeft = this.toScreen(bounds.x, bounds.y);
+		const width = this.toScreenScale(bounds.width);
+		const height = this.toScreenScale(bounds.height);
+
+		// Padding around the group
+		const padding = 8;
+
+		// Dashed blue outline
+		ctx.strokeStyle = '#2563eb';
+		ctx.lineWidth = 1.5;
+		ctx.setLineDash([6, 4]);
+		ctx.strokeRect(
+			topLeft.x - padding,
+			topLeft.y - padding,
+			width + padding * 2,
+			height + padding * 2
+		);
+		ctx.setLineDash([]);
+
+		// Draw "Editing Group" label
+		ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+		ctx.textAlign = 'left';
+		ctx.textBaseline = 'bottom';
+		ctx.fillStyle = '#2563eb';
+		ctx.fillText('Editing Group', topLeft.x - padding, topLeft.y - padding - 4);
 	}
 
 	drawMarquee(ctx){

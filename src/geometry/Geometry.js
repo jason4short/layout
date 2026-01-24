@@ -123,8 +123,9 @@ export class Geometry
 	 * @param {Renderer} renderer - Renderer instance for coordinate conversion helpers
 	 */
 	drawHandles(ctx, renderer) {
-		// Default: draw circles at each snap POI
-		if (!this.selected && !this.showControlPoints) return;
+		// Only draw handles when explicitly requested (Cmd+click), not just when selected
+		// Selection is indicated by red geometry color instead
+		if (!this.showControlPoints) return;
 
 		const pois = this.getSnapPOIs();
 		const handleRadius = 4;

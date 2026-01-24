@@ -259,7 +259,7 @@ export class Spline extends Geometry
 	}
 
 	drawHandles(ctx, renderer) {
-		if (!this.selected && !this.showControlPoints) return;
+		if (!this.showControlPoints) return;
 
 		const p0 = renderer.toScreen(this.p0.x, this.p0.y);
 		const p1 = renderer.toScreen(this.p1.x, this.p1.y);

@@ -499,7 +499,7 @@ export class Image extends Geometry
 	}
 
 	drawHandles(ctx, renderer) {
-		if (!this.selected || this.locked) return;
+		if (!this.showControlPoints || this.locked) return;
 
 		const handleRadius = 4;
 		ctx.lineWidth = 0.5;

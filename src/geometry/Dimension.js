@@ -280,7 +280,7 @@ export class Dimension extends Geometry
 	}
 
 	drawHandles(ctx, renderer) {
-		if (!this.selected && !this.showControlPoints) return;
+		if (!this.showControlPoints) return;
 
 		const handleRadius = 4;
 		ctx.lineWidth = 0.5;

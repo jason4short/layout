@@ -663,9 +663,9 @@ class Data
 			// Skip locked shapes
 			if(shape.locked) continue;
 
-			// Special handling for symbol instances - select if bounds intersect
+			// Special handling for symbol instances - only select if entirely contained
 			if(shape.geometry === Shape.SYMBOL){
-				if(rect.intersects(shape.bounds)){
+				if(rect.containsRect(shape.bounds)){
 					shape.selected = true;
 				}
 				continue;
@@ -985,6 +985,49 @@ class Data
 	isSymbolSource(groupId){
 		const group = this.groups.get(groupId);
 		return group && group.isSymbolSource === true;
+	}
+
+	// --------------------------------------------------------------------------------
+	// Group Editing Mode
+	// --------------------------------------------------------------------------------
+
+	// Currently editing group (double-click to enter, click outside to exit)
+	editingGroupId = null;
+
+	// Enter a group for editing (select children individually)
+	enterGroup(groupId){
+		this.editingGroupId = groupId;
+		this.selectNone();
+	}
+
+	// Exit group editing mode
+	exitGroup(){
+		this.editingGroupId = null;
+	}
+
+	// Check if we're editing a group
+	isEditingGroup(){
+		return this.editingGroupId !== null;
+	}
+
+	// Get the group we're currently editing
+	getEditingGroup(){
+		return this.editingGroupId ? this.groups.get(this.editingGroupId) : null;
+	}
+
+	// Check if a shape/group is a direct child of the editing group
+	isDirectChildOfEditingGroup(shape){
+		if(!this.editingGroupId) return false;
+		// Direct shape child
+		if(shape.groupId === this.editingGroupId) return true;
+		return false;
+	}
+
+	// Check if a groupId is a direct child group of the editing group
+	isChildGroupOfEditingGroup(groupId){
+		if(!this.editingGroupId) return false;
+		const group = this.groups.get(groupId);
+		return group && group.parentId === this.editingGroupId;
 	}
 
 	// --------------------------------------------------------------------------------
