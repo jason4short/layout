@@ -195,6 +195,7 @@ class Data
 
 	// --------------------------------------------------------------------------------
 	// POI Management
+	// POIs are the special labeled points like Endpoints, Centerpoints, Spline Control points, etc...
 	// --------------------------------------------------------------------------------
 
 	// Rebuild POIs for all shapes (called after shape deletion)
@@ -211,7 +212,6 @@ class Data
 	// Add POIs for a shape to our cache
 	// Shapes in frames store LOCAL coords - transform to world for snapping
 	storeShapePOIs(shape){
-		//console.log("storeShapePOIs");
 		const points = shape.getSnapPOIs();
 
 		// Get frame transform if shape belongs to a frame

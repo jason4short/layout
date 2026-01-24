@@ -214,6 +214,7 @@ class ToolManager extends EventDispatcher
 	}
 	
 
+	// determines if the selected tool generates snap points and DA guides during use.
 	generateGuides(){
 		if(stage.commandKey){
 			return false;
@@ -283,20 +284,16 @@ class ToolManager extends EventDispatcher
 			this.currentTool.onMouseUp(e);
 		}
 	}
-
-// Select All
-// fit
-// new open, close, group? 
-
- 
  
 	onKeyDown(e)
 	{
+		// console.log(e.key);
+		
+		// debug snap point coords
 		if(e.key == 'd'){
 			console.log(data.snapPoint.x, data.snapPoint.y)
 		}
 
-// 		console.log(e.key)
 		if(stage.commandKey){
 			stage.setCursor('command', 8, 8);
 			this.strokeTool.activate();
@@ -354,7 +351,7 @@ class ToolManager extends EventDispatcher
 				case 'C':
 					const copied = data.copy();
 					if(copied > 0){
-						console.log(`Copied ${copied} shape(s)`);
+						//console.log(`Copied ${copied} shape(s)`);
 					}
 					break;
 
@@ -362,7 +359,7 @@ class ToolManager extends EventDispatcher
 				case 'X':
 					const cut = data.cut();
 					if(cut > 0){
-						console.log(`Cut ${cut} shape(s)`);
+						//console.log(`Cut ${cut} shape(s)`);
 						stage.render();
 					}
 					break;
@@ -381,7 +378,7 @@ class ToolManager extends EventDispatcher
 						for(const shape of shapesToPaste){
 							shape.selected = true;
 						}
-						console.log(`Pasted ${shapesToPaste.length} shape(s)`);
+						//console.log(`Pasted ${shapesToPaste.length} shape(s)`);
 						stage.render();
 					}				
 					break;
@@ -480,6 +477,7 @@ class ToolManager extends EventDispatcher
 			case 'Escape':
 				// First let the tool handle escape (may commit work)
 				this.currentTool.reset();
+				
 				// Exit group editing mode if active
 				if(data.isEditingGroup()){
 					data.exitGroup();
@@ -488,6 +486,7 @@ class ToolManager extends EventDispatcher
 				if(this.currentTool !== this.pointerTool){
 					this.setTool(this.pointerTool);
 				}
+				
 				stage.render();
 				break;
 			
@@ -563,6 +562,7 @@ class ToolManager extends EventDispatcher
 
 	// Nudge selected shapes by arrow keys
 	nudgeSelection(key, shift) {
+	
 		const selected = data.getSelected();
 		if (selected.length === 0) return;
 
@@ -578,6 +578,8 @@ class ToolManager extends EventDispatcher
 
 		// Build move data for undo
 		const moveData = [];
+		
+		// nudge selected points
 		for (const shape of selected) {
 			const pois = shape.getSnapPOIs();
 			const selectableIndices = data.getSelectableIndices(shape);

@@ -285,20 +285,28 @@ export class PointerTool extends Tool
 
 	onMouseDown(e)
 	{
-		this.generateGuides 	= true; // Enable snapping for move operations
+		// Enable snapping for move operations
+		this.generateGuides 	= true; 
 	
+		// clear any existing snaps
 		data.resetSnaps();
 
 		// Check for double-click on text to edit
+		// xxx move to double click object?
 		const now = Date.now();
+		
+		// store first click point
 		const clickPos = { x: data.snapPoint.x, y: data.snapPoint.y };
 
+		// 
 		if(this.lastClickPos){
 			const dx = clickPos.x - this.lastClickPos.x;
 			const dy = clickPos.y - this.lastClickPos.y;
+			// XXX kill sqrt?
 			const dist = Math.sqrt(dx * dx + dy * dy) * stage.zoom;
 
 			if(now - this.lastClickTime < this.doubleClickThreshold && dist < this.doubleClickDistance){
+
 				// Double-click detected - check if on text
 				const textShape = this.findTextAtPoint(clickPos);
 				if(textShape){
@@ -310,7 +318,10 @@ export class PointerTool extends Tool
 
 				// Double-click on grouped shape - enter group for editing
 				const clickedShape = data.getTargetShape();
+
+				// is it a group?
 				if(clickedShape && clickedShape.groupId){
+
 					// If already editing a group, go deeper into child group
 					if(data.isEditingGroup()){
 						// Check if clicking on a child group - enter that
@@ -334,10 +345,13 @@ export class PointerTool extends Tool
 			}
 		}
 
+		//XXX move to object double click
 		this.lastClickTime = now;
 		this.lastClickPos = clickPos;
+		
 
 		// Cmd+click toggles control point visibility
+		// XXX not working
 		if(stage.commandKey){
 			data.toggleControlPoints();
 			stage.render();
@@ -345,9 +359,10 @@ export class PointerTool extends Tool
 		}
 
 		// Store both world and screen coords
-		this.dragStart = {x: data.snapPoint.x, y: data.snapPoint.y, screenX: e.screenX, screenY: e.screenY};
+		// XXX drag manager?
+		this.dragStart 	= {x: data.snapPoint.x, y: data.snapPoint.y, screenX: e.screenX, screenY: e.screenY};
 		this.isDragging = false;
-		this.isMoving = false;
+		this.isMoving 	= false;
 
 		// Check if clicking on a shape
 		this.moveTarget = data.getTargetShape();
