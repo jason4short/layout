@@ -57,7 +57,7 @@ export class PointerTool extends Tool
 		this.updateCursor();
 	}
 
-	exit(){
+	deactivate(){
 		this.resetDrag();
 	}
 	

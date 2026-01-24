@@ -39,7 +39,7 @@ export class SlotTool extends Tool {
 		this.reset();
 	}
 
-	exit() {
+	deactivate(){
 		this.reset();
 	}
 

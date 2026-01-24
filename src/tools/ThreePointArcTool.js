@@ -47,7 +47,7 @@ export class ThreePointArcTool extends Tool
 		//console.log("ThreePointArcTool begin");
 	}
 
-	exit(){
+	deactivate(){
 		//console.log("ThreePointArcTool exit");
 		this.reset();
 	}

@@ -48,7 +48,7 @@ export class SplineTool extends Tool
 	begin(){
 	}
 
-	exit(){
+	deactivate(){
 		this.reset();
 	}
 

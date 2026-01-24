@@ -47,7 +47,7 @@ export class TextTool extends Tool
 		stage.addEventListener('keyDown', this.onKeyDown);
 	}
 
-	exit(){
+	deactivate(){
 		this.commitText();
 		stage.removeEventListener('keyDown', this.onKeyDown);
 		this.stopCursorBlink();

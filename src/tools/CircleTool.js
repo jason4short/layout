@@ -38,7 +38,7 @@ export class CircleTool extends Tool
 	
 	}
 
-	exit(){
+	deactivate(){
 		//console.log("circle tool exit");
 	}
 	

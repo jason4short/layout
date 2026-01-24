@@ -39,7 +39,7 @@ export class TrimTool extends Tool
 		this.updateCursor();
 	}
 
-	exit(){
+	deactivate(){
 		//console.log("exit Trim Tool");
 	}
 

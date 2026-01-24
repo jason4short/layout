@@ -43,7 +43,7 @@ export class AngleDimensionTool extends Tool
 		this.state = STATE.IDLE;
 	}
 
-	exit(){
+	deactivate(){
 		this.reset();
 	}
 

@@ -48,7 +48,7 @@ export class MirrorTool extends Tool
 		toolManager.updateToolNameDisplay();
 	}
 
-	exit(){
+	deactivate(){
 		//console.log("exit Line Tool");
 	}
 	

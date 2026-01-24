@@ -39,7 +39,7 @@ export class FrameTool extends Tool
 		this.reset();
 	}
 
-	exit() {
+	deactivate(){
 		this.reset();
 	}
 

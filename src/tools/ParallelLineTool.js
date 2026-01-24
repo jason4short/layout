@@ -49,7 +49,7 @@ export class ParallelLineTool extends Tool
 		this.state = STATE.IDLE;
 	}
 
-	exit() {
+	deactivate(){
 		this.reset();
 	}
 	

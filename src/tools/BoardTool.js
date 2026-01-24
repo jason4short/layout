@@ -43,7 +43,7 @@ export class BoardTool extends Tool {
 		this.reset();
 	}
 
-	exit() {
+	deactivate(){
 		this.reset();
 	}
 

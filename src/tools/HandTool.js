@@ -32,7 +32,7 @@ export class HandTool extends Tool
 		stage.addEventListener('mouseDown', this.onMouseDown);
 	}
 
-	exit(){
+	deactivate(){
 		stage.removeEventListener('mouseUp', this.onMouseUp);
 		stage.removeEventListener('mouseMove', this.onMouseMove);
 		stage.removeEventListener('mouseDown', this.onMouseDown);

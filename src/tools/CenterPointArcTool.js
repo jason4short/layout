@@ -45,7 +45,7 @@ export class CenterPointArcTool extends Tool
 		//console.log("CenterPointArcTool begin");
 	}
 
-	exit(){
+	deactivate(){
 		//console.log("CenterPointArcTool exit");
 		this.reset();
 	}

@@ -45,7 +45,7 @@ export class TangentPointArcTool extends Tool
 		//console.log("TangentPointArcTool begin");
 	}
 
-	exit(){
+	deactivate(){
 		//console.log("TangentPointArcTool exit");
 		this.reset();
 	}

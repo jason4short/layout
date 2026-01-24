@@ -35,7 +35,7 @@ export class PaperTool extends Tool
 		this.reset();
 	}
 
-	exit() {
+	deactivate(){
 		this.reset();
 	}
 

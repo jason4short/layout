@@ -200,7 +200,7 @@ class Data
 	// Rebuild POIs for all shapes (called after shape deletion)
 	// Shapes in frames store LOCAL coords - transform to world for snapping
 	rebuildPOIs(){
-		console.log("rebuildPOIs");
+		//console.log("rebuildPOIs");
 		this.shapePOIs = [];
 
 		for(const shape of this.shapes){
@@ -211,7 +211,7 @@ class Data
 	// Add POIs for a shape to our cache
 	// Shapes in frames store LOCAL coords - transform to world for snapping
 	storeShapePOIs(shape){
-		console.log("storeShapePOIs");
+		//console.log("storeShapePOIs");
 		const points = shape.getSnapPOIs();
 
 		// Get frame transform if shape belongs to a frame
@@ -555,7 +555,7 @@ class Data
 
 		// Add direct shapes (shapes whose groupId === this groupId)
 		const directShapes = this.getDirectGroupShapes(groupId);
-		console.log(`getLayoutItems(${groupId}): directShapes =`, directShapes.length);
+// 		console.log(`getLayoutItems(${groupId}): directShapes =`, directShapes.length);
 		for(const shape of directShapes){
 			items.push({
 				type: 'shape',
@@ -566,7 +566,7 @@ class Data
 
 		// Add child groups as single units
 		const childGroupIds = this.getChildGroupIds(groupId);
-		console.log(`getLayoutItems(${groupId}): childGroupIds =`, childGroupIds);
+//		console.log(`getLayoutItems(${groupId}): childGroupIds =`, childGroupIds);
 		for(const childId of childGroupIds){
 			const bounds = this.getGroupBounds(childId);
 			if(bounds){
@@ -578,7 +578,7 @@ class Data
 			}
 		}
 
-		console.log(`getLayoutItems(${groupId}): total items =`, items.length, items.map(i => i.type));
+//		console.log(`getLayoutItems(${groupId}): total items =`, items.length, items.map(i => i.type));
 		return items;
 	}
 
@@ -814,12 +814,12 @@ class Data
 					const newId = `group_${this._nextGroupId++}`;
 					groupIdMap.set(currentId, newId);
 					const group = this.groups.get(currentId);
-					console.log(`preparePaste: mapping ${currentId} -> ${newId}, parent = ${group?.parentId}`);
+//					console.log(`preparePaste: mapping ${currentId} -> ${newId}, parent = ${group?.parentId}`);
 					currentId = group ? group.parentId : null;
 				}
 			}
 		}
-		console.log('preparePaste: groupIdMap =', [...groupIdMap.entries()]);
+//		console.log('preparePaste: groupIdMap =', [...groupIdMap.entries()]);
 
 		// Create new groups with remapped parentIds and layout properties
 		for(const [oldId, newId] of groupIdMap){
@@ -828,7 +828,7 @@ class Data
 			const layout = oldGroup && oldGroup.layout
 				? { ...oldGroup.layout }
 				: { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' };
-			console.log(`preparePaste: creating group ${newId} with parentId ${newParentId}`);
+//			console.log(`preparePaste: creating group ${newId} with parentId ${newParentId}`);
 			this.groups.set(newId, { id: newId, parentId: newParentId, layout });
 		}
 

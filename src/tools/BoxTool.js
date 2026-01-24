@@ -39,7 +39,7 @@ export class BoxTool extends Tool
 	begin(){
 	}
 
-	exit(){
+	deactivate(){
 		this.reset();
 	}
 

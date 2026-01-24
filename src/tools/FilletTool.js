@@ -70,7 +70,7 @@ export class FilletTool extends Tool
 		this.showRadiusInput()
 	}
 
-	exit() {
+	deactivate(){
 		toolManager.removeEventListener('mouseDown', this.onMouseDown);
 		toolManager.removeEventListener('mouseMove', this.onMouseMove);
 		toolManager.removeEventListener('mouseUp', this.onMouseUp);

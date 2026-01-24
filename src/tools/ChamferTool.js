@@ -50,7 +50,7 @@ export class ChamferTool extends Tool
 		this.state = STATE.IDLE;
 	}
 
-	exit() {
+	deactivate(){
 		this.reset();
 	}
 

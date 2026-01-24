@@ -38,7 +38,7 @@ export class ImageTool extends Tool
 		this.openFilePicker();
 	}
 
-	exit(){
+	deactivate(){
 		toolManager.removeEventListener('mouseUp', this.onMouseUp);
 		toolManager.removeEventListener('mouseMove', this.onMouseMove);
 		toolManager.removeEventListener('mouseDown', this.onMouseDown);

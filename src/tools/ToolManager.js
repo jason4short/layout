@@ -141,12 +141,6 @@ class ToolManager extends EventDispatcher
 		this.updateToolNameDisplay();
 	}
 
-	/** Redraw everything. */
-	
-	//XXX
-///	render(){this.renderer.draw();}
-
-
 	// Build the tool palette UI
 	buildToolPalette(){
 		const palette = document.getElementById('toolPalette');
@@ -181,9 +175,8 @@ class ToolManager extends EventDispatcher
 	}
 
 	setTool(tool)
-	{
-		
-		this.currentTool.exit();
+	{	
+		this.currentTool.deactivate();
 
 		if(tool == this.strokeTool){
 			this.strokeTool.begin();

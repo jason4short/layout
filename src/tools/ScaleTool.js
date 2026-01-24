@@ -54,7 +54,7 @@ export class ScaleTool extends Tool
 		toolManager.updateToolNameDisplay();
 	}
 
-	exit(){
+	deactivate(){
 		this.resetState();
 	}
 

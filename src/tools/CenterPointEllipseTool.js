@@ -38,7 +38,7 @@ export class CenterPointEllipseTool extends Tool
 	begin(){
 	}
 
-	exit(){
+	deactivate(){
 		this.reset();
 	}
 

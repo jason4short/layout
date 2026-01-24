@@ -42,7 +42,7 @@ export class PolygonTool extends Tool {
 		// Reset state when tool is activated
 	}
 
-	exit() {
+	deactivate(){
 		// Cleanup when leaving tool
 	}
 

@@ -34,7 +34,7 @@ export class LineTool extends Tool
 		//console.log("begin Line Tool");
 	}
 
-	exit(){
+	deactivate(){
 		//console.log("exit Line Tool");
 		this.reset();
 	}

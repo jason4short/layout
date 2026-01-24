@@ -39,7 +39,7 @@ export class OppositeCornerEllipseTool extends Tool
 	begin(){
 	}
 
-	exit(){
+	deactivate(){
 		this.reset();
 	}
 
