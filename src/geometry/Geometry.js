@@ -126,9 +126,9 @@ export class Geometry
 	 * @param {Renderer} renderer - Renderer instance for coordinate conversion helpers
 	 */
 	drawHandles(ctx, renderer) {
-		// Only draw handles when explicitly requested (Cmd+click), not just when selected
-		// Selection is indicated by red geometry color instead
-		if (!this.showControlPoints) return;
+		// Show handles if explicitly requested (Cmd+click) OR if primitive is selected
+		const showHandles = this.showControlPoints || (this.selected && this.showHandlesWhenSelected);
+		if (!showHandles) return;
 
 		const pois = this.getSnapPOIs();
 		const handleRadius = 4;

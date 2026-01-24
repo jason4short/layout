@@ -22,6 +22,7 @@ export class Slot extends Geometry {
 		super();
 		this.type = Shape.PLAIN;
 		this.geometry = Shape.SLOT;
+		this.showHandlesWhenSelected = true;  // Primitives show control points when selected
 
 		// params: [startX, startY, endX, endY, width]
 		this.start = new Point(params[0] || 0, params[1] || 0);
@@ -531,7 +532,8 @@ export class Slot extends Geometry {
 	}
 
 	drawHandles(ctx, renderer) {
-		if (!this.showControlPoints) return;
+		const showHandles = this.showControlPoints || (this.selected && this.showHandlesWhenSelected);
+		if (!showHandles) return;
 
 		const controlPoints = [this.start, this.end];
 		const handleRadius = 4;

@@ -68,7 +68,6 @@ export class PolygonTool extends Tool {
 			const polygon = new Polygon([snapPt.x, snapPt.y, this.lastRadius, this.defaultSides]);
 			undoManager.execute(new AddShapeCommand(polygon));
 			this.prevPolygon = polygon;
-			polygon.selected = true;
 			stage.setInputCallback(this.updateRadius);
 			stage.setDimensionInputValue(this.lastRadius * 2);  // Show diameter
 			stage.render();
@@ -123,9 +122,6 @@ export class PolygonTool extends Tool {
 			this.prevPolygon = this.polygon;
 			this.lastRadius = this.polygon.radius;
 			this.defaultSides = this.polygon.sides;
-
-			// Keep selected for inspector editing
-			this.polygon.selected = true;
 
 			// Show radius in input field (as diameter)
 			stage.setInputCallback(this.updateRadius);

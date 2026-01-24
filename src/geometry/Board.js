@@ -39,6 +39,7 @@ export class Board extends Geometry {
 		super();
 		this.type = Shape.PLAIN;
 		this.geometry = Shape.BOARD;
+		this.showHandlesWhenSelected = true;  // Primitives show control points when selected
 
 		// params: [startX, startY, endX, endY, thickness, presetName, alignment]
 		this.start = new Point(params[0] || 0, params[1] || 0);
@@ -515,7 +516,8 @@ export class Board extends Geometry {
 	}
 
 	drawHandles(ctx, renderer) {
-		if (!this.showControlPoints) return;
+		const showHandles = this.showControlPoints || (this.selected && this.showHandlesWhenSelected);
+		if (!showHandles) return;
 
 		// Draw handles at start and end control points only
 		const controlPoints = [this.start, this.end];

@@ -17,6 +17,7 @@ export class Polygon extends Geometry {
 		super();
 		this.type = Shape.PLAIN;
 		this.geometry = Shape.POLYGON;
+		this.showHandlesWhenSelected = true;  // Primitives show control points when selected
 
 		// params: [x, y, radius, sides, radiusAngle]
 		this.x = params[0];
@@ -267,5 +268,27 @@ export class Polygon extends Geometry {
 		ctx.closePath();
 		ctx.stroke();
 		renderer.resetPenStyle(ctx);
+	}
+
+	drawHandles(ctx, renderer) {
+		const showHandles = this.showControlPoints || (this.selected && this.showHandlesWhenSelected);
+		if (!showHandles) return;
+
+		// Draw handles at center and radius control point only
+		const pois = this.getSnapPOIs();
+		const controlPoints = [pois[0], pois[1]];  // center, radius point
+		const handleRadius = 4;
+
+		ctx.lineWidth = 0.5;
+		ctx.strokeStyle = '#666666';
+		ctx.fillStyle = '#FFFFFF';
+
+		for (const pt of controlPoints) {
+			const screen = renderer.toScreen(pt.x, pt.y);
+			ctx.beginPath();
+			ctx.arc(screen.x, screen.y, handleRadius, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.stroke();
+		}
 	}
 }

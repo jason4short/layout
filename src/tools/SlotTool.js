@@ -78,7 +78,6 @@ export class SlotTool extends Tool {
 
 		// Add as temp shape while dragging
 		data.addTempShape(this.slot);
-		this.slot.selected = true;
 
 		this.isDragging = true;
 		stage.render();
@@ -111,9 +110,6 @@ export class SlotTool extends Tool {
 		}
 
 		undoManager.execute(new AddShapeCommand(this.slot));
-
-		// Keep slot selected for inspector editing
-		this.slot.selected = true;
 
 		// Remember width for next slot
 		this.defaultWidth = this.slot.width;

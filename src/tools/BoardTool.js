@@ -85,7 +85,6 @@ export class BoardTool extends Tool {
 
 		// Add as temp shape while dragging
 		data.addTempShape(this.board);
-		this.board.selected = true;
 
 		this.isDragging = true;
 		stage.render();
@@ -118,9 +117,6 @@ export class BoardTool extends Tool {
 		}
 
 		undoManager.execute(new AddShapeCommand(this.board));
-
-		// Keep board selected for inspector editing
-		this.board.selected = true;
 
 		this.isDragging = false;
 		this.board = null;
