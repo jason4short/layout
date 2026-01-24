@@ -1,6 +1,8 @@
 import {Tool} 				from "./Tool.js";
 import {Rectangle} 			from '../geometry/Rectangle.js';
 import {Shape} 				from '../geometry/Geometry.js';
+import {SymbolInstance}		from '../geometry/Symbol.js';
+import {Frame}				from '../geometry/Frame.js';
 
 import stage 				from '../core/Stage.js';
 import toolManager			from './ToolManager.js';
@@ -81,6 +83,7 @@ export class PointerTool extends Tool
 		this.originalPositions 		= [];
 		this.clonedShapes 			= [];
 		this.cornerResize 			= null;
+		this.frameChildOriginals 	= null;
 
 		data.clearExcludeFromSnap();
 		data.resetSnaps();
@@ -112,51 +115,90 @@ export class PointerTool extends Tool
 	}
 
 	// Clone selected shapes and switch selection to clones
+	// Special handling: Option+drag Frame (symbol source) creates instance, Option+drag instance creates another instance
 	cloneSelectedShapes(){
 		this.isCloning = true;
 		this.clonedShapes = [];
 
 		const selected = data.getSelected();
 
-		// Build mapping from old groupIds to new groupIds
-		const groupIdMap = new Map();
-		for(const shape of selected){
-			if(shape.groupId && !groupIdMap.has(shape.groupId)){
-				// Walk up the group hierarchy to capture all ancestor groups
-				let currentId = shape.groupId;
-				while(currentId && !groupIdMap.has(currentId)){
-					const newId = `group_${data._nextGroupId++}`;
-					groupIdMap.set(currentId, newId);
-					const group = data.groups.get(currentId);
-					currentId = group ? group.parentId : null;
+		// Check if we're dragging a Frame (symbol source)
+		const selectedFrames = selected.filter(s => s.geometry === Shape.FRAME && s.isSymbolSource);
+
+		if(selectedFrames.length === 1){
+			const frame = selectedFrames[0];
+			// Create a symbol instance at the frame's position
+			const instance = new SymbolInstance([frame.id, frame.x, frame.y]);
+			data.addShape(instance);
+			instance.selected = true;
+			this.clonedShapes.push(instance);
+
+			// Deselect the frame
+			frame.selected = false;
+
+			// Update moveTarget to the new instance
+			this.moveTarget = { type: 'shape', shape: instance };
+			return;
+		}
+
+		// Check if we're dragging symbol instances - create new instances
+		const instancesToCopy = selected.filter(s => s.geometry === Shape.SYMBOL);
+		const nonInstances = selected.filter(s => s.geometry !== Shape.SYMBOL && s.geometry !== Shape.FRAME);
+
+		// Create new instances for each dragged instance
+		for(const instance of instancesToCopy){
+			const newInstance = new SymbolInstance([
+				instance.sourceFrameId,
+				instance.x,
+				instance.y
+			]);
+			data.addShape(newInstance);
+			newInstance.selected = true;
+			this.clonedShapes.push(newInstance);
+			instance.selected = false;
+		}
+
+		// Handle non-instance, non-frame shapes with normal cloning
+		if(nonInstances.length > 0){
+			// Build mapping from old groupIds to new groupIds
+			const groupIdMap = new Map();
+			for(const shape of nonInstances){
+				if(shape.groupId && !groupIdMap.has(shape.groupId)){
+					// Walk up the group hierarchy to capture all ancestor groups
+					let currentId = shape.groupId;
+					while(currentId && !groupIdMap.has(currentId)){
+						const newId = `group_${data._nextGroupId++}`;
+						groupIdMap.set(currentId, newId);
+						const group = data.groups.get(currentId);
+						currentId = group ? group.parentId : null;
+					}
 				}
 			}
-		}
 
-		// Create new groups with remapped parentIds
-		for(const [oldId, newId] of groupIdMap){
-			const oldGroup = data.groups.get(oldId);
-			const newParentId = oldGroup && oldGroup.parentId ? groupIdMap.get(oldGroup.parentId) : null;
-			const layout = oldGroup && oldGroup.layout
-				? { ...oldGroup.layout }
-				: { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' };
-			data.groups.set(newId, { id: newId, parentId: newParentId, layout });
-		}
-
-		// Clone each selected shape with remapped groupId
-		for(const shape of selected){
-			const clone = shape.clone();
-			if(clone.groupId){
-				clone.groupId = groupIdMap.get(clone.groupId) || null;
+			// Create new groups with remapped parentIds
+			for(const [oldId, newId] of groupIdMap){
+				const oldGroup = data.groups.get(oldId);
+				const newParentId = oldGroup && oldGroup.parentId ? groupIdMap.get(oldGroup.parentId) : null;
+				const layout = oldGroup && oldGroup.layout
+					? { ...oldGroup.layout }
+					: { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' };
+				data.groups.set(newId, { id: newId, parentId: newParentId, layout });
 			}
-			data.addShape(clone);
-			clone.selected = true;
-			this.clonedShapes.push(clone);
-		}
 
-		// Deselect originals
-		for(const shape of selected){
-			shape.selected = false;
+			// Clone each non-instance shape with remapped groupId
+			// Note: Shapes in frames are NOT cloned here - they're part of the symbol source
+			for(const shape of nonInstances){
+				if(shape.frameId) continue;  // Skip shapes that belong to frames
+
+				const clone = shape.clone();
+				if(clone.groupId){
+					clone.groupId = groupIdMap.get(clone.groupId) || null;
+				}
+				data.addShape(clone);
+				clone.selected = true;
+				this.clonedShapes.push(clone);
+				shape.selected = false;
+			}
 		}
 
 		// Update moveTarget to reference a cloned shape
@@ -165,23 +207,29 @@ export class PointerTool extends Tool
 			const originalIndex = selected.indexOf(this.moveTarget.shape);
 			if(originalIndex >= 0 && originalIndex < this.clonedShapes.length){
 				this.moveTarget.shape = this.clonedShapes[originalIndex];
+			} else {
+				// Default to first cloned shape
+				this.moveTarget.shape = this.clonedShapes[0];
 			}
 		}
 	}
 
 	// Store original positions of all selected items
+	// Shapes in frames store LOCAL coords (relative to frame)
+	// When a frame moves, its children move automatically
 	storeOriginalPositions(){
 		this.originalPositions = [];
 
 		// If corner resize, only store that corner
 		if(this.cornerResize){
-			const pois = this.cornerResize.shape.getSnapPOIs();
+			const shape = this.cornerResize.shape;
+			const pois = shape.getSnapPOIs();
 			const poi = pois[this.cornerResize.cornerIndex];
 			if(poi){
 				this.originalPositions.push({
 					x: poi.x,
 					y: poi.y,
-					shape: this.cornerResize.shape,
+					shape: shape,
 					index: this.cornerResize.cornerIndex
 				});
 			}
@@ -190,12 +238,30 @@ export class PointerTool extends Tool
 
 		// Store positions for whole-shape selections
 		for(const shape of data.getSelected()){
-			const pois = shape.getSnapPOIs();
 			const selectableIndices = data.getSelectableIndices(shape);
+
+			// For shapes with no selectable indices (like symbol instances),
+			// store with index=-1 to indicate whole-shape move via translate()
+			if(selectableIndices.length === 0){
+				this.originalPositions.push({
+					x: shape.bounds.x,
+					y: shape.bounds.y,
+					shape,
+					index: -1  // Special marker for whole-shape translation
+				});
+				continue;
+			}
+
+			const pois = shape.getSnapPOIs();
 			for(const index of selectableIndices){
 				const poi = pois[index];
 				if(poi){
-					this.originalPositions.push({x: poi.x, y: poi.y, shape, index});
+					this.originalPositions.push({
+						x: poi.x,
+						y: poi.y,
+						shape,
+						index
+					});
 				}
 			}
 		}
@@ -206,7 +272,12 @@ export class PointerTool extends Tool
 			for(const index of indices){
 				const poi = pois[index];
 				if(poi){
-					this.originalPositions.push({x: poi.x, y: poi.y, shape, index});
+					this.originalPositions.push({
+						x: poi.x,
+						y: poi.y,
+						shape,
+						index
+					});
 				}
 			}
 		}
@@ -236,6 +307,7 @@ export class PointerTool extends Tool
 					this.lastClickPos = null;
 					return;
 				}
+
 			}
 		}
 
@@ -394,13 +466,52 @@ export class PointerTool extends Tool
 		// Get current snap point (already set by Stage.onMouseMove)
 		const snapPt = draftingAssistant.getCurrentSnapPoint();
 
-		// Calculate delta from where we started dragging
-		const snapDx = snapPt.x - this.moveStart.x;
-		const snapDy = snapPt.y - this.moveStart.y;
+		// Calculate delta from where we started dragging (WORLD space)
+		const worldDx = snapPt.x - this.moveStart.x;
+		const worldDy = snapPt.y - this.moveStart.y;
+
+		// Find which frames are being moved (their children DON'T need separate movement)
+		// When a frame moves, its children stay in LOCAL coords - they move with the frame automatically
+		const movingFrameIds = new Set();
+		for(const original of this.originalPositions){
+			if(original.shape.geometry === Shape.FRAME){
+				movingFrameIds.add(original.shape.id);
+			}
+		}
 
 		// Apply delta to all stored original positions
 		for(const original of this.originalPositions){
-			original.shape.updateControlPoint(original.index, original.x + snapDx, original.y + snapDy);
+			const shape = original.shape;
+
+			// Skip shapes whose parent frame is also being moved
+			// (they'll move automatically since they store LOCAL coords)
+			if(shape.frameId && movingFrameIds.has(shape.frameId)){
+				continue;
+			}
+
+			// For shapes inside frames, convert world delta to local delta
+			let dx = worldDx;
+			let dy = worldDy;
+			if(shape.frameId){
+				const frame = data.getFrame(shape.frameId);
+				if(frame){
+					const localDelta = frame.worldToLocalDelta(worldDx, worldDy);
+					dx = localDelta.x;
+					dy = localDelta.y;
+				}
+			}
+
+			const newX = original.x + dx;
+			const newY = original.y + dy;
+
+			if(original.index === -1){
+				// Whole-shape translation (for symbol instances, frames, etc.)
+				const currentX = shape.bounds.x;
+				const currentY = shape.bounds.y;
+				shape.translate(newX - currentX, newY - currentY);
+			} else {
+				shape.updateControlPoint(original.index, newX, newY);
+			}
 		}
 	}
 
@@ -412,7 +523,20 @@ export class PointerTool extends Tool
 			data.rebuildPOIs();
 
 			// Recalculate intersections for moved shapes
+			// Note: When frames move, their children move automatically (local coords)
+			// so we need to recalculate intersections for frame children too
 			const movedShapes = new Set(this.originalPositions.map(p => p.shape));
+
+			// Add frame children to movedShapes for intersection recalc
+			for(const orig of this.originalPositions){
+				if(orig.shape.geometry === Shape.FRAME){
+					const frameChildren = data.getFrameShapes(orig.shape.id);
+					for(const child of frameChildren){
+						movedShapes.add(child);
+					}
+				}
+			}
+
 			data.recalculateIntersectionsForShapes([...movedShapes]);
 
 			// Update any angle dimensions that depend on moved shapes
@@ -421,23 +545,38 @@ export class PointerTool extends Tool
 			if(this.isCloning && this.clonedShapes.length > 0){
 				// Record clone command for undo (shapes already added)
 				undoManager.record(new AddShapesCommand(this.clonedShapes));
-				
+
 			} else if(this.originalPositions.length > 0){
 				// Record move command for undo
-				// Build moveData with old and new positions
+				// Shapes in frames store LOCAL coords - MoveCommand handles this
+
 				const moveData = this.originalPositions.map(orig => {
-					const pois = orig.shape.getSnapPOIs();
-					const currentPos = pois[orig.index];
+					let newX, newY;
+					if(orig.index === -1){
+						// Whole shape translation - use bounds position
+						newX = orig.shape.bounds.x;
+						newY = orig.shape.bounds.y;
+					} else {
+						// Control point move - use POI position
+						const pois = orig.shape.getSnapPOIs();
+						const currentPos = pois[orig.index];
+						newX = currentPos.x;
+						newY = currentPos.y;
+					}
+
 					return {
 						shape: orig.shape,
 						index: orig.index,
 						oldX: orig.x,
 						oldY: orig.y,
-						newX: currentPos.x,
-						newY: currentPos.y
+						newX: newX,
+						newY: newY
 					};
 				});
-				undoManager.record(new MoveCommand(moveData));
+
+				if(moveData.length > 0){
+					undoManager.record(new MoveCommand(moveData));
+				}
 			}
 		} else if(this.isDragging && this.marqueeRect){
 			// Finish marquee selection
@@ -452,7 +591,21 @@ export class PointerTool extends Tool
 		}
 
 		this.resetDrag();
+		this.updateActiveFrame();
 		stage.render();
+	}
+
+	// Update active frame based on selection
+	// If exactly one Frame is selected, it becomes active for drawing
+	updateActiveFrame(){
+		const selected = data.getSelected();
+		const selectedFrames = selected.filter(s => s.geometry === Shape.FRAME);
+
+		if(selectedFrames.length === 1){
+			data.setActiveFrame(selectedFrames[0].id);
+		} else {
+			data.clearActiveFrame();
+		}
 	}
 
 	// Get the current marquee rect for rendering
@@ -490,4 +643,5 @@ export class PointerTool extends Tool
 		textTool.startCursorBlink();
 		stage.render();
 	}
+
 }

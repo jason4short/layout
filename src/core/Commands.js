@@ -3,6 +3,7 @@
 
 import data from '../data/Data.js';
 import { calculateLayout } from './LayoutEngine.js';
+import { Frame } from '../geometry/Frame.js';
 
 // Base Command class
 export class Command {
@@ -20,29 +21,84 @@ export class Command {
 }
 
 // Add a single shape
+// If there's an active frame, converts shape coords to frame-local and assigns frameId
 export class AddShapeCommand extends Command {
 	constructor(shape) {
 		super('Add shape');
 		this.shape = shape;
+		this.frameId = null;  // Will be set if shape is added to a frame
+		this.worldCoords = null;  // Store original world coords for undo
 	}
 
 	execute() {
+		// Check for active frame
+		if (data.activeFrameId) {
+			const frame = data.getFrame(data.activeFrameId);
+			if (frame) {
+				// Store original world coords for undo
+				this.worldCoords = this.shape.clone();
+
+				// Convert shape from WORLD to FRAME-LOCAL coords
+				// Uses transformPoints if available, otherwise translate
+				if (this.shape.transformPoints) {
+					this.shape.transformPoints(p => frame.worldToLocal(p));
+				} else {
+					// For shapes without transformPoints, use translate
+					const localOrigin = frame.worldToLocal(0, 0);
+					this.shape.translate(localOrigin.x, localOrigin.y);
+				}
+				this.shape.update();
+
+				this.shape.frameId = data.activeFrameId;
+				this.frameId = data.activeFrameId;
+			}
+		}
 		data.addShape(this.shape);
 	}
 
 	undo() {
 		data.deleteShape(this.shape);
+		// Restore world coords if was in a frame
+		if (this.frameId && this.worldCoords) {
+			this.shape.copyFrom(this.worldCoords);
+			this.shape.frameId = null;
+		}
 	}
 }
 
 // Add multiple shapes at once
+// If there's an active frame, converts shape coords to frame-local and assigns frameId
 export class AddShapesCommand extends Command {
 	constructor(shapes) {
 		super(`Add ${shapes.length} shapes`);
 		this.shapes = shapes;
+		this.frameId = null;  // Will be set if shapes are added to a frame
+		this.worldCoords = [];  // Store original world coords for undo
 	}
 
 	execute() {
+		// Check for active frame
+		if (data.activeFrameId) {
+			const frame = data.getFrame(data.activeFrameId);
+			if (frame) {
+				this.frameId = data.activeFrameId;
+
+				for (const shape of this.shapes) {
+					// Store original world coords for undo
+					this.worldCoords.push(shape.clone());
+
+					// Convert shape from WORLD to FRAME-LOCAL coords
+					if (shape.transformPoints) {
+						shape.transformPoints(p => frame.worldToLocal(p));
+					} else {
+						const localOrigin = frame.worldToLocal(0, 0);
+						shape.translate(localOrigin.x, localOrigin.y);
+					}
+					shape.update();
+					shape.frameId = data.activeFrameId;
+				}
+			}
+		}
 		for (const shape of this.shapes) {
 			data.addShape(shape);
 		}
@@ -51,6 +107,15 @@ export class AddShapesCommand extends Command {
 	undo() {
 		for (const shape of this.shapes) {
 			data.deleteShape(shape);
+		}
+		// Restore world coords if was in a frame
+		if (this.frameId && this.worldCoords.length > 0) {
+			for (let i = 0; i < this.shapes.length; i++) {
+				if (this.worldCoords[i]) {
+					this.shapes[i].copyFrom(this.worldCoords[i]);
+				}
+				this.shapes[i].frameId = null;
+			}
 		}
 	}
 }
@@ -133,9 +198,11 @@ export class DeleteShapesCommand extends Command {
 }
 
 // Move shapes/points by a delta
+// Coordinates are stored in frame-local space (or world space for non-frame shapes)
 export class MoveCommand extends Command {
 	constructor(moveData) {
 		// moveData: [{shape, index, oldX, oldY, newX, newY}, ...]
+		// index === -1 indicates whole-shape translation (use bounds)
 		super('Move');
 		this.moveData = moveData;
 	}
@@ -143,7 +210,14 @@ export class MoveCommand extends Command {
 	execute() {
 		const affectedShapes = new Set();
 		for (const item of this.moveData) {
-			item.shape.updateControlPoint(item.index, item.newX, item.newY);
+			if (item.index === -1) {
+				// Whole shape translation
+				const dx = item.newX - item.shape.bounds.x;
+				const dy = item.newY - item.shape.bounds.y;
+				item.shape.translate(dx, dy);
+			} else {
+				item.shape.updateControlPoint(item.index, item.newX, item.newY);
+			}
 			affectedShapes.add(item.shape);
 		}
 		data.rebuildPOIs();
@@ -153,7 +227,14 @@ export class MoveCommand extends Command {
 	undo() {
 		const affectedShapes = new Set();
 		for (const item of this.moveData) {
-			item.shape.updateControlPoint(item.index, item.oldX, item.oldY);
+			if (item.index === -1) {
+				// Whole shape translation
+				const dx = item.oldX - item.shape.bounds.x;
+				const dy = item.oldY - item.shape.bounds.y;
+				item.shape.translate(dx, dy);
+			} else {
+				item.shape.updateControlPoint(item.index, item.oldX, item.oldY);
+			}
 			affectedShapes.add(item.shape);
 		}
 		data.rebuildPOIs();
@@ -689,5 +770,134 @@ export class ApplyLayoutCommand extends Command {
 		// Fallback if recalculateAllIntersections doesn't exist
 		const shapes = data.getGroupShapes(this.groupId);
 		data.recalculateIntersectionsForShapes(shapes);
+	}
+}
+
+// Convert selected shapes to a symbol source group
+// The shapes stay on canvas as the source - use Option+drag to create instances
+// Shapes are converted to frame-local coordinates
+export class ConvertToSymbolCommand extends Command {
+	constructor(shapes, name) {
+		super(`Convert to Symbol: ${name}`);
+		this.shapes = [...shapes];
+		this.name = name;
+		this.frame = null;
+		this.previousFrameIds = [];  // Store original frameIds for undo
+		this.worldCoords = [];  // Store original world coords for undo
+	}
+
+	execute() {
+		// Calculate bounds of selected shapes
+		let minX = Infinity, minY = Infinity;
+		let maxX = -Infinity, maxY = -Infinity;
+
+		for (const shape of this.shapes) {
+			const b = shape.bounds;
+			minX = Math.min(minX, b.x);
+			minY = Math.min(minY, b.y);
+			maxX = Math.max(maxX, b.x + b.width);
+			maxY = Math.max(maxY, b.y + b.height);
+		}
+
+		// Add padding around the frame
+		const padding = 10;
+		const frameX = minX - padding;
+		const frameY = minY - padding;
+		const frameWidth = (maxX - minX) + padding * 2;
+		const frameHeight = (maxY - minY) + padding * 2;
+
+		// Create the Frame
+		this.frame = new Frame([frameX, frameY, frameWidth, frameHeight, this.name]);
+		this.frame.isSymbolSource = true;
+		data.addShape(this.frame);
+
+		// Store original state for undo
+		this.previousFrameIds = this.shapes.map(s => s.frameId);
+		this.worldCoords = this.shapes.map(s => s.clone());
+
+		// Convert shapes to frame-local coords and assign to frame
+		for (const shape of this.shapes) {
+			// Convert from WORLD to FRAME-LOCAL coords
+			shape.translate(-frameX, -frameY);
+			shape.update();
+			shape.frameId = this.frame.id;
+		}
+
+		// Select the frame
+		data.selectNone();
+		this.frame.selected = true;
+
+		data.rebuildPOIs();
+	}
+
+	undo() {
+		if (!this.frame) return;
+
+		// Restore shapes to original world coords
+		for (let i = 0; i < this.shapes.length; i++) {
+			if (this.worldCoords[i]) {
+				this.shapes[i].copyFrom(this.worldCoords[i]);
+			}
+			this.shapes[i].frameId = this.previousFrameIds[i];
+		}
+
+		// Remove the frame
+		data.deleteShape(this.frame);
+		this.frame = null;
+
+		data.rebuildPOIs();
+	}
+}
+
+// Break apart a symbol instance into a regular group
+export class BreakApartInstanceCommand extends Command {
+	constructor(instance) {
+		super('Break Apart Instance');
+		this.instance = instance;
+		this.newShapes = [];
+		this.newGroupId = null;
+	}
+
+	execute() {
+		// Get exploded shapes (clones at instance position)
+		this.newShapes = this.instance.explode();
+
+		// Add shapes to data
+		for (const shape of this.newShapes) {
+			data.addShape(shape);
+		}
+
+		// Group the new shapes
+		if (this.newShapes.length > 0) {
+			this.newGroupId = data.createGroup(this.newShapes);
+		}
+
+		// Remove the instance
+		data.deleteShape(this.instance);
+
+		// Select the new shapes
+		for (const shape of this.newShapes) {
+			shape.selected = true;
+		}
+
+		data.rebuildPOIs();
+	}
+
+	undo() {
+		// Remove the new shapes
+		for (const shape of this.newShapes) {
+			data.deleteShape(shape);
+		}
+
+		// Remove the group
+		if (this.newGroupId) {
+			data.groups.delete(this.newGroupId);
+		}
+
+		// Restore the instance
+		data.addShape(this.instance);
+		this.instance.selected = true;
+
+		data.rebuildPOIs();
 	}
 }

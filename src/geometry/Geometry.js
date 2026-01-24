@@ -19,6 +19,7 @@ export const Shape = Object.freeze({
 	ANGLE_DIMENSION: "angle_dimension",
 	TEXT: "text",
 	PAPER: "paper",
+	FRAME: "frame",
 	SYMBOL: "symbol",
 
 	/*types*/
@@ -77,6 +78,7 @@ export class Geometry
 		this.bounds 			= new Rectangle();
 		this.penStyle 			= PenStyle.VISIBLE;  // Default pen style
 		this.groupId 			= null;  // ID of group this shape belongs to (null = ungrouped)
+		this.frameId 			= null;  // ID of frame this shape belongs to (null = world coords)
 		this.colorToken 		= null;  // Reference to color palette token ID
 	}
 

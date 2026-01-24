@@ -198,29 +198,43 @@ class Data
 	// --------------------------------------------------------------------------------
 
 	// Rebuild POIs for all shapes (called after shape deletion)
+	// Shapes in frames store LOCAL coords - transform to world for snapping
 	rebuildPOIs(){
 		console.log("rebuildPOIs");
 		this.shapePOIs = [];
+
 		for(const shape of this.shapes){
-			const points = shape.getSnapPOIs();
-			for(let i = 0; i < points.length; i++){
-				points[i].shape = shape;
-				points[i].poiIndex = i;
-			}
-			this.shapePOIs.push(...points);
+			this.storeShapePOIs(shape);
 		}
 	}
 
-	// add new POIs to our cache
+	// Add POIs for a shape to our cache
+	// Shapes in frames store LOCAL coords - transform to world for snapping
 	storeShapePOIs(shape){
 		console.log("storeShapePOIs");
 		const points = shape.getSnapPOIs();
-		// Add shape reference and index to each POI
+
+		// Get frame transform if shape belongs to a frame
+		const frame = shape.frameId ? this.getFrame(shape.frameId) : null;
+
+		// Add shape reference, index, and transform to world coords if needed
 		for(let i = 0; i < points.length; i++){
-			points[i].shape = shape;
-			points[i].poiIndex = i;
+			let poi = points[i];
+
+			// Transform LOCAL coords to WORLD coords for snapping
+			if(frame){
+				const worldPt = frame.localToWorld(poi.x, poi.y);
+				poi = {
+					x: worldPt.x,
+					y: worldPt.y,
+					type: poi.type
+				};
+			}
+
+			poi.shape = shape;
+			poi.poiIndex = i;
+			this.shapePOIs.push(poi);
 		}
-		this.shapePOIs.push(...points);
 	}
 	
 	findIntersections(newShape, intersectionArray){
@@ -631,7 +645,9 @@ class Data
 			case Shape.PAPER:
 				return [4]; // center only - corners are for resizing
 			case Shape.SYMBOL:
-				return [4]; // anchor point
+				return []; // No control points - instances drag as a whole unit
+			case Shape.FRAME:
+				return []; // No control points - frames drag as a whole unit
 			default:
 				return [];
 		}
@@ -647,23 +663,48 @@ class Data
 			// Skip locked shapes
 			if(shape.locked) continue;
 
+			// Special handling for symbol instances - select if bounds intersect
+			if(shape.geometry === Shape.SYMBOL){
+				if(rect.intersects(shape.bounds)){
+					shape.selected = true;
+				}
+				continue;
+			}
+
+			// Frames are only selectable by clicking their label POI, not by marquee
+			if(shape.geometry === Shape.FRAME){
+				continue;
+			}
+
 			const pois = shape.getSnapPOIs();
 			const selectableIndices = this.getSelectableIndices(shape);
 
+			// Get frame transform if shape belongs to a frame
+			const frame = shape.frameId ? this.getFrame(shape.frameId) : null;
+
 			// Test each selectable POI against the marquee rectangle
+			// For frame shapes, convert local POI to world coords first
 			const insideIndices = [];
 			for(const i of selectableIndices){
-				if(pois[i] && rect.containsPoint(pois[i])){
+				if(!pois[i]) continue;
+
+				let testPoint = pois[i];
+				if(frame){
+					// Convert local POI to world coords
+					testPoint = frame.localToWorld(pois[i].x, pois[i].y);
+				}
+
+				if(rect.containsPoint(testPoint)){
 					insideIndices.push(i);
 				}
 			}
 
 			// Check if ALL selectable points are inside
-			if(insideIndices.length === selectableIndices.length){
+			if(insideIndices.length === selectableIndices.length && selectableIndices.length > 0){
 				// ALL selectable points inside → select whole shape
 				shape.selected = true;
 				this.selectedPoints.delete(shape);
-				
+
 			} else if(insideIndices.length > 0){
 				// SOME points inside → partial point selection
 				shape.selected = false;
@@ -910,15 +951,90 @@ class Data
 	isExcludedFromSnap(shape){
 		return this.excludeFromSnap.has(shape);
 	}
-		
+
+	// Get shapes that belong to a symbol source group
+	getSourceShapes(sourceGroupId){
+		return this.shapes.filter(s => s.groupId === sourceGroupId);
+	}
+
+	// Create a symbol source from shapes (marks group as symbol source)
+	createSymbolSource(shapes, name){
+		if(shapes.length === 0) return null;
+
+		// Create group from shapes
+		const groupId = this.createGroup(shapes);
+		const group = this.groups.get(groupId);
+
+		// Mark as symbol source
+		group.isSymbolSource = true;
+		group.symbolName = name || 'Symbol';
+
+		return groupId;
+	}
+
+	// Check if a group is a symbol source
+	isSymbolSource(groupId){
+		const group = this.groups.get(groupId);
+		return group && group.isSymbolSource === true;
+	}
+
+	// --------------------------------------------------------------------------------
+	// Frame Management
+	// --------------------------------------------------------------------------------
+
+	// Currently active frame for drawing (new shapes get this frameId)
+	activeFrameId = null;
+
+	// Get a frame by its shape ID
+	getFrame(frameId){
+		return this.shapes.find(s => s.geometry === Shape.FRAME && s.id === frameId);
+	}
+
+	// Get all shapes belonging to a frame
+	getFrameShapes(frameId){
+		if(!frameId) return [];
+		return this.shapes.filter(s => s.frameId === frameId);
+	}
+
+	// Get all frames (symbol sources)
+	getSymbolFrames(){
+		return this.shapes.filter(s => s.geometry === Shape.FRAME && s.isSymbolSource);
+	}
+
+	// Set the active frame (for drawing into)
+	setActiveFrame(frameId){
+		this.activeFrameId = frameId;
+	}
+
+	// Clear active frame
+	clearActiveFrame(){
+		this.activeFrameId = null;
+	}
+
+	// Convert world coordinates to frame-local coordinates
+	worldToFrame(frameId, worldX, worldY){
+		const frame = this.getFrame(frameId);
+		if(!frame) return { x: worldX, y: worldY };
+		return frame.worldToLocal(worldX, worldY);
+	}
+
+	// Convert frame-local coordinates to world coordinates
+	frameToWorld(frameId, localX, localY){
+		const frame = this.getFrame(frameId);
+		if(!frame) return { x: localX, y: localY };
+		return frame.localToWorld(localX, localY);
+	}
+
 	getShapesToIntersect(){
 		return [...this.shapes, ...this.constructions, ...this.guides];
 	}
 
 	// Array of all geometry to render
-	// Paper renders first (background), then images, then other shapes
+	// Paper/Frames render first (background), then images, then other shapes
+	// Shapes with frameId are cloned and translated to world coords for rendering
 	getShapesToRender(){
 		const papers = [];
+		const frames = [];
 		const images = [];
 		const symbols = [];  // Keep track of symbol instances for selection boxes
 		const other = [];
@@ -926,6 +1042,8 @@ class Data
 		for (const s of this.shapes) {
 			if (s.geometry === Shape.PAPER) {
 				papers.push(s);
+			} else if (s.geometry === Shape.FRAME) {
+				frames.push(s);
 			} else if (s.geometry === Shape.IMAGE) {
 				images.push(s);
 			} else if (s.geometry === Shape.SYMBOL) {
@@ -934,6 +1052,8 @@ class Data
 				const symbolShapes = s.getShapesForRender();
 				other.push(...symbolShapes);
 			} else {
+				// All shapes (including frame shapes) store world coords
+				// No translation needed
 				other.push(s);
 			}
 		}
@@ -941,7 +1061,7 @@ class Data
 		// Store symbols for selection box rendering (accessed by renderer)
 		this._symbolInstances = symbols;
 
-		return [...papers, ...images, ...other, ...this.constructions, ...this.guides, ...this.shapePreviews].filter(Boolean);
+		return [...papers, ...frames, ...images, ...other, ...this.constructions, ...this.guides, ...this.shapePreviews].filter(Boolean);
 	}
 
 	// Array of all intersection points we could snap to

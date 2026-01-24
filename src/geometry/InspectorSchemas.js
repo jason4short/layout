@@ -468,57 +468,43 @@ export function angleDimensionSchema(shape) {
 }
 
 export function symbolSchema(shape) {
+	const sourceGroup = shape.getSourceGroup();
+	const symbolName = sourceGroup ? sourceGroup.symbolName : 'Instance';
+
 	return {
-		name: shape._definition ? shape._definition.name : 'Symbol',
+		name: symbolName,
 		sections: [
 			{
-				title: 'Position',
+				title: 'Offset',
 				fields: [
-					{ key: 'x', label: 'X', type: 'number', precision: 2, step: 1 },
-					{ key: 'y', label: 'Y', type: 'number', precision: 2, step: 1 }
+					{ key: 'offsetX', label: 'Offset X', type: 'number', precision: 2, step: 1 },
+					{ key: 'offsetY', label: 'Offset Y', type: 'number', precision: 2, step: 1 }
 				]
 			},
 			{
-				title: 'Transform',
+				title: 'Instance',
 				fields: [
 					{
-						key: 'rotation',
-						label: 'Rotation',
-						type: 'number',
-						precision: 1,
-						step: 15,
-						suffix: '°',
-						get: () => shape.rotation * 180 / Math.PI,
-						set: (v) => { shape.rotation = v * Math.PI / 180; }
-					},
-					{ key: 'scaleX', label: 'Scale X', type: 'number', precision: 2, step: 0.1, min: 0.1 },
-					{ key: 'scaleY', label: 'Scale Y', type: 'number', precision: 2, step: 0.1, min: 0.1 }
-				]
-			},
-			{
-				title: 'Symbol',
-				fields: [
-					{
-						key: 'definitionName',
-						label: 'Name',
+						key: 'sourceName',
+						label: 'Source',
 						type: 'readonly',
-						get: () => shape._definition ? shape._definition.name : '(unlinked)'
+						get: () => symbolName
+					},
+					{
+						key: 'sourceGroupId',
+						label: 'Source ID',
+						type: 'readonly',
+						get: () => shape.sourceGroupId || '(none)'
 					},
 					{
 						key: 'explode',
 						label: 'Break Apart',
 						type: 'button',
-						action: (symbol) => {
-							const shapes = symbol.explode();
-							if (shapes.length > 0) {
-								undoManager.execute(new DeleteShapesCommand([symbol]));
-								undoManager.execute(new AddShapesCommand(shapes));
-								data.selectNone();
-								for (const s of shapes) {
-									s.selected = true;
-								}
-								stage.render();
-							}
+						action: (instance) => {
+							// Import here to avoid circular dependency
+							const { BreakApartInstanceCommand } = require('../core/Commands.js');
+							undoManager.execute(new BreakApartInstanceCommand(instance));
+							stage.render();
 						}
 					}
 				]

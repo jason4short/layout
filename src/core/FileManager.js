@@ -1,7 +1,6 @@
 import data from '../data/Data.js';
 import stage from './Stage.js';
 import undoManager from './UndoManager.js';
-import symbolLibrary from './SymbolLibrary.js';
 
 import {Shape} from '../geometry/Geometry.js';
 import {Construction} from '../geometry/Construction.js';
@@ -16,12 +15,7 @@ class FileManager
 		}
 
 		this.currentFileName = null;
-		this.fileVersion = '1.0';
-
-		// Initialize symbol library with shape factory (deferred to avoid circular dep issues)
-		setTimeout(() => {
-			symbolLibrary.setShapeFactory((shapeData) => this.createShapeFromJSON(shapeData));
-		}, 0);
+		this.fileVersion = '1.1';  // Updated version for new symbol model
 
 		return FileManager.instance;
 	}
@@ -37,29 +31,20 @@ class FileManager
 		});
 		const constructions = data.constructions.map(c => c.toJSON());
 
-		// Serialize groups with layout properties
+		// Serialize groups with layout properties and symbol source info
 		const groups = [];
 		for(const [id, group] of data.groups){
-			groups.push({
+			const groupData = {
 				id: group.id,
 				parentId: group.parentId,
 				layout: group.layout || { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' }
-			});
-		}
-
-		// Collect symbol definitions used by symbol instances in this document
-		const usedDefinitionIds = new Set();
-		for(const shape of data.shapes){
-			if(shape.geometry === Shape.SYMBOL && shape.definitionId){
-				usedDefinitionIds.add(shape.definitionId);
+			};
+			// Save symbol source properties if present
+			if(group.isSymbolSource){
+				groupData.isSymbolSource = true;
+				groupData.symbolName = group.symbolName || 'Symbol';
 			}
-		}
-		const symbolDefinitions = [];
-		for(const id of usedDefinitionIds){
-			const def = symbolLibrary.getDefinition(id);
-			if(def){
-				symbolDefinitions.push(def.toJSON());
-			}
+			groups.push(groupData);
 		}
 
 		return {
@@ -72,7 +57,6 @@ class FileManager
 			shapes: shapes,
 			constructions: constructions,
 			groups: groups,
-			symbolDefinitions: symbolDefinitions,
 			colorPalette: data.colorPalette
 		};
 	}
@@ -101,15 +85,21 @@ class FileManager
 			stage.zoom = json.viewport.zoom || 1;
 		}
 
-		// Restore groups with layout properties (with defaults for backward compatibility)
+		// Restore groups with layout properties and symbol source info
 		if(json.groups){
 			let maxId = 0;
 			for(const groupData of json.groups){
-				data.groups.set(groupData.id, {
+				const group = {
 					id: groupData.id,
 					parentId: groupData.parentId || null,
 					layout: groupData.layout || { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' }
-				});
+				};
+				// Restore symbol source properties if present
+				if(groupData.isSymbolSource){
+					group.isSymbolSource = true;
+					group.symbolName = groupData.symbolName || 'Symbol';
+				}
+				data.groups.set(groupData.id, group);
 				// Track highest group ID number for _nextGroupId
 				const match = groupData.id.match(/group_(\d+)/);
 				if(match) maxId = Math.max(maxId, parseInt(match[1]));
@@ -141,20 +131,6 @@ class FileManager
 				if(construction){
 					data.addConstruction(construction);
 				}
-			}
-		}
-
-		// Load symbol definitions embedded in the file
-		if(json.symbolDefinitions){
-			for(const defData of json.symbolDefinitions){
-				symbolLibrary.importDefinition(defData);
-			}
-		}
-
-		// Link symbol instances to their definitions
-		for(const shape of data.shapes){
-			if(shape.geometry === Shape.SYMBOL){
-				symbolLibrary.linkInstance(shape);
 			}
 		}
 

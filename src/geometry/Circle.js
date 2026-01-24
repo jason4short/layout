@@ -190,7 +190,8 @@ export class Circle extends Geometry
 		const radius = renderer.toScreenScale(this.radius);
 
 		// Optimization: when radius is huge, only draw visible arc
-		if (radius > 2000) {
+		// Skip for shapes in frames - screen coords don't include frame transform
+		if (radius > 2000 && !this.frameId) {
 			const angles = renderer.getVisibleArcAngles(center, radius);
 			if (angles) {
 				ctx.arc(center.x, center.y, radius, angles.start, angles.end);

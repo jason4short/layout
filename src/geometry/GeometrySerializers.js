@@ -356,24 +356,23 @@ export function deserializeImage(data, ImageClass) {
 	return img;
 }
 
-// ============ Symbol ============
+// ============ Symbol Instance ============
+// Symbol instances use sourceGroupId and offset (new simplified model)
 
 export function serializeSymbol(shape) {
 	return {
 		...serializeBase(shape),
-		x: shape.x,
-		y: shape.y,
-		definitionId: shape.definitionId,
-		rotation: shape.rotation,
-		scaleX: shape.scaleX,
-		scaleY: shape.scaleY
+		sourceGroupId: shape.sourceGroupId,
+		offsetX: shape.offsetX,
+		offsetY: shape.offsetY
 	};
 }
 
 export function deserializeSymbol(data, SymbolInstanceClass) {
 	const inst = new SymbolInstanceClass([
-		data.x, data.y, data.definitionId,
-		data.rotation, data.scaleX, data.scaleY
+		data.sourceGroupId,
+		data.offsetX,
+		data.offsetY
 	]);
 	inst.type = data.type;
 	if (data.penStyle) inst.penStyle = data.penStyle;

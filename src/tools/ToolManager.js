@@ -2,8 +2,7 @@ import stage 							from '../core/Stage.js';
 import data 							from '../data/Data.js';
 import undoManager						from '../core/UndoManager.js';
 import fileManager						from '../core/FileManager.js';
-import symbolLibrary					from '../core/SymbolLibrary.js';
-import { AddShapeCommand, AddShapesCommand, GroupCommand, UngroupCommand, MoveCommand, DeleteShapesCommand }	from '../core/Commands.js';
+import { AddShapeCommand, AddShapesCommand, GroupCommand, UngroupCommand, MoveCommand, DeleteShapesCommand, ConvertToSymbolCommand }	from '../core/Commands.js';
 
 import { EventDispatcher } 				from '../core/EventDispatcher.js';
 
@@ -31,6 +30,7 @@ import { DimensionTool } 				from "./DimensionTool.js";
 import { AngleDimensionTool } 			from "./AngleDimensionTool.js";
 import { TextTool } 					from "./TextTool.js";
 import { PaperTool } 					from "./PaperTool.js";
+import { FrameTool } 					from "./FrameTool.js";
 
 
 
@@ -77,6 +77,7 @@ class ToolManager extends EventDispatcher
 		this.angleDimensionTool			= new AngleDimensionTool();
 		this.textTool					= new TextTool();
 		this.paperTool					= new PaperTool();
+		this.frameTool					= new FrameTool();
 
 		// Tool palette configuration: [tool, displayName, shortcut, icon]
 		this.toolPaletteConfig = [
@@ -109,6 +110,7 @@ class ToolManager extends EventDispatcher
 			{ tool: this.textTool, 					name: 'Text', shortcut: 'N', icon: 'text' },
 			{ category: 'Layout' },
 			{ tool: this.paperTool, 				name: 'Paper', shortcut: 'O', icon: 'paper' },
+			{ tool: this.frameTool, 				name: 'Frame', shortcut: 'Y', icon: 'frame' },
 		];
 
 		return ToolManager.instance;
@@ -412,66 +414,15 @@ class ToolManager extends EventDispatcher
 					break;
 
 				case '7':
-					if(stage.shiftKey){
-						// Cmd+Shift+7 = Insert symbol from library
-						const definitions = symbolLibrary.getAllDefinitions();
-						if(definitions.length === 0){
-							alert('No symbols in library. Select shapes and press Cmd+7 to create one.');
-							break;
-						}
-
-						// Build a simple selection list
-						const names = definitions.map((d, i) => `${i + 1}. ${d.name}`).join('\n');
-						const choice = prompt(`Insert symbol:\n${names}\n\nEnter number:`, '1');
-						if(choice){
-							const index = parseInt(choice) - 1;
-							if(index >= 0 && index < definitions.length){
-								const def = definitions[index];
-								// Place at view center
-								const centerX = stage.canvas.clientWidth / 2;
-								const centerY = stage.canvas.clientHeight / 2;
-								const worldCenter = stage.screenToWorld(centerX, centerY);
-
-								const instance = symbolLibrary.createInstance(def.id, worldCenter.x, worldCenter.y);
-								if(instance){
-									undoManager.execute(new AddShapeCommand(instance));
-									data.selectNone();
-									instance.selected = true;
-									console.log(`Inserted symbol "${def.name}"`);
-									stage.render();
-								}
-							}
-						}
-					} else {
-						// Cmd+7 = Create symbol from selection
-						const selectedForSymbol = data.getSelected();
-						if(selectedForSymbol.length > 0){
-							// Calculate centroid for anchor point
-							let sumX = 0, sumY = 0, count = 0;
-							for(const shape of selectedForSymbol){
-								const pois = shape.getSnapPOIs();
-								for(const poi of pois){
-									sumX += poi.x;
-									sumY += poi.y;
-									count++;
-								}
-							}
-							const anchorX = sumX / count;
-							const anchorY = sumY / count;
-
-							// Create symbol definition
-							const name = prompt('Symbol name:', 'My Symbol');
-							if(name){
-								const definition = symbolLibrary.createSymbol(name, selectedForSymbol, anchorX, anchorY);
-								// Create instance at original location
-								const instance = symbolLibrary.createInstance(definition.id, anchorX, anchorY);
-								// Delete original shapes and add instance
-								undoManager.execute(new DeleteShapesCommand(selectedForSymbol));
-								undoManager.execute(new AddShapeCommand(instance));
-								instance.selected = true;
-								console.log(`Created symbol "${name}" with ${selectedForSymbol.length} shape(s)`);
-								stage.render();
-							}
+					// Cmd+7 = Convert selection to symbol source
+					// The shapes become a symbol source group - Option+drag to create instances
+					const selectedForSymbol = data.getSelected();
+					if(selectedForSymbol.length > 0){
+						const name = prompt('Symbol name:', 'My Symbol');
+						if(name){
+							undoManager.execute(new ConvertToSymbolCommand(selectedForSymbol, name));
+							console.log(`Created symbol source "${name}" with ${selectedForSymbol.length} shape(s). Option+drag to create instances.`);
+							stage.render();
 						}
 					}
 					break;

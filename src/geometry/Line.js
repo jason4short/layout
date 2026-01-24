@@ -189,12 +189,20 @@ export class Line extends Geometry
 		const start = renderer.toScreen(this.start.x, this.start.y);
 		const end = renderer.toScreen(this.end.x, this.end.y);
 
-		// Clip line to viewport (important for dashed lines performance)
-		const clipped = renderer.clipLineToViewport(start, end);
-		if (clipped) {
-			ctx.moveTo(clipped.x1, clipped.y1);
-			ctx.lineTo(clipped.x2, clipped.y2);
+		// Skip clipping for shapes in frames - their screen coords are offset by canvas transform
+		// Clipping would use wrong coords since transform happens after toScreen()
+		if (this.frameId) {
+			ctx.moveTo(start.x, start.y);
+			ctx.lineTo(end.x, end.y);
 			ctx.stroke();
+		} else {
+			// Clip line to viewport (important for dashed lines performance)
+			const clipped = renderer.clipLineToViewport(start, end);
+			if (clipped) {
+				ctx.moveTo(clipped.x1, clipped.y1);
+				ctx.lineTo(clipped.x2, clipped.y2);
+				ctx.stroke();
+			}
 		}
 		renderer.resetPenStyle(ctx);
 	}

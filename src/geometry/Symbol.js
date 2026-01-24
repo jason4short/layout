@@ -1,88 +1,13 @@
 import { Shape, Geometry } from './Geometry.js';
 import { Rectangle } from './Rectangle.js';
-import {symbolSchema} from './InspectorSchemas.js';
-import {serializeSymbol, deserializeSymbol} from './GeometrySerializers.js';
+import data from '../data/Data.js';
 
 /**
- * Symbol Definition - a reusable template of shapes
- */
-export class SymbolDefinition {
-	constructor(name, shapes = [], anchorX = 0, anchorY = 0) {
-		this.name = name;
-		this.id = `sym_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-		this.created = Date.now();
-
-		// Store shapes relative to anchor point
-		this.shapes = [];
-		this.anchorX = anchorX;
-		this.anchorY = anchorY;
-
-		// Deep clone shapes and offset to anchor
-		for (const shape of shapes) {
-			const clone = shape.clone();
-			clone.translate(-anchorX, -anchorY);
-			clone.selected = false;
-			this.shapes.push(clone);
-		}
-
-		this.updateBounds();
-	}
-
-	updateBounds() {
-		if (this.shapes.length === 0) {
-			this.bounds = new Rectangle(0, 0, 0, 0);
-			return;
-		}
-
-		let minX = Infinity, minY = Infinity;
-		let maxX = -Infinity, maxY = -Infinity;
-
-		for (const shape of this.shapes) {
-			if (shape.bounds) {
-				minX = Math.min(minX, shape.bounds.x);
-				minY = Math.min(minY, shape.bounds.y);
-				maxX = Math.max(maxX, shape.bounds.x + shape.bounds.width);
-				maxY = Math.max(maxY, shape.bounds.y + shape.bounds.height);
-			}
-		}
-
-		this.bounds = new Rectangle(minX, minY, maxX - minX, maxY - minY);
-	}
-
-	// Serialize for storage
-	toJSON() {
-		return {
-			name: this.name,
-			id: this.id,
-			created: this.created,
-			anchorX: this.anchorX,
-			anchorY: this.anchorY,
-			shapes: this.shapes.map(s => s.toJSON())
-		};
-	}
-
-	// Deserialize - needs shape factory from FileManager
-	static fromJSON(json, shapeFactory) {
-		const def = new SymbolDefinition(json.name, [], json.anchorX, json.anchorY);
-		def.id = json.id;
-		def.created = json.created;
-
-		// Recreate shapes using factory
-		def.shapes = [];
-		for (const shapeData of json.shapes) {
-			const shape = shapeFactory(shapeData);
-			if (shape) {
-				def.shapes.push(shape);
-			}
-		}
-
-		def.updateBounds();
-		return def;
-	}
-}
-
-/**
- * Symbol Instance - a placed reference to a symbol definition
+ * Symbol Instance - a reference to a source Frame displayed at a different position.
+ *
+ * Source shapes are stored in world coordinates (at the source frame's position).
+ * Instances calculate an offset from the source frame to render shapes at a new location.
+ * This enables live updates: editing source shapes immediately reflects in all instances.
  */
 export class SymbolInstance extends Geometry {
 	constructor(params) {
@@ -90,32 +15,59 @@ export class SymbolInstance extends Geometry {
 		this.type = Shape.PLAIN;
 		this.geometry = Shape.SYMBOL;
 
-		// params: [x, y, definitionId, rotation, scaleX, scaleY]
-		this.x = params[0] || 0;
-		this.y = params[1] || 0;
-		this.definitionId = params[2] || null;
-		this.rotation = params[3] || 0;
-		this.scaleX = params[4] !== undefined ? params[4] : 1;
-		this.scaleY = params[5] !== undefined ? params[5] : 1;
-
-		// Reference to actual definition (set by library)
-		this._definition = null;
+		// params: [sourceFrameId, x, y]
+		this.sourceFrameId = params[0] || null;
+		this.x = params[1] || 0;
+		this.y = params[2] || 0;
 
 		this.update();
 	}
 
-	// Get/set definition
-	get definition() {
-		return this._definition;
+	/**
+	 * Get the source Frame.
+	 */
+	getSourceFrame() {
+		if (!this.sourceFrameId) return null;
+		return data.getFrame(this.sourceFrameId);
 	}
 
-	set definition(def) {
-		this._definition = def;
-		this.update();
+	/**
+	 * Get the shapes belonging to the source Frame.
+	 */
+	getSourceShapes() {
+		if (!this.sourceFrameId) return [];
+		return data.getFrameShapes(this.sourceFrameId);
 	}
 
+	/**
+	 * Get offset from source frame to instance position.
+	 * With local coords model:
+	 * - Source shapes are in frame-local coords
+	 * - Instance position is in world coords
+	 * - To render: localToWorld(sourceShape) then translate by offset
+	 *
+	 * For translation-only: offset = instancePos - framePos
+	 * Result = localShapeCoords + framePos + offset = localShapeCoords + instancePos
+	 */
+	getOffset() {
+		const frame = this.getSourceFrame();
+		if (!frame) return { x: 0, y: 0 };
+		return {
+			x: this.x - frame.x,
+			y: this.y - frame.y
+		};
+	}
+
+	/**
+	 * Update bounds based on source shapes + instance position.
+	 * Source shapes are in FRAME-LOCAL coords.
+	 * Instance bounds are in WORLD coords at instance position.
+	 */
 	update() {
-		if (!this._definition) {
+		const sourceShapes = this.getSourceShapes();
+		const sourceFrame = this.getSourceFrame();
+
+		if (!sourceFrame || sourceShapes.length === 0) {
 			this.bounds.x = this.x;
 			this.bounds.y = this.y;
 			this.bounds.width = 20;
@@ -123,187 +75,176 @@ export class SymbolInstance extends Geometry {
 			return;
 		}
 
-		// Transform definition bounds
-		const defBounds = this._definition.bounds;
-		const cos = Math.cos(this.rotation);
-		const sin = Math.sin(this.rotation);
+		// Calculate bounds from source shapes (in local coords)
+		let minX = Infinity, minY = Infinity;
+		let maxX = -Infinity, maxY = -Infinity;
 
-		// Calculate transformed bounding box (simplified - axis-aligned)
-		const w = Math.abs(defBounds.width * this.scaleX * cos) + Math.abs(defBounds.height * this.scaleY * sin);
-		const h = Math.abs(defBounds.width * this.scaleX * sin) + Math.abs(defBounds.height * this.scaleY * cos);
+		for (const shape of sourceShapes) {
+			const b = shape.bounds;
+			minX = Math.min(minX, b.x);
+			minY = Math.min(minY, b.y);
+			maxX = Math.max(maxX, b.x + b.width);
+			maxY = Math.max(maxY, b.y + b.height);
+		}
 
-		this.bounds.x = this.x + defBounds.x * this.scaleX - w/2;
-		this.bounds.y = this.y + defBounds.y * this.scaleY - h/2;
-		this.bounds.width = w;
-		this.bounds.height = h;
+		// Instance bounds = source bounds + instance position
+		this.bounds.x = minX + this.x;
+		this.bounds.y = minY + this.y;
+		this.bounds.width = maxX - minX;
+		this.bounds.height = maxY - minY;
 	}
 
 	clone() {
 		const inst = new SymbolInstance([
-			this.x, this.y, this.definitionId,
-			this.rotation, this.scaleX, this.scaleY
+			this.sourceFrameId,
+			this.x,
+			this.y
 		]);
-		inst._definition = this._definition;
 		inst.penStyle = this.penStyle;
 		inst.colorToken = this.colorToken;
-		inst.groupId = this.groupId;
 		return inst;
 	}
 
 	copyFrom(other) {
+		this.sourceFrameId = other.sourceFrameId;
 		this.x = other.x;
 		this.y = other.y;
-		this.definitionId = other.definitionId;
-		this.rotation = other.rotation;
-		this.scaleX = other.scaleX;
-		this.scaleY = other.scaleY;
-		this._definition = other._definition;
 		this.update();
 	}
 
-	// Transform a point from definition space to world space
-	transformPoint(px, py) {
-		const cos = Math.cos(this.rotation);
-		const sin = Math.sin(this.rotation);
-
-		// Scale, then rotate, then translate
-		const sx = px * this.scaleX;
-		const sy = py * this.scaleY;
-
-		return {
-			x: this.x + sx * cos - sy * sin,
-			y: this.y + sx * sin + sy * cos
-		};
-	}
-
-	// Transform a point from world space to definition space
-	inverseTransformPoint(wx, wy) {
-		const cos = Math.cos(-this.rotation);
-		const sin = Math.sin(-this.rotation);
-
-		// Inverse: translate, then rotate, then scale
-		const dx = wx - this.x;
-		const dy = wy - this.y;
-
-		const rx = dx * cos - dy * sin;
-		const ry = dx * sin + dy * cos;
-
-		return {
-			x: rx / this.scaleX,
-			y: ry / this.scaleY
-		};
-	}
-
-	// Snap points: include POIs from all shapes in the definition
+	/**
+	 * Get snap points of interest.
+	 * Source POIs are in FRAME-LOCAL coords.
+	 * Transform to world coords at instance position.
+	 */
 	getSnapPOIs() {
-		const pois = [
-			{ x: this.x, y: this.y }  // anchor point first
-		];
+		const pois = [];
+		const sourceShapes = this.getSourceShapes();
+		const sourceFrame = this.getSourceFrame();
 
-		if (!this._definition) {
-			return pois;
-		}
+		if (!sourceFrame) return pois;
 
-		// Get POIs from each shape in the definition and transform them
-		for (const shape of this._definition.shapes) {
+		for (const shape of sourceShapes) {
 			const shapePOIs = shape.getSnapPOIs();
 			for (const poi of shapePOIs) {
-				const transformed = this.transformPoint(poi.x, poi.y);
-				// Copy snap type if present
-				if (poi.type) {
-					transformed.type = poi.type;
-				}
-				pois.push(transformed);
+				// Source POIs are in frame-local coords
+				// Convert to world at instance position
+				// For translation-only: worldPOI = localPOI + instance.x/y
+				pois.push({
+					x: poi.x + this.x,
+					y: poi.y + this.y,
+					type: poi.type,
+					shape: this  // Reference back to instance for selection
+				});
 			}
 		}
 
 		return pois;
 	}
 
+	/**
+	 * Get geometric snap point (closest point on geometry).
+	 * Source shapes are in FRAME-LOCAL coords.
+	 * Transform mouse to source space, check shapes, transform result back.
+	 */
 	getGeoSnap(mouse, mouseRect, pixelTolerance) {
-		if (!this.bounds.intersects(mouseRect)) {
+		// Quick reject using bounds
+		if (mouseRect && !this.bounds.intersects(mouseRect)) {
 			return null;
 		}
 
-		if (!this._definition) {
+		const sourceShapes = this.getSourceShapes();
+		const sourceFrame = this.getSourceFrame();
+
+		if (sourceShapes.length === 0 || !sourceFrame) {
 			return null;
 		}
 
-		// Transform mouse to definition space
-		const localMouse = this.inverseTransformPoint(mouse.x, mouse.y);
-
-		// Scale the tolerance to definition space
-		const localTolerance = pixelTolerance / Math.max(Math.abs(this.scaleX), Math.abs(this.scaleY));
-
-		// Create a local mouse rect
-		const localMouseRect = {
-			x: localMouse.x - localTolerance,
-			y: localMouse.y - localTolerance,
-			width: localTolerance * 2,
-			height: localTolerance * 2,
-			intersects: (other) => {
-				return !(localMouseRect.x > other.x + other.width ||
-						 localMouseRect.x + localMouseRect.width < other.x ||
-						 localMouseRect.y > other.y + other.height ||
-						 localMouseRect.y + localMouseRect.height < other.y);
-			}
+		// Transform mouse position to source frame's local space
+		// For translation-only: localMouse = worldMouse - instance.x/y
+		const localMouse = {
+			x: mouse.x - this.x,
+			y: mouse.y - this.y
 		};
 
-		// Check each shape in the definition
+		// Create local mouse rect for bounds checking
+		const localMouseRect = mouseRect ? {
+			x: mouseRect.x - this.x,
+			y: mouseRect.y - this.y,
+			width: mouseRect.width,
+			height: mouseRect.height,
+			intersects: function(other) {
+				return !(this.x > other.x + other.width ||
+						 this.x + this.width < other.x ||
+						 this.y > other.y + other.height ||
+						 this.y + this.height < other.y);
+			}
+		} : null;
+
+		// Check each source shape (in local coords)
 		let closest = null;
 		let closestDist = Infinity;
 
-		for (const shape of this._definition.shapes) {
-			const snap = shape.getGeoSnap(localMouse, localMouseRect, localTolerance);
-			if (snap && snap.distance < closestDist) {
-				closest = snap;
-				closestDist = snap.distance;
+		for (const shape of sourceShapes) {
+			const snap = shape.getGeoSnap(localMouse, localMouseRect, pixelTolerance);
+			if (snap) {
+				const dist = snap.distance !== undefined ? snap.distance :
+					Math.sqrt((localMouse.x - snap.x) ** 2 + (localMouse.y - snap.y) ** 2);
+				if (dist < closestDist) {
+					closest = snap;
+					closestDist = dist;
+				}
 			}
 		}
 
 		if (closest) {
-			// Transform result back to world space
-			const worldPoint = this.transformPoint(closest.x, closest.y);
+			// Transform result back to world coords at instance position
 			return {
-				x: worldPoint.x,
-				y: worldPoint.y,
-				distance: closest.distance * Math.max(Math.abs(this.scaleX), Math.abs(this.scaleY))
+				x: closest.x + this.x,
+				y: closest.y + this.y,
+				distance: closestDist,
+				shape: this  // Reference back to instance
 			};
 		}
 
 		return null;
 	}
 
+	/**
+	 * Move the instance.
+	 */
 	translate(dx, dy) {
 		this.x += dx;
 		this.y += dy;
 		this.update();
 	}
 
+	/**
+	 * Scale instance position relative to anchor.
+	 */
 	scale(anchorX, anchorY, factor) {
 		this.x = anchorX + (this.x - anchorX) * factor;
 		this.y = anchorY + (this.y - anchorY) * factor;
-		this.scaleX *= factor;
-		this.scaleY *= factor;
 		this.update();
 	}
 
+	/**
+	 * Rotate instance position around anchor.
+	 */
 	rotate(anchorX, anchorY, angle) {
-		// Rotate position around anchor
 		const cos = Math.cos(angle);
 		const sin = Math.sin(angle);
 		const dx = this.x - anchorX;
 		const dy = this.y - anchorY;
 		this.x = anchorX + dx * cos - dy * sin;
 		this.y = anchorY + dx * sin + dy * cos;
-
-		// Add to rotation
-		this.rotation += angle;
 		this.update();
 	}
 
+	/**
+	 * Mirror instance position.
+	 */
 	mirror(x1, y1, x2, y2) {
-		// Mirror position
 		const dx = x2 - x1;
 		const dy = y2 - y1;
 		const len = Math.sqrt(dx * dx + dy * dy);
@@ -319,93 +260,153 @@ export class SymbolInstance extends Geometry {
 		this.x = x1 + 2 * dot * nx - px;
 		this.y = y1 + 2 * dot * ny - py;
 
-		// Mirror rotation
-		const lineAngle = Math.atan2(dy, dx);
-		this.rotation = 2 * lineAngle - this.rotation;
-
-		// Flip scale
-		this.scaleX *= -1;
-
 		this.update();
 	}
 
+	/**
+	 * Instances have no control points.
+	 */
 	updateControlPoint(index, newX, newY) {
-		if (index === 4) {
-			// Move anchor point
-			this.x = newX;
-			this.y = newY;
-		}
+		// Move the whole instance
+		this.x = newX;
+		this.y = newY;
 		this.update();
 	}
 
-	// Explode symbol into individual shapes (for converting to regular geometry)
-	explode() {
-		if (!this._definition) return [];
-
-		const shapes = [];
-
-		for (const defShape of this._definition.shapes) {
-			const shape = defShape.clone();
-
-			// Apply instance transform to each shape
-			// First scale, then rotate, then translate
-			shape.scale(0, 0, this.scaleX); // Simplified - assumes uniform scale
-
-			// Rotate around origin
-			if (this.rotation !== 0) {
-				shape.rotate(0, 0, this.rotation);
-			}
-
-			// Translate to instance position
-			shape.translate(this.x, this.y);
-
-			shapes.push(shape);
-		}
-
-		return shapes;
-	}
-
-	// Get transformed shapes for rendering (lightweight, reuses definition shapes)
+	/**
+	 * Get shapes for rendering.
+	 * Source shapes are in FRAME-LOCAL coords.
+	 * Transform: local → world via source frame, then offset to instance position.
+	 */
 	getShapesForRender() {
-		if (!this._definition) return [];
-
+		const sourceShapes = this.getSourceShapes();
+		const sourceFrame = this.getSourceFrame();
 		const shapes = [];
 
-		for (const defShape of this._definition.shapes) {
-			const shape = defShape.clone();
+		if (!sourceFrame) return shapes;
 
-			// Apply instance transform: scale, rotate, translate
-			if (this.scaleX !== 1 || this.scaleY !== 1) {
-				shape.scale(0, 0, this.scaleX); // Note: assumes uniform for now
-			}
+		for (const srcShape of sourceShapes) {
+			const shape = srcShape.clone();
 
-			if (this.rotation !== 0) {
-				shape.rotate(0, 0, this.rotation);
-			}
-
+			// Source shapes are in frame-local coords
+			// Convert to world coords using source frame, then translate to instance position
+			// For translation-only: worldCoords = localCoords + frame.x/y
+			// Then translate by (instance.x - frame.x, instance.y - frame.y)
+			// Net effect: worldCoords = localCoords + instance.x/y
 			shape.translate(this.x, this.y);
 
-			// Inherit selection state from symbol instance
+			// Clear frameId since these are now world coords for rendering
+			shape.frameId = null;
+
+			// Inherit selection state from instance
 			shape.selected = this.selected;
 
-			// Mark as coming from a symbol (for renderer reference)
-			shape._symbolInstance = this;
+			// Mark as coming from this instance (for hit detection)
+			shape._instanceRef = this;
 
 			shapes.push(shape);
 		}
 
 		return shapes;
+	}
+
+	/**
+	 * Break apart into a regular group.
+	 * Source shapes are in FRAME-LOCAL coords.
+	 * Returns cloned shapes converted to WORLD coords at instance position.
+	 */
+	explode() {
+		const sourceShapes = this.getSourceShapes();
+		const sourceFrame = this.getSourceFrame();
+		const shapes = [];
+
+		if (!sourceFrame) return shapes;
+
+		for (const srcShape of sourceShapes) {
+			const shape = srcShape.clone();
+			// Convert from frame-local to world at instance position
+			// For translation-only: world = local + instance.x/y
+			shape.translate(this.x, this.y);
+			shape.frameId = null;  // Remove frame association (now world coords)
+			shape.groupId = null;  // Will be assigned by createGroup
+			shapes.push(shape);
+		}
+
+		return shapes;
+	}
+
+	/**
+	 * Serialize for storage.
+	 */
+	toJSON() {
+		return {
+			geometry: this.geometry,
+			sourceFrameId: this.sourceFrameId,
+			x: this.x,
+			y: this.y,
+			penStyle: this.penStyle,
+			colorToken: this.colorToken
+		};
+	}
+
+	/**
+	 * Deserialize from storage.
+	 */
+	static fromJSON(json) {
+		const inst = new SymbolInstance([
+			json.sourceFrameId,
+			json.x,
+			json.y
+		]);
+		inst.penStyle = json.penStyle;
+		inst.colorToken = json.colorToken;
+		return inst;
 	}
 
 	getInspectorSchema() {
-		return symbolSchema(this);
-	}
+		const frame = this.getSourceFrame();
+		const symbolName = frame ? frame.label : 'Instance';
 
-	toJSON() {
-		return serializeSymbol(this);
-	}
-
-	static fromJSON(data) {
-		return deserializeSymbol(data, SymbolInstance);
+		return {
+			name: symbolName,
+			sections: [
+				{
+					title: 'Position',
+					fields: [
+						{ key: 'x', label: 'X', type: 'number', precision: 2, step: 1 },
+						{ key: 'y', label: 'Y', type: 'number', precision: 2, step: 1 }
+					]
+				},
+				{
+					title: 'Instance',
+					fields: [
+						{
+							key: 'sourceName',
+							label: 'Source',
+							type: 'readonly',
+							get: () => symbolName
+						},
+						{
+							key: 'sourceFrameId',
+							label: 'Source ID',
+							type: 'readonly',
+							get: () => this.sourceFrameId || '(none)'
+						},
+						{
+							key: 'explode',
+							label: 'Break Apart',
+							type: 'button',
+							action: (instance) => {
+								const { BreakApartInstanceCommand } = require('../core/Commands.js');
+								const undoManager = require('../core/UndoManager.js').default;
+								const stage = require('../core/Stage.js').default;
+								undoManager.execute(new BreakApartInstanceCommand(instance));
+								stage.render();
+							}
+						}
+					]
+				}
+			]
+		};
 	}
 }

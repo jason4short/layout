@@ -4,6 +4,9 @@ import {Shape, PenStyle} from '../geometry/Geometry.js';
 import toolManager from '../tools/ToolManager.js';
 import events from './Events.js';
 
+// Cache for frame transforms during render
+let frameTransformCache = new Map();
+
 export class Renderer
 {
 
@@ -123,6 +126,12 @@ export class Renderer
 		const bounds = shape.bounds;
 		if (!bounds) return true; // No bounds = always draw
 
+		// TODO: Frame shapes have local coords that need proper transform
+		// For now, skip culling for shapes in frames to avoid incorrect clipping
+		if (shape.frameId) {
+			return true;
+		}
+
 		// AABB intersection test
 		return !(
 			bounds.x + bounds.width < viewport.minX ||
@@ -130,6 +139,25 @@ export class Renderer
 			bounds.y + bounds.height < viewport.minY ||
 			bounds.y > viewport.maxY
 		);
+	}
+
+	/**
+	 * Get frame transform (cached for performance).
+	 */
+	getFrameTransform(frameId) {
+		if (!frameId) return null;
+
+		// Check cache first
+		if (frameTransformCache.has(frameId)) {
+			return frameTransformCache.get(frameId);
+		}
+
+		// Look up frame and cache
+		const frame = data.getFrame(frameId);
+		if (frame) {
+			frameTransformCache.set(frameId, frame);
+		}
+		return frame;
 	}
 
 	draw()
@@ -140,6 +168,9 @@ export class Renderer
 		// Calculate viewport once for frustum culling
 		const viewport = this.getViewport();
 
+		// Clear frame transform cache
+		frameTransformCache.clear();
+
 		for(const shape of data.getShapesToRender())
 		{
 			// Frustum culling - skip shapes entirely outside viewport
@@ -148,52 +179,34 @@ export class Renderer
 			ctx.beginPath();
 			this.applyPenStyle(ctx, shape);
 
+			// If shape belongs to a frame, apply frame transform
+			// Shapes inside frames store LOCAL coordinates
+			if (shape.frameId) {
+				const frame = this.getFrameTransform(shape.frameId);
+				if (frame) {
+					ctx.save();
+					// Apply frame transform: translate by frame position
+					const screenOffset = stage.worldToScreen(frame.x, frame.y);
+					const screenOrigin = stage.worldToScreen(0, 0);
+					ctx.translate(screenOffset.x - screenOrigin.x, screenOffset.y - screenOrigin.y);
+				}
+			}
+
 			// Each shape knows how to draw itself
 			shape.draw(ctx, this);
 			shape.drawHandles(ctx, this);
-		}
 
-		// Draw group bounds when group is selected
-		this.drawGroupBounds(ctx);
-
-		// Draw symbol selection boxes and unlinked placeholders
-		if (data._symbolInstances) {
-			for (const symbol of data._symbolInstances) {
-				if (!symbol.definition) {
-					// Draw placeholder for unlinked symbol
-					const screenPos = this.toScreen(symbol.x, symbol.y);
-					ctx.strokeStyle = '#FF0000';
-					ctx.lineWidth = 1;
-					ctx.setLineDash([]);
-					ctx.strokeRect(screenPos.x - 10, screenPos.y - 10, 20, 20);
-					ctx.beginPath();
-					ctx.moveTo(screenPos.x - 10, screenPos.y - 10);
-					ctx.lineTo(screenPos.x + 10, screenPos.y + 10);
-					ctx.moveTo(screenPos.x + 10, screenPos.y - 10);
-					ctx.lineTo(screenPos.x - 10, screenPos.y + 10);
-					ctx.stroke();
-				} else if (symbol.selected) {
-					// Draw selection bounding box
-					const b = symbol.bounds;
-					const tl = this.toScreen(b.x, b.y);
-					const w = this.toScreenScale(b.width);
-					const h = this.toScreenScale(b.height);
-
-					ctx.strokeStyle = '#2563eb';
-					ctx.lineWidth = 1;
-					ctx.setLineDash([4, 4]);
-					ctx.strokeRect(tl.x, tl.y, w, h);
-					ctx.setLineDash([]);
-
-					// Draw anchor point
-					const anchorScreen = this.toScreen(symbol.x, symbol.y);
-					ctx.fillStyle = '#2563eb';
-					ctx.beginPath();
-					ctx.arc(anchorScreen.x, anchorScreen.y, 4, 0, Math.PI * 2);
-					ctx.fill();
+			// Restore if we applied a frame transform
+			if (shape.frameId) {
+				const frame = this.getFrameTransform(shape.frameId);
+				if (frame) {
+					ctx.restore();
 				}
 			}
 		}
+
+		// No bounding boxes for groups or symbol instances
+		// Instances are drawn via getShapesForRender() and show selection on their geometry
 
 /* debugging - disabled for performance
 		// Draw snap point indicators
@@ -340,103 +353,6 @@ export class Renderer
 		// Semi-transparent fill
 		ctx.fillStyle = 'rgba(0, 102, 204, 0.1)';
 		ctx.fillRect(topLeft.x, topLeft.y, width, height);
-	}
-
-	drawGroupBounds(ctx){
-		const selected = data.getSelected();
-		if(selected.length === 0) return;
-
-		// Find the group to display
-		const displayGroupId = this.findSelectedGroup(selected);
-		if(!displayGroupId) return;
-
-		const bounds = data.getGroupBounds(displayGroupId);
-		if(!bounds) return;
-
-		// Convert to screen coordinates
-		const topLeft = this.toScreen(bounds.x, bounds.y);
-		const w = this.toScreenScale(bounds.width);
-		const h = this.toScreenScale(bounds.height);
-
-		// Draw dashed blue rectangle
-		ctx.strokeStyle = '#2563eb';
-		ctx.lineWidth = 1;
-		ctx.setLineDash([4, 4]);
-		ctx.strokeRect(topLeft.x, topLeft.y, w, h);
-		ctx.setLineDash([]);
-
-		// Draw group label
-		const group = data.groups.get(displayGroupId);
-		if(group && group.layout && group.layout.mode !== 'none'){
-			const layoutLabel = group.layout.mode === 'row' ? '→' : '↓';
-			ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
-			ctx.fillStyle = '#2563eb';
-			ctx.textAlign = 'left';
-			ctx.textBaseline = 'top';
-			ctx.fillText(`Group (${layoutLabel})`, topLeft.x + 4, topLeft.y + 4);
-		}
-	}
-
-	// Find if selection represents a complete group at any level
-	findSelectedGroup(selected) {
-		if (selected.length === 0) return null;
-
-		// Check if ALL selected shapes have a groupId
-		const allGrouped = selected.every(s => s.groupId);
-		if (!allGrouped) return null;
-
-		// Collect all unique group IDs
-		const groupIds = new Set();
-		for (const shape of selected) {
-			groupIds.add(shape.groupId);
-		}
-
-		// Helper to check if a group exactly matches selection
-		const groupMatchesSelection = (groupId) => {
-			const groupShapes = data.getGroupShapes(groupId);
-			if (groupShapes.length !== selected.length) return false;
-			return groupShapes.every(s => selected.includes(s)) &&
-			       selected.every(s => groupShapes.includes(s));
-		};
-
-		// Case 1: All in same direct group
-		if (groupIds.size === 1) {
-			const groupId = [...groupIds][0];
-			const directShapes = data.getDirectGroupShapes(groupId);
-			if (directShapes.length === selected.length &&
-				directShapes.every(s => selected.includes(s))) {
-				return groupId;
-			}
-			if (groupMatchesSelection(groupId)) {
-				return groupId;
-			}
-		}
-
-		// Case 2: Check root group
-		const rootIds = new Set();
-		for (const gid of groupIds) {
-			rootIds.add(data.getRootGroupId(gid));
-		}
-		if (rootIds.size === 1) {
-			const rootId = [...rootIds][0];
-			if (groupMatchesSelection(rootId)) {
-				return rootId;
-			}
-		}
-
-		// Case 3: Check intermediate parents
-		const parentIds = new Set();
-		for (const gid of groupIds) {
-			const group = data.groups.get(gid);
-			if (group && group.parentId) parentIds.add(group.parentId);
-		}
-		for (const parentId of parentIds) {
-			if (groupMatchesSelection(parentId)) {
-				return parentId;
-			}
-		}
-
-		return null;
 	}
 
 	// Cohen-Sutherland line clipping to viewport (screen coords)

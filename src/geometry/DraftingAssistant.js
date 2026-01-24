@@ -275,15 +275,9 @@ class DraftingAssistant
 	}
 		
 	findNearestSnapPoint_OnShape(mouse, geoSet){
-		// Shape.getGeoSnap works in world space, so convert screen tolerance to world
+		// Shape.getGeoSnap works in shape's local space
+		// For shapes in frames, convert mouse to frame-local coords
 		const worldTolerance = MAX_SNAP_PX / stage.zoom;
-		
-		const mouseRect = new Rectangle(
-			mouse.x - worldTolerance,
-			mouse.y - worldTolerance,
-			worldTolerance * 2,
-			worldTolerance * 2
-		);
 
 		let closestSnap = null;
 
@@ -293,9 +287,43 @@ class DraftingAssistant
 				continue;
 			}
 
-			let snap = shape.getGeoSnap(mouse, mouseRect, worldTolerance);
+			// Get frame if shape belongs to one
+			const frame = shape.frameId ? data.getFrame(shape.frameId) : null;
+
+			// Convert mouse to shape's coordinate space
+			let localMouse = mouse;
+			let localRect;
+
+			if(frame){
+				// Transform mouse to frame-local coords
+				const localPt = frame.worldToLocal(mouse.x, mouse.y);
+				localMouse = { x: localPt.x, y: localPt.y };
+				localRect = new Rectangle(
+					localPt.x - worldTolerance,
+					localPt.y - worldTolerance,
+					worldTolerance * 2,
+					worldTolerance * 2
+				);
+			} else {
+				localRect = new Rectangle(
+					mouse.x - worldTolerance,
+					mouse.y - worldTolerance,
+					worldTolerance * 2,
+					worldTolerance * 2
+				);
+			}
+
+			// Get snap in shape's local coords
+			let snap = shape.getGeoSnap(localMouse, localRect, worldTolerance);
 
 			if(snap){
+				// Transform result back to world coords if needed
+				if(frame){
+					const worldPt = frame.localToWorld(snap.x, snap.y);
+					snap.x = worldPt.x;
+					snap.y = worldPt.y;
+				}
+
 				snap.shape = shape;
 				if(!closestSnap) {
 					closestSnap = snap;
