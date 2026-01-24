@@ -20,6 +20,8 @@ import {Paper} 				from './Paper.js';
 import {Frame} 				from './Frame.js';
 import {SymbolInstance} 	from './Symbol.js';
 import {Board} 				from './Board.js';
+import {Slot} 				from './Slot.js';
+import {Polygon} 			from './Polygon.js';
 
 class GeometryFactory {
 	constructor() {
@@ -43,6 +45,8 @@ class GeometryFactory {
 		this.register(Shape.FRAME, 				Frame);
 		this.register(Shape.SYMBOL, 			SymbolInstance);
 		this.register(Shape.BOARD, 				Board);
+		this.register(Shape.SLOT, 				Slot);
+		this.register(Shape.POLYGON, 			Polygon);
 	}
 
 	/**

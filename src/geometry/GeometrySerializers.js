@@ -379,3 +379,30 @@ export function deserializeSymbol(data, SymbolInstanceClass) {
 	if (data.colorToken) inst.colorToken = data.colorToken;
 	return inst;
 }
+
+// ============ Polygon ============
+
+export function serializePolygon(shape) {
+	return {
+		...serializeBase(shape),
+		x: shape.x,
+		y: shape.y,
+		radius: shape.radius,
+		sides: shape.sides,
+		radiusAngle: shape.radiusAngle
+	};
+}
+
+export function deserializePolygon(data, PolygonClass) {
+	const polygon = new PolygonClass([
+		data.x,
+		data.y,
+		data.radius,
+		data.sides || 6,
+		data.radiusAngle || -Math.PI / 2
+	]);
+	polygon.type = data.type;
+	if (data.penStyle) polygon.penStyle = data.penStyle;
+	if (data.colorToken) polygon.colorToken = data.colorToken;
+	return polygon;
+}

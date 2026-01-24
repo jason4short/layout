@@ -22,6 +22,8 @@ export const Shape = Object.freeze({
 	FRAME: "frame",
 	SYMBOL: "symbol",
 	BOARD: "board",
+	SLOT: "slot",
+	POLYGON: "polygon",
 
 	/*types*/
 	CONSTRUCTION: "construction",

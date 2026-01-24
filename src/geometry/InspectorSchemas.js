@@ -513,6 +513,87 @@ export function symbolSchema(shape) {
 	};
 }
 
+export function polygonSchema(shape) {
+	return {
+		name: 'Polygon',
+		sections: [
+			{
+				title: 'Dimensions',
+				fields: [
+					{
+						key: 'sides',
+						label: 'Sides',
+						type: 'number',
+						get: () => shape.sides,
+						set: (v) => { shape.sides = Math.max(3, Math.round(v)); },
+						min: 3,
+						max: 100,
+						step: 1,
+						precision: 0
+					},
+					{
+						key: 'radius',
+						label: 'Radius',
+						type: 'length',
+						get: () => shape.radius,
+						set: (v) => { shape.radius = v; },
+						min: 0.1
+					},
+					{
+						key: 'diameter',
+						label: 'Diameter',
+						type: 'length',
+						get: () => shape.radius * 2,
+						set: (v) => { shape.radius = v / 2; },
+						min: 0.1
+					},
+					{
+						key: 'perimeter',
+						label: 'Perimeter',
+						type: 'readonly-length',
+						get: () => shape.length()
+					},
+					{
+						key: 'area',
+						label: 'Area',
+						type: 'readonly',
+						get: () => shape.getArea(),
+						precision: 2,
+						suffix: ' mm²'
+					},
+					{
+						key: 'interiorAngle',
+						label: 'Interior Angle',
+						type: 'readonly',
+						get: () => shape.getInteriorAngle(),
+						precision: 1,
+						suffix: '°'
+					}
+				]
+			},
+			{
+				title: 'Center',
+				fields: positionFields()
+			},
+			{
+				title: 'Actions',
+				fields: [
+					{
+						key: 'breakApart',
+						label: 'Break Apart',
+						type: 'button',
+						action: (polygon) => {
+							const { BreakApartPolygonCommand } = require('../core/Commands.js');
+							undoManager.execute(new BreakApartPolygonCommand(polygon));
+							stage.render();
+						}
+					}
+				]
+			}
+		]
+	};
+}
+
 export function groupSchema(groupId) {
 	const group = data.groups.get(groupId);
 	if (!group) return null;

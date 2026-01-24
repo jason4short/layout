@@ -32,6 +32,8 @@ import { TextTool } 					from "./TextTool.js";
 import { PaperTool } 					from "./PaperTool.js";
 import { FrameTool } 					from "./FrameTool.js";
 import { BoardTool } 					from "./BoardTool.js";
+import { SlotTool } 					from "./SlotTool.js";
+import { PolygonTool } 					from "./PolygonTool.js";
 
 
 
@@ -80,6 +82,8 @@ class ToolManager extends EventDispatcher
 		this.paperTool					= new PaperTool();
 		this.frameTool					= new FrameTool();
 		this.boardTool					= new BoardTool();
+		this.slotTool					= new SlotTool();
+		this.polygonTool				= new PolygonTool();
 
 		// Tool palette configuration: [tool, displayName, shortcut, icon]
 		this.toolPaletteConfig = [
@@ -94,11 +98,14 @@ class ToolManager extends EventDispatcher
 			{ tool: this.oppositeCornerEllipseTool, name: 'Ellipse', shortcut: 'E', icon: 'ellipse' },
 			{ tool: this.centerPointEllipseTool, 	name: 'Ellipse (Center)', shortcut: '4', icon: 'ellipse-center' },
 			{ tool: this.splineTool, 				name: 'Spline', shortcut: 'S', icon: 'spline' },
-			{ tool: this.boardTool, 				name: 'Board', shortcut: 'W', icon: 'board' },
 			{ category: 'Arcs' },
 			{ tool: this.threePointArcTool, 		name: '3-Point Arc', shortcut: 'A', icon: 'arc-3point' },
 			{ tool: this.centerPointArcTool, 		name: 'Center Arc', shortcut: '1', icon: 'arc-center' },
 			{ tool: this.tangentPointArcTool, 		name: 'Tangent Arc', shortcut: '3', icon: 'arc-tangent' },
+			{ category: 'Primitives' },
+			{ tool: this.boardTool, 				name: 'Board', shortcut: 'W', icon: 'board' },
+			{ tool: this.slotTool, 					name: 'Slot', shortcut: 'U', icon: 'slot' },
+			{ tool: this.polygonTool, 				name: 'Polygon', shortcut: 'G', icon: 'polygon' },
 			{ category: 'Modify' },
 			{ tool: this.trimTool, 					name: 'Trim', shortcut: 'T', icon: 'trim' },
 			{ tool: this.filletTool, 				name: 'Fillet', shortcut: 'F', icon: 'fillet' },

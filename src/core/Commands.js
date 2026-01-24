@@ -938,3 +938,78 @@ export class BreakApartBoardCommand extends Command {
 		data.rebuildPOIs();
 	}
 }
+
+export class BreakApartSlotCommand extends Command {
+	constructor(slot) {
+		super('Break Apart Slot');
+		this.slot = slot;
+		this.newShapes = [];
+	}
+
+	execute() {
+		// Create 2 lines and 2 arcs from the slot
+		this.newShapes = this.slot.createShapes();
+
+		// Add shapes to data
+		for (const shape of this.newShapes) {
+			data.addShape(shape);
+			shape.selected = true;
+		}
+
+		// Remove the slot
+		data.deleteShape(this.slot);
+
+		data.rebuildPOIs();
+	}
+
+	undo() {
+		// Remove the new shapes
+		for (const shape of this.newShapes) {
+			data.deleteShape(shape);
+		}
+
+		// Restore the slot
+		data.addShape(this.slot);
+		this.slot.selected = true;
+
+		data.rebuildPOIs();
+	}
+}
+
+// Break apart a polygon into individual line segments
+export class BreakApartPolygonCommand extends Command {
+	constructor(polygon) {
+		super('Break Apart Polygon');
+		this.polygon = polygon;
+		this.newShapes = [];
+	}
+
+	execute() {
+		// Create lines from polygon edges
+		this.newShapes = this.polygon.createLines();
+
+		// Add shapes to data
+		for (const shape of this.newShapes) {
+			data.addShape(shape);
+			shape.selected = true;
+		}
+
+		// Remove the polygon
+		data.deleteShape(this.polygon);
+
+		data.rebuildPOIs();
+	}
+
+	undo() {
+		// Remove the new shapes
+		for (const shape of this.newShapes) {
+			data.deleteShape(shape);
+		}
+
+		// Restore the polygon
+		data.addShape(this.polygon);
+		this.polygon.selected = true;
+
+		data.rebuildPOIs();
+	}
+}

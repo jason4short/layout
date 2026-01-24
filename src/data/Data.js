@@ -650,6 +650,10 @@ class Data
 				return []; // No control points - frames drag as a whole unit
 			case Shape.BOARD:
 				return [0, 1]; // start, end control points only
+			case Shape.SLOT:
+				return [0, 1]; // start, end control points only
+			case Shape.POLYGON:
+				return [0, 1]; // center, radius control point
 			default:
 				return [];
 		}
