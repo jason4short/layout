@@ -352,6 +352,15 @@ class ToolManager extends EventDispatcher
 						console.log(`Copied ${copied} shape(s)`);
 					}
 					break;
+
+				case 'x':
+				case 'X':
+					const cut = data.cut();
+					if(cut > 0){
+						console.log(`Cut ${cut} shape(s)`);
+						stage.render();
+					}
+					break;
 	
 				case 'v':
 					// Calculate view center in world coordinates

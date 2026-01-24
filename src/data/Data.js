@@ -743,6 +743,15 @@ class Data
 		}
 	}
 
+	// Cut selected shapes (copy + delete)
+	cut(){
+		const count = this.copy();
+		if(count > 0){
+			this.deleteSelected();
+		}
+		return count;
+	}
+
 	// Copy selected shapes to clipboard
 	copy(){
 		const selected = this.getSelected();

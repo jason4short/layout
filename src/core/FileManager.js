@@ -23,10 +23,12 @@ class FileManager
 	// Serialize all document data to JSON
 	toJSON()
 	{
-		// Serialize shapes, including groupId
+		// Serialize shapes, including id, groupId, frameId
 		const shapes = data.shapes.map(shape => {
 			const json = shape.toJSON();
+			json.id = shape.id;  // Preserve shape ID for references
 			if(shape.groupId) json.groupId = shape.groupId;
+			if(shape.frameId) json.frameId = shape.frameId;
 			return json;
 		});
 		const constructions = data.constructions.map(c => c.toJSON());
@@ -112,15 +114,58 @@ class FileManager
 			data.colorPalette = json.colorPalette;
 		}
 
-		// Recreate shapes
+		// Recreate shapes - track old ID → new ID mapping for references
+		const idMap = new Map();  // oldId → newId
+		const pendingFrameIds = [];  // shapes that need frameId remapped
+		const pendingSourceFrameIds = [];  // SymbolInstances that need sourceFrameId remapped
+
 		if(json.shapes){
 			for(const shapeData of json.shapes){
 				const shape = this.createShapeFromJSON(shapeData);
 				if(shape){
+					const oldId = shapeData.id;
+
 					// Restore groupId if present
 					if(shapeData.groupId) shape.groupId = shapeData.groupId;
+
+					// Track frameId for later remapping
+					if(shapeData.frameId){
+						pendingFrameIds.push({ shape, oldFrameId: shapeData.frameId });
+					}
+
+					// Track SymbolInstance sourceFrameId for later remapping
+					if(shape.geometry === Shape.SYMBOL && shape.sourceFrameId){
+						pendingSourceFrameIds.push({ shape, oldSourceFrameId: shape.sourceFrameId });
+					}
+
 					data.addShape(shape);
+
+					// Map old ID to new ID
+					if(oldId){
+						idMap.set(oldId, shape.id);
+					}
 				}
+			}
+		}
+
+		// Remap frameId references
+		for(const { shape, oldFrameId } of pendingFrameIds){
+			const newFrameId = idMap.get(oldFrameId);
+			if(newFrameId){
+				shape.frameId = newFrameId;
+			} else {
+				console.warn('FileManager: Could not remap frameId', oldFrameId);
+			}
+		}
+
+		// Remap SymbolInstance sourceFrameId references
+		for(const { shape, oldSourceFrameId } of pendingSourceFrameIds){
+			const newSourceFrameId = idMap.get(oldSourceFrameId);
+			if(newSourceFrameId){
+				shape.sourceFrameId = newSourceFrameId;
+				shape.update();  // Recalculate bounds with valid source
+			} else {
+				console.warn('FileManager: Could not remap sourceFrameId', oldSourceFrameId);
 			}
 		}
 
@@ -144,6 +189,9 @@ class FileManager
 				shape.linkLines(shapesById);
 			}
 		}
+
+		// Rebuild POIs now that all frameId references are valid
+		data.rebuildPOIs();
 
 		stage.render();
 	}
