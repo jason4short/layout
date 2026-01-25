@@ -53,52 +53,14 @@ function assignShapeToEditingGroup(shape, groupId) {
 	return true;
 }
 
-// Add a single shape
-// If there's an active frame, converts shape coords to frame-local and assigns frameId
-// If editing a group, assigns the shape to that group
-export class AddShapeCommand extends Command {
-	constructor(shape) {
-		super('Add shape');
-		this.shape = shape;
-		this.frameId = null;
-		this.groupId = null;
-		this.worldCoords = null;
-	}
-
-	execute() {
-		// Convert to frame-local coords if active frame
-		this.worldCoords = prepareShapeForFrame(this.shape, data.activeFrameId);
-		if (this.worldCoords) {
-			this.frameId = data.activeFrameId;
-		}
-
-		// Assign to editing group
-		if (assignShapeToEditingGroup(this.shape, data.editingGroupId)) {
-			this.groupId = data.editingGroupId;
-		}
-
-		data.addShape(this.shape);
-	}
-
-	undo() {
-		data.deleteShape(this.shape);
-		if (this.frameId && this.worldCoords) {
-			this.shape.copyFrom(this.worldCoords);
-			this.shape.frameId = null;
-		}
-		if (this.groupId) {
-			this.shape.groupId = null;
-		}
-	}
-}
-
-// Add multiple shapes at once
+// Add shapes to the drawing
 // If there's an active frame, converts shape coords to frame-local and assigns frameId
 // If editing a group, assigns ungrouped shapes to that group
 export class AddShapesCommand extends Command {
 	constructor(shapes) {
-		super(`Add ${shapes.length} shapes`);
-		this.shapes = shapes;
+		const shapeArray = Array.isArray(shapes) ? shapes : [shapes];
+		super(shapeArray.length === 1 ? 'Add shape' : `Add ${shapeArray.length} shapes`);
+		this.shapes = shapeArray;
 		this.frameId = null;
 		this.groupId = null;
 		this.worldCoords = [];
@@ -149,6 +111,9 @@ export class AddShapesCommand extends Command {
 		}
 	}
 }
+
+// Convenience alias for single shape addition
+export const AddShapeCommand = AddShapesCommand;
 
 // Add a construction line
 export class AddConstructionCommand extends Command {
