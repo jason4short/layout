@@ -229,7 +229,8 @@ export class Renderer
 			ctx.stroke();
 		}
 */
-		// Draw snap point indicators and their labels
+		// Draw snap point indicators (small circles at stored snap points)
+		// Source snap points show guide relationship labels (align:x, tangent, etc.)
 		for(const snapPoint of data.snapPoints)
 		{
 			const pt = this.toScreen(snapPoint.x, snapPoint.y);
@@ -239,7 +240,7 @@ export class Renderer
 			ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
 			ctx.stroke();
 
-			// Draw label for this snap point if it has any
+			// Draw guide relationship label for this source snap point
 			if(snapPoint.label){
 				this.drawSnapLabel(ctx, pt, snapPoint.label);
 			}
@@ -276,7 +277,10 @@ export class Renderer
 
 	// Draw snap type label next to the snap point
 	drawSnapLabel(ctx, screenPos, label){
-		if(!label) return;
+		if(!label || (Array.isArray(label) && label.length === 0)) return;
+
+		// Convert array to string if needed
+		const labelText = Array.isArray(label) ? label.join(' + ') : label;
 
 		const offsetX = 8;  // Offset from snap point
 		const offsetY = -8;
@@ -287,15 +291,11 @@ export class Renderer
 		const x = screenPos.x + offsetX;
 		const y = screenPos.y + offsetY;
 
-/*
-// removed BG for now...
-
 		// Measure text for background
 		const metrics = ctx.measureText(labelText);
 		const textWidth = metrics.width;
 		const textHeight = 12;
 		const padding = 2;
-
 
 		// Draw semi-transparent background
 		ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
@@ -305,10 +305,10 @@ export class Renderer
 			textWidth + padding * 2,
 			textHeight + padding * 2
 		);
-*/
+
 		// Draw text
 		ctx.fillStyle = '#333';
-		ctx.fillText(label, x, y);
+		ctx.fillText(labelText, x, y);
 	}
 
 	drawSelectedControlPoints(ctx){

@@ -40,7 +40,7 @@ class DraftingAssistant
 		if(snap){
 			// Add POI type label
 			const poiLabel = this.getPOITypeLabel(snap.shape, snap.poiIndex);
-			if(poiLabel) snap.label = [poiLabel];
+			snap.label = poiLabel ? [poiLabel] : [];
 			this.setCurrentSnapPoint(snap, generateGuides);
 			return;
 		}
@@ -78,12 +78,13 @@ class DraftingAssistant
 		// 6: snap on guides
 		snap  = this.findNearestSnapPoint_OnShape(mouse, data.getGuides());
 		if(snap){
-			snap.label = [SnapType.ON];
-			// set the current snap point
-			this.setCurrentSnapPoint(snap, false);
-
-			// activate the guide for rendering
+			// Activate the guide BEFORE setCurrentSnapPoint so updateSourceSnapPointLabels can see it
 			snap.shape.active = true;
+
+			// Cursor shows "on" - the guide relationship label appears on the source snap point
+			snap.label = [SnapType.ON];
+
+			this.setCurrentSnapPoint(snap, false);
 			return;
 		}
 
@@ -185,12 +186,10 @@ class DraftingAssistant
 				this.createGuides(snapPoint);
 			}
 		}
-		
-		// Update label on source snap points based on active guides
-		this.updateSourceSnapPointLabels(data.getGuides());
 
-		// Add labels from active guides to the current snap point
-		this.addGuideLabels(p, data.getGuides());
+		// Update labels on source snap points based on active guides
+		// (source points show guide relationship: align:x, tangent, etc.)
+		this.updateSourceSnapPointLabels(data.getGuides());
 	}
 
 	deActivateGuides(){
@@ -200,35 +199,37 @@ class DraftingAssistant
 	}
 	
 	// Update labels on stored snap points based on which of their guides are active
+	// Source snap points show guide relationship labels (align:x, tangent, etc.)
 	updateSourceSnapPointLabels(guides){
-		// Clear labels on all stored snap points EXCEPT the current snap point
-		// (current snap point may have POI labels we want to preserve)
+		// Clear labels on all stored snap points
 		for(const snapPoint of data.snapPoints){
-			if(snapPoint === data.snapPoint) continue;
 			snapPoint.label = null;
 		}
 
-		// Add labels based on active guides
+		// Add relationship labels based on active guides
 		for(const guide of guides){
 			if(!guide.active) continue;
 			if(!guide.sourceSnapPoint) continue;
 
-
-			guide.sourceSnapPoint.label = guide.guideType;
+			// Convert GuideType to SnapType label (e.g., VERTICAL -> "align:x")
+			const label = this.getGuideLabelFromType(guide.guideType);
+			if(label){
+				guide.sourceSnapPoint.label = label;
+			}
 		}
 	}
 	
 	// Add labels from active guides to the snap point
 	addGuideLabels(snapPoint, guides){
-		if(!snapPoint.label) snapPoint.label = null;
+		if(!snapPoint.label) snapPoint.label = [];
 
 		for(const guide of guides){
 			if(!guide.active) continue;
 
-// 			const label = this.getGuideLabelFromType(guide.guideType);
-// 			if(label && !snapPoint.label.includes(label)){
-// 				snapPoint.label.push(label);
-// 			}
+			const label = this.getGuideLabelFromType(guide.guideType);
+			if(label && !snapPoint.label.includes(label)){
+				snapPoint.label.push(label);
+			}
 		}
 	}
 
