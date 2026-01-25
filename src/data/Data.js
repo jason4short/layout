@@ -1,5 +1,27 @@
 const MAX_SNAP = 3; // intersections only snap if within 12px on screen
 
+// Default group properties - centralized for consistency
+export const DEFAULT_LAYOUT = {
+	mode: 'column',
+	gap: 1,
+	alignment: 'start',
+	distribution: 'none'
+};
+
+export const DEFAULT_SIZING = {
+	widthMode: 'hug',
+	heightMode: 'hug',
+	fixedWidth: null,
+	fixedHeight: null
+};
+
+export const DEFAULT_PADDING = {
+	top: 0,
+	right: 0,
+	bottom: 0,
+	left: 0
+};
+
 import {Shape} 					from '../geometry/Geometry.js';
 import {Point} 					from '../geometry/Point.js';
 import {Line} 					from '../geometry/Line.js';
@@ -434,25 +456,10 @@ class Data
 		this.groups.set(groupId, {
 			id: groupId,
 			parentId: null,
-			autoLayout: false,      // Toggle auto-layout on/off
-			layout: {
-				mode: 'column',     // 'row' | 'column' (vertical by default)
-				gap: 1,             // spacing between children (mm)
-				alignment: 'start', // 'start' | 'center' | 'end'
-				distribution: 'none' // 'none' | 'space-between' | 'space-around'
-			},
-			sizing: {
-				widthMode: 'hug',   // 'hug' | 'fixed'
-				heightMode: 'hug',  // 'hug' | 'fixed'
-				fixedWidth: null,   // mm when widthMode is 'fixed'
-				fixedHeight: null   // mm when heightMode is 'fixed'
-			},
-			padding: {
-				top: 0,
-				right: 0,
-				bottom: 0,
-				left: 0
-			}
+			autoLayout: false,
+			layout: { ...DEFAULT_LAYOUT },
+			sizing: { ...DEFAULT_SIZING },
+			padding: { ...DEFAULT_PADDING }
 		});
 
 		// If there are child groups, update their parentId
@@ -856,15 +863,9 @@ class Data
 				id: newId,
 				parentId: newParentId,
 				autoLayout: oldGroup?.autoLayout || false,
-				layout: oldGroup?.layout
-					? { ...oldGroup.layout }
-					: { mode: 'column', gap: 1, alignment: 'start', distribution: 'none' },
-				sizing: oldGroup?.sizing
-					? { ...oldGroup.sizing }
-					: { widthMode: 'hug', heightMode: 'hug', fixedWidth: null, fixedHeight: null },
-				padding: oldGroup?.padding
-					? { ...oldGroup.padding }
-					: { top: 0, right: 0, bottom: 0, left: 0 }
+				layout: oldGroup?.layout ? { ...oldGroup.layout } : { ...DEFAULT_LAYOUT },
+				sizing: oldGroup?.sizing ? { ...oldGroup.sizing } : { ...DEFAULT_SIZING },
+				padding: oldGroup?.padding ? { ...oldGroup.padding } : { ...DEFAULT_PADDING }
 			});
 		}
 

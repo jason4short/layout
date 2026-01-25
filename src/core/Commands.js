@@ -1,7 +1,7 @@
 // Command classes for undo/redo system
 // Each command knows how to execute and undo itself
 
-import data from '../data/Data.js';
+import data, { DEFAULT_LAYOUT, DEFAULT_SIZING, DEFAULT_PADDING } from '../data/Data.js';
 import { calculateLayout } from './LayoutEngine.js';
 import { Frame } from '../geometry/Frame.js';
 import { AutoLayoutFrame } from '../geometry/AutoLayoutFrame.js';
@@ -607,24 +607,9 @@ export class GroupCommand extends Command {
 			id: this.groupId,
 			parentId: null,
 			autoLayout: false,
-			layout: {
-				mode: 'none',
-				gap: 0,
-				alignment: 'start',
-				distribution: 'none'
-			},
-			sizing: {
-				widthMode: 'hug',
-				heightMode: 'hug',
-				fixedWidth: null,
-				fixedHeight: null
-			},
-			padding: {
-				top: 0,
-				right: 0,
-				bottom: 0,
-				left: 0
-			}
+			layout: { ...DEFAULT_LAYOUT },
+			sizing: { ...DEFAULT_SIZING },
+			padding: { ...DEFAULT_PADDING }
 		});
 		console.log('GroupCommand: created new group', this.groupId);
 
@@ -734,9 +719,9 @@ export class UngroupCommand extends Command {
 				id: groupInfo.id,
 				parentId: groupInfo.parentId,
 				autoLayout: groupInfo.autoLayout || false,
-				layout: groupInfo.layout || { mode: 'column', gap: 1, alignment: 'start', distribution: 'none' },
-				sizing: groupInfo.sizing || { widthMode: 'hug', heightMode: 'hug', fixedWidth: null, fixedHeight: null },
-				padding: groupInfo.padding || { top: 0, right: 0, bottom: 0, left: 0 },
+				layout: groupInfo.layout || { ...DEFAULT_LAYOUT },
+				sizing: groupInfo.sizing || { ...DEFAULT_SIZING },
+				padding: groupInfo.padding || { ...DEFAULT_PADDING },
 				frameShapeId: groupInfo.frameShapeId || null
 			});
 

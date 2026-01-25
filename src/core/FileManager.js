@@ -1,4 +1,4 @@
-import data from '../data/Data.js';
+import data, { DEFAULT_LAYOUT, DEFAULT_SIZING, DEFAULT_PADDING } from '../data/Data.js';
 import stage from './Stage.js';
 import undoManager from './UndoManager.js';
 
@@ -39,7 +39,7 @@ class FileManager
 			const groupData = {
 				id: group.id,
 				parentId: group.parentId,
-				layout: group.layout || { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' }
+				layout: group.layout || { ...DEFAULT_LAYOUT }
 			};
 			// Save symbol source properties if present
 			if(group.isSymbolSource){
@@ -94,7 +94,7 @@ class FileManager
 				const group = {
 					id: groupData.id,
 					parentId: groupData.parentId || null,
-					layout: groupData.layout || { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' }
+					layout: groupData.layout || { ...DEFAULT_LAYOUT }
 				};
 				// Restore symbol source properties if present
 				if(groupData.isSymbolSource){
