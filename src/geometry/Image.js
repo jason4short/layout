@@ -191,47 +191,7 @@ export class Image extends Geometry
 		];
 	}
 
-	/**
-	 * Return the closest point on the image outline for snapping.
-	 * Uses cached corners/edges and squared distance for cheap comparisons.
-	 */
 	 
-	 // XXX disabled for now
-	getGeoSnap1(mouse, mouseRect, pixelTolerance)
-	{
-		if(!this.bounds.intersects(mouseRect)){
-			return null;
-		}
-
-		//this.updateCachedGeometryIfNeeded();
-
-		const pixelToleranceSquared = pixelTolerance * pixelTolerance;
-
-		let closestPoint = null;
-		let closestDistanceSquared = Infinity;
-
-		for(const edge of this.cachedEdges){
-			const closest = VectorUtils.closestPointOnSegment(mouse, edge.start, edge.end);
-
-			const dx = mouse.x - closest.x;
-			const dy = mouse.y - closest.y;
-			const distanceSquared = (dx * dx) + (dy * dy);
-
-			if(distanceSquared < closestDistanceSquared){
-				closestDistanceSquared = distanceSquared;
-				closestPoint = closest;
-			}
-		}
-
-		if(closestDistanceSquared > pixelToleranceSquared){
-			return null;
-		}
-
-		const point = new Point(closestPoint.x, closestPoint.y);
-		point.distance = Math.sqrt(closestDistanceSquared); // only pay sqrt for the winning candidate
-		return point;
-	}
-	
 	getGeoSnap(mouse, mouseRect, pixelTolerance)
 	{
 		return null;
