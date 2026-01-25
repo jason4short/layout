@@ -2,7 +2,7 @@ import stage 							from '../core/Stage.js';
 import data 							from '../data/Data.js';
 import undoManager						from '../core/UndoManager.js';
 import fileManager						from '../core/FileManager.js';
-import { AddShapeCommand, AddShapesCommand, GroupCommand, UngroupCommand, MoveCommand, DeleteShapesCommand, ConvertToSymbolCommand }	from '../core/Commands.js';
+import { AddShapeCommand, AddShapesCommand, GroupCommand, UngroupCommand, MoveCommand, DeleteShapesCommand, ConvertToSymbolCommand, ApplyLayoutCommand }	from '../core/Commands.js';
 
 import { EventDispatcher } 				from '../core/EventDispatcher.js';
 
@@ -585,11 +585,33 @@ class ToolManager extends EventDispatcher
 	}
 
 	// Nudge selected shapes by arrow keys
+	// In auto-layout groups, reorder shapes instead of nudging
 	nudgeSelection(key, shift) {
-	
+
 		const selected = data.getSelected();
 		if (selected.length === 0) return;
 
+		// Check for auto-layout group - reorder or ignore (no nudging)
+		if (data.editingGroupId) {
+			const group = data.groups.get(data.editingGroupId);
+			if (group && group.autoLayout && group.layout) {
+				// Only allow reordering with single selection
+				if (selected.length === 1) {
+					const mode = group.layout.mode;
+					const isReorderKey = (mode === 'column' && (key === 'ArrowUp' || key === 'ArrowDown')) ||
+					                     (mode === 'row' && (key === 'ArrowLeft' || key === 'ArrowRight'));
+
+					if (isReorderKey) {
+						const direction = (key === 'ArrowUp' || key === 'ArrowLeft') ? -1 : 1;
+						this.reorderInAutoLayout(selected[0], group, direction);
+					}
+				}
+				// Disable nudge in auto-layout groups
+				return;
+			}
+		}
+
+		// Standard nudge behavior (only outside auto-layout)
 		const amount = shift ? 10 : 1;
 		let dx = 0, dy = 0;
 
@@ -602,7 +624,7 @@ class ToolManager extends EventDispatcher
 
 		// Build move data for undo
 		const moveData = [];
-		
+
 		// nudge selected points
 		for (const shape of selected) {
 			const pois = shape.getSnapPOIs();
@@ -634,6 +656,52 @@ class ToolManager extends EventDispatcher
 		undoManager.record(new MoveCommand(moveData));
 
 		stage.render();
+	}
+
+	// Reorder a shape within an auto-layout group
+	// direction: -1 = move earlier (up/left), 1 = move later (down/right)
+	reorderInAutoLayout(shape, group, direction) {
+		const mode = group.layout.mode;
+		const isVertical = mode === 'column';
+
+		// Get all shapes in this group, sorted by position
+		const groupShapes = data.getDirectGroupShapes(data.editingGroupId);
+		const sorted = [...groupShapes].sort((a, b) => {
+			return isVertical
+				? a.bounds.y - b.bounds.y
+				: a.bounds.x - b.bounds.x;
+		});
+
+		// Find current index
+		const currentIndex = sorted.indexOf(shape);
+		if (currentIndex === -1) return false;
+
+		// Calculate target index
+		const targetIndex = currentIndex + direction;
+		if (targetIndex < 0 || targetIndex >= sorted.length) return false;
+
+		// Get the shape to swap with
+		const swapShape = sorted[targetIndex];
+
+		// Swap positions
+		const shapePos = isVertical ? shape.bounds.y : shape.bounds.x;
+		const swapPos = isVertical ? swapShape.bounds.y : swapShape.bounds.x;
+
+		if (isVertical) {
+			const dy = swapPos - shapePos;
+			shape.translate(0, dy);
+			swapShape.translate(0, -dy);
+		} else {
+			const dx = swapPos - shapePos;
+			shape.translate(dx, 0);
+			swapShape.translate(-dx, 0);
+		}
+
+		// Apply layout to clean up positions
+		undoManager.execute(new ApplyLayoutCommand(data.editingGroupId));
+		stage.render();
+
+		return true;
 	}
 	
 	
