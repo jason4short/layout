@@ -65,6 +65,9 @@ class Data
 		// Clipboard for copy/paste
 		this.clipboard				= [];
 
+		// Last transform for "Transform Again" (Cmd+D)
+		this.lastTransform			= null; // { dx, dy }
+
 		// Stable shape ID counter
 		this._nextShapeId = 1;
 

@@ -764,6 +764,13 @@ export class PointerTool extends Tool
 				// Record clone command for undo (shapes already added)
 				undoManager.record(new AddShapesCommand(this.clonedShapes));
 
+				// Store transform for "Transform Again" (Cmd+D)
+				const snapPt = draftingAssistant.getCurrentSnapPoint();
+				data.lastTransform = {
+					dx: snapPt.x - this.moveStart.x,
+					dy: snapPt.y - this.moveStart.y
+				};
+
 			} else if(this.originalPositions.length > 0){
 
 				// Record move command for undo

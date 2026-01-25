@@ -380,9 +380,27 @@ class ToolManager extends EventDispatcher
 						}
 						//console.log(`Pasted ${shapesToPaste.length} shape(s)`);
 						stage.render();
-					}				
+					}
 					break;
-	
+
+				case 'd':
+				case 'D':
+					// Cmd+D = Transform Again (duplicate + apply last transform)
+					if(data.lastTransform && data.getSelected().length > 0){
+						data.copy();
+						// Use preparePaste with offset from centroid
+						const targetX = data.clipboardCentroid.x + data.lastTransform.dx;
+						const targetY = data.clipboardCentroid.y + data.lastTransform.dy;
+						const clones = data.preparePaste(targetX, targetY);
+						if(clones.length > 0){
+							undoManager.execute(new AddShapesCommand(clones));
+							data.selectNone();
+							for(const clone of clones) clone.selected = true;
+							stage.render();
+						}
+					}
+					break;
+
 				case 's':
 					fileManager.save();
 					break;
