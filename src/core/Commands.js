@@ -21,6 +21,38 @@ export class Command {
 	}
 }
 
+// Helper: Convert shape to frame-local coordinates
+// Returns clone of original world coords for undo, or null if no frame
+function prepareShapeForFrame(shape, frameId) {
+	if (!frameId) return null;
+
+	const frame = data.getFrame(frameId);
+	if (!frame) return null;
+
+	// Store original world coords for undo
+	const worldCoords = shape.clone();
+
+	// Convert shape from WORLD to FRAME-LOCAL coords
+	if (shape.transformPoints) {
+		shape.transformPoints(p => frame.worldToLocal(p));
+	} else {
+		const localOrigin = frame.worldToLocal(0, 0);
+		shape.translate(localOrigin.x, localOrigin.y);
+	}
+	shape.update();
+	shape.frameId = frameId;
+
+	return worldCoords;
+}
+
+// Helper: Assign shape to editing group if ungrouped
+// Returns true if shape was assigned, false otherwise
+function assignShapeToEditingGroup(shape, groupId) {
+	if (!groupId || shape.groupId) return false;
+	shape.groupId = groupId;
+	return true;
+}
+
 // Add a single shape
 // If there's an active frame, converts shape coords to frame-local and assigns frameId
 // If editing a group, assigns the shape to that group
@@ -28,38 +60,20 @@ export class AddShapeCommand extends Command {
 	constructor(shape) {
 		super('Add shape');
 		this.shape = shape;
-		this.frameId = null;  // Will be set if shape is added to a frame
-		this.groupId = null;  // Will be set if shape is added to a group
-		this.worldCoords = null;  // Store original world coords for undo
+		this.frameId = null;
+		this.groupId = null;
+		this.worldCoords = null;
 	}
 
 	execute() {
-		// Check for active frame
-		if (data.activeFrameId) {
-			const frame = data.getFrame(data.activeFrameId);
-			if (frame) {
-				// Store original world coords for undo
-				this.worldCoords = this.shape.clone();
-
-				// Convert shape from WORLD to FRAME-LOCAL coords
-				// Uses transformPoints if available, otherwise translate
-				if (this.shape.transformPoints) {
-					this.shape.transformPoints(p => frame.worldToLocal(p));
-				} else {
-					// For shapes without transformPoints, use translate
-					const localOrigin = frame.worldToLocal(0, 0);
-					this.shape.translate(localOrigin.x, localOrigin.y);
-				}
-				this.shape.update();
-
-				this.shape.frameId = data.activeFrameId;
-				this.frameId = data.activeFrameId;
-			}
+		// Convert to frame-local coords if active frame
+		this.worldCoords = prepareShapeForFrame(this.shape, data.activeFrameId);
+		if (this.worldCoords) {
+			this.frameId = data.activeFrameId;
 		}
 
-		// Check for editing group - add shape to that group
-		if (data.editingGroupId) {
-			this.shape.groupId = data.editingGroupId;
+		// Assign to editing group
+		if (assignShapeToEditingGroup(this.shape, data.editingGroupId)) {
 			this.groupId = data.editingGroupId;
 		}
 
@@ -68,12 +82,10 @@ export class AddShapeCommand extends Command {
 
 	undo() {
 		data.deleteShape(this.shape);
-		// Restore world coords if was in a frame
 		if (this.frameId && this.worldCoords) {
 			this.shape.copyFrom(this.worldCoords);
 			this.shape.frameId = null;
 		}
-		// Clear group assignment
 		if (this.groupId) {
 			this.shape.groupId = null;
 		}
@@ -87,42 +99,29 @@ export class AddShapesCommand extends Command {
 	constructor(shapes) {
 		super(`Add ${shapes.length} shapes`);
 		this.shapes = shapes;
-		this.frameId = null;  // Will be set if shapes are added to a frame
-		this.groupId = null;  // Will be set if shapes are added to a group
-		this.worldCoords = [];  // Store original world coords for undo
-		this.shapesAddedToGroup = [];  // Track which shapes were assigned to editing group
+		this.frameId = null;
+		this.groupId = null;
+		this.worldCoords = [];
+		this.shapesAddedToGroup = [];
 	}
 
 	execute() {
-		// Check for active frame
+		// Convert to frame-local coords if active frame
 		if (data.activeFrameId) {
-			const frame = data.getFrame(data.activeFrameId);
-			if (frame) {
+			for (const shape of this.shapes) {
+				const worldCoords = prepareShapeForFrame(shape, data.activeFrameId);
+				this.worldCoords.push(worldCoords);
+			}
+			if (this.worldCoords.some(w => w !== null)) {
 				this.frameId = data.activeFrameId;
-
-				for (const shape of this.shapes) {
-					// Store original world coords for undo
-					this.worldCoords.push(shape.clone());
-
-					// Convert shape from WORLD to FRAME-LOCAL coords
-					if (shape.transformPoints) {
-						shape.transformPoints(p => frame.worldToLocal(p));
-					} else {
-						const localOrigin = frame.worldToLocal(0, 0);
-						shape.translate(localOrigin.x, localOrigin.y);
-					}
-					shape.update();
-					shape.frameId = data.activeFrameId;
-				}
 			}
 		}
 
-		// Check for editing group - add ungrouped shapes to that group
+		// Assign ungrouped shapes to editing group
 		if (data.editingGroupId) {
 			this.groupId = data.editingGroupId;
 			for (const shape of this.shapes) {
-				if (!shape.groupId) {
-					shape.groupId = data.editingGroupId;
+				if (assignShapeToEditingGroup(shape, data.editingGroupId)) {
 					this.shapesAddedToGroup.push(shape);
 				}
 			}
@@ -137,8 +136,7 @@ export class AddShapesCommand extends Command {
 		for (const shape of this.shapes) {
 			data.deleteShape(shape);
 		}
-		// Restore world coords if was in a frame
-		if (this.frameId && this.worldCoords.length > 0) {
+		if (this.frameId) {
 			for (let i = 0; i < this.shapes.length; i++) {
 				if (this.worldCoords[i]) {
 					this.shapes[i].copyFrom(this.worldCoords[i]);
@@ -146,7 +144,6 @@ export class AddShapesCommand extends Command {
 				this.shapes[i].frameId = null;
 			}
 		}
-		// Clear group assignment for shapes we added to group
 		for (const shape of this.shapesAddedToGroup) {
 			shape.groupId = null;
 		}

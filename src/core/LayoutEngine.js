@@ -24,133 +24,100 @@ export function calculateLayout(items, groupBounds, layoutOptions) {
 			: a.bounds.y - b.bounds.y;
 	});
 
-	if (mode === 'row') {
-		return calculateRowLayout(sorted, groupBounds, gap, alignment, distribution);
-	} else if (mode === 'column') {
-		return calculateColumnLayout(sorted, groupBounds, gap, alignment, distribution);
+	if (mode === 'row' || mode === 'column') {
+		return calculateLinearLayout(sorted, groupBounds, gap, alignment, distribution, mode === 'row');
 	}
 
 	return [];
 }
 
 /**
- * Calculate horizontal (row) layout positions
+ * Calculate linear layout positions (row or column)
+ * @param {Array} items - Sorted array of layout items
+ * @param {Object} bounds - Container bounds
+ * @param {number} gap - Fixed gap between items
+ * @param {string} alignment - Cross-axis alignment: 'start', 'center', 'end'
+ * @param {string} distribution - Primary-axis distribution: 'packed', 'space-between', 'space-around'
+ * @param {boolean} isRow - true for row layout, false for column
  */
-function calculateRowLayout(items, bounds, gap, alignment, distribution) {
-	// Calculate total width of all items
-	const totalItemWidth = items.reduce((sum, item) => sum + item.bounds.width, 0);
+function calculateLinearLayout(items, bounds, gap, alignment, distribution, isRow) {
+	// Configure axes based on layout direction
+	// Row: items flow along x, align along y
+	// Column: items flow along y, align along x
+	const axis = isRow
+		? { pos: 'x', size: 'width', crossPos: 'y', crossSize: 'height' }
+		: { pos: 'y', size: 'height', crossPos: 'x', crossSize: 'width' };
 
-	// Calculate x positions based on distribution
-	const positions = [];
+	// Calculate total size on primary axis
+	const totalItemSize = items.reduce((sum, item) => sum + item.bounds[axis.size], 0);
 
-	if (distribution === 'space-between' && items.length > 1) {
-		// Distribute evenly with items at edges
-		const totalGap = bounds.width - totalItemWidth;
-		const gapSize = totalGap / (items.length - 1);
-		let x = bounds.x;
-		for (const item of items) {
-			positions.push({ item, x });
-			x += item.bounds.width + gapSize;
-		}
-	} else if (distribution === 'space-around') {
-		// Equal space around each item
-		const totalGap = bounds.width - totalItemWidth;
-		const gapSize = totalGap / (items.length + 1);
-		let x = bounds.x + gapSize;
-		for (const item of items) {
-			positions.push({ item, x });
-			x += item.bounds.width + gapSize;
-		}
-	} else {
-		// Fixed gap - pack from start
-		let x = bounds.x;
-		for (const item of items) {
-			positions.push({ item, x });
-			x += item.bounds.width + gap;
-		}
-	}
+	// Calculate positions along primary axis based on distribution
+	const positions = calculatePrimaryPositions(items, bounds, gap, distribution, axis, totalItemSize);
 
-	// Apply vertical alignment and calculate deltas
-	return positions.map(({ item, x }) => {
-		let y;
-		if (alignment === 'start') {
-			y = bounds.y;
-		} else if (alignment === 'center') {
-			y = bounds.y + (bounds.height - item.bounds.height) / 2;
-		} else { // end
-			y = bounds.y + bounds.height - item.bounds.height;
-		}
+	// Apply cross-axis alignment and calculate deltas
+	return positions.map(({ item, primaryPos }) => {
+		const crossPos = calculateCrossPosition(item, bounds, alignment, axis);
 
-		// Calculate delta from current position
-		const dx = x - item.bounds.x;
-		const dy = y - item.bounds.y;
+		// Map back to x/y deltas
+		const newX = isRow ? primaryPos : crossPos;
+		const newY = isRow ? crossPos : primaryPos;
 
 		return {
 			type: item.type,
 			item: item.item,
-			dx,
-			dy
+			dx: newX - item.bounds.x,
+			dy: newY - item.bounds.y
 		};
 	});
 }
 
 /**
- * Calculate vertical (column) layout positions
+ * Calculate positions along the primary axis based on distribution mode
  */
-function calculateColumnLayout(items, bounds, gap, alignment, distribution) {
-	// Calculate total height of all items
-	const totalItemHeight = items.reduce((sum, item) => sum + item.bounds.height, 0);
-
-	// Calculate y positions based on distribution
+function calculatePrimaryPositions(items, bounds, gap, distribution, axis, totalItemSize) {
 	const positions = [];
+	let pos = bounds[axis.pos];
 
 	if (distribution === 'space-between' && items.length > 1) {
 		// Distribute evenly with items at edges
-		const totalGap = bounds.height - totalItemHeight;
+		const totalGap = bounds[axis.size] - totalItemSize;
 		const gapSize = totalGap / (items.length - 1);
-		let y = bounds.y;
+
 		for (const item of items) {
-			positions.push({ item, y });
-			y += item.bounds.height + gapSize;
+			positions.push({ item, primaryPos: pos });
+			pos += item.bounds[axis.size] + gapSize;
 		}
 	} else if (distribution === 'space-around') {
 		// Equal space around each item
-		const totalGap = bounds.height - totalItemHeight;
+		const totalGap = bounds[axis.size] - totalItemSize;
 		const gapSize = totalGap / (items.length + 1);
-		let y = bounds.y + gapSize;
+		pos += gapSize;
+
 		for (const item of items) {
-			positions.push({ item, y });
-			y += item.bounds.height + gapSize;
+			positions.push({ item, primaryPos: pos });
+			pos += item.bounds[axis.size] + gapSize;
 		}
 	} else {
 		// Fixed gap - pack from start
-		let y = bounds.y;
 		for (const item of items) {
-			positions.push({ item, y });
-			y += item.bounds.height + gap;
+			positions.push({ item, primaryPos: pos });
+			pos += item.bounds[axis.size] + gap;
 		}
 	}
 
-	// Apply horizontal alignment and calculate deltas
-	return positions.map(({ item, y }) => {
-		let x;
-		if (alignment === 'start') {
-			x = bounds.x;
-		} else if (alignment === 'center') {
-			x = bounds.x + (bounds.width - item.bounds.width) / 2;
-		} else { // end
-			x = bounds.x + bounds.width - item.bounds.width;
-		}
+	return positions;
+}
 
-		// Calculate delta from current position
-		const dx = x - item.bounds.x;
-		const dy = y - item.bounds.y;
-
-		return {
-			type: item.type,
-			item: item.item,
-			dx,
-			dy
-		};
-	});
+/**
+ * Calculate position on the cross axis based on alignment
+ */
+function calculateCrossPosition(item, bounds, alignment, axis) {
+	if (alignment === 'start') {
+		return bounds[axis.crossPos];
+	}
+	if (alignment === 'center') {
+		return bounds[axis.crossPos] + (bounds[axis.crossSize] - item.bounds[axis.crossSize]) / 2;
+	}
+	// 'end'
+	return bounds[axis.crossPos] + bounds[axis.crossSize] - item.bounds[axis.crossSize];
 }

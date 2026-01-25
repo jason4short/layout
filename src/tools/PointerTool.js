@@ -12,7 +12,8 @@ import draftingAssistant 	from '../geometry/DraftingAssistant.js';
 
 import {AddShapesCommand,
 		MoveCommand,
-		ResizeAutoLayoutGroupCommand} 	from '../core/Commands.js';
+		ResizeAutoLayoutGroupCommand,
+		ApplyLayoutCommand} 	from '../core/Commands.js';
 import { calculateLayout } from '../core/LayoutEngine.js';
 
 export class PointerTool extends Tool
@@ -754,6 +755,14 @@ export class PointerTool extends Tool
 					dy: snapPt.y - this.moveStart.y
 				};
 
+				// Apply layout if cloning into an auto-layout group
+				if(data.editingGroupId){
+					const group = data.groups.get(data.editingGroupId);
+					if(group && group.autoLayout){
+						undoManager.execute(new ApplyLayoutCommand(data.editingGroupId));
+					}
+				}
+
 			} else if(this.originalPositions.length > 0){
 
 				// Record move command for undo
@@ -785,6 +794,14 @@ export class PointerTool extends Tool
 
 				if(moveData.length > 0){
 					undoManager.record(new MoveCommand(moveData));
+
+					// Apply layout if moving within an auto-layout group
+					if(data.editingGroupId){
+						const group = data.groups.get(data.editingGroupId);
+						if(group && group.autoLayout){
+							undoManager.execute(new ApplyLayoutCommand(data.editingGroupId));
+						}
+					}
 				}
 			}
 		} else if(this.isDragging && this.marqueeRect){
@@ -795,6 +812,8 @@ export class PointerTool extends Tool
 		} else if(this.dragStart && !this.isDragging && !this.isMoving && !this.moveTarget){
 			// Click on empty space (no shape) - deselect all and exit group editing
 			if(!stage.shiftKey){
+				// Apply layout to any auto-layout groups before deselecting
+				this.applyPendingLayouts();
 				data.selectNone();
 				data.exitGroup();
 			}
@@ -821,5 +840,27 @@ export class PointerTool extends Tool
 	// Get the current marquee rect for rendering
 	getMarqueeRect(){
 		return this.marqueeRect;
+	}
+
+	// Apply layout to any auto-layout groups that have selected shapes
+	applyPendingLayouts(){
+		const selected = data.getSelected();
+		if(selected.length === 0) return;
+
+		// Collect unique group IDs from selected shapes that have autoLayout
+		const autoLayoutGroupIds = new Set();
+		for(const shape of selected){
+			if(shape.groupId){
+				const group = data.groups.get(shape.groupId);
+				if(group && group.autoLayout){
+					autoLayoutGroupIds.add(shape.groupId);
+				}
+			}
+		}
+
+		// Apply layout to each group
+		for(const groupId of autoLayoutGroupIds){
+			undoManager.execute(new ApplyLayoutCommand(groupId));
+		}
 	}
 }
