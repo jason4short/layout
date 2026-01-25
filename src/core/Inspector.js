@@ -302,7 +302,8 @@ class Inspector {
 		this.attachGroupListeners(groupId, schema);
 	}
 
-	buildGroupSection(section, groupId) {
+	// Shared section builder with visibility support
+	buildSectionHtml(section, buildFieldFn) {
 		// Check section visibility
 		if (section.visible && !section.visible()) {
 			return '';
@@ -316,29 +317,30 @@ class Inspector {
 			if (field.visible && !field.visible()) {
 				continue;
 			}
-			html += this.buildGroupField(field, groupId);
+			html += buildFieldFn(field);
 		}
 
 		html += `</div>`;
 		return html;
 	}
 
+	buildGroupSection(section, groupId) {
+		return this.buildSectionHtml(section, field => this.buildGroupField(field, groupId));
+	}
+
 	buildGroupField(field, groupId) {
 		const value = field.get ? field.get() : null;
+		const displayValue = this.formatDisplayValue(value, field);
 
 		if (field.type === 'readonly') {
 			return `<div class="inspector-row">
 				<label>${field.label}</label>
-				<span class="inspector-value">${value}</span>
+				<span class="inspector-value">${displayValue}</span>
 			</div>`;
 		}
 
 		if (field.type === 'select' && field.options) {
-			const optionsHtml = field.options.map(opt => {
-				const selected = opt.value === value ? 'selected' : '';
-				return `<option value="${opt.value}" ${selected}>${opt.label}</option>`;
-			}).join('');
-
+			const optionsHtml = this.buildSelectOptions(field.options, value);
 			return `<div class="inspector-row">
 				<label>${field.label}</label>
 				<select id="prop-${field.key}">${optionsHtml}</select>
@@ -346,9 +348,6 @@ class Inspector {
 		}
 
 		if (field.type === 'length') {
-			const displayValue = value !== null && value !== undefined
-				? units.format(value, undefined, false)
-				: '';
 			return `<div class="inspector-row">
 				<label>${field.label}</label>
 				<input type="text" id="prop-${field.key}" value="${displayValue}">
@@ -372,10 +371,7 @@ class Inspector {
 		}
 
 		if (field.type === 'button-group' && field.options) {
-			const buttons = field.options.map(opt => {
-				const selected = value === opt.value ? 'selected' : '';
-				return `<button class="inspector-btn-group-btn ${selected}" data-value="${opt.value}">${opt.label}</button>`;
-			}).join('');
+			const buttons = this.buildButtonGroupOptions(field.options, value);
 			return `<div class="inspector-row">
 				<label>${field.label}</label>
 				<div class="inspector-btn-group" id="prop-${field.key}">${buttons}</div>
@@ -386,57 +382,43 @@ class Inspector {
 	}
 
 	attachGroupListeners(groupId, schema) {
-		if (!schema || !schema.sections) return;
-
-		for (const section of schema.sections) {
-			for (const field of section.fields) {
-				if (field.type === 'readonly') continue;
-
-				const el = document.getElementById(`prop-${field.key}`);
-				if (!el) continue;
-
-				if (field.type === 'button' && field.action) {
-					el.addEventListener('click', () => {
-						field.action();
-						// Refresh group panel after action
-						this.buildGroupPanel(groupId);
-					});
-					continue;
-				}
-
-				if (field.type === 'select') {
-					el.addEventListener('change', (e) => {
-						if (field.set) field.set(e.target.value);
-						// Refresh panel to show/hide conditional fields
-						this.buildGroupPanel(groupId);
-					});
-				} else if (field.type === 'length') {
-					el.addEventListener('change', (e) => {
-						const numValue = units.parse(e.target.value);
-						if (numValue !== null && field.set) {
-							field.set(numValue);
-						}
-					});
-				} else if (field.type === 'checkbox') {
-					el.addEventListener('change', (e) => {
-						if (field.set) field.set(e.target.checked);
-						// Refresh panel to show/hide conditional fields
-						this.buildGroupPanel(groupId);
-					});
-				} else if (field.type === 'button-group') {
-					const buttons = el.querySelectorAll('.inspector-btn-group-btn');
-					buttons.forEach(btn => {
-						btn.addEventListener('click', () => {
-							// Update selection state
-							buttons.forEach(b => b.classList.remove('selected'));
-							btn.classList.add('selected');
-							// Set value
-							if (field.set) field.set(btn.dataset.value);
-						});
-					});
-				}
+		this.forEachSchemaField(schema, (field, el) => {
+			if (field.type === 'button' && field.action) {
+				el.addEventListener('click', () => {
+					field.action();
+					this.buildGroupPanel(groupId);
+				});
+				return;
 			}
-		}
+
+			if (field.type === 'select') {
+				el.addEventListener('change', (e) => {
+					if (field.set) field.set(e.target.value);
+					this.buildGroupPanel(groupId);
+				});
+			} else if (field.type === 'length') {
+				el.addEventListener('change', (e) => {
+					const numValue = units.parse(e.target.value);
+					if (numValue !== null && field.set) {
+						field.set(numValue);
+					}
+				});
+			} else if (field.type === 'checkbox') {
+				el.addEventListener('change', (e) => {
+					if (field.set) field.set(e.target.checked);
+					this.buildGroupPanel(groupId);
+				});
+			} else if (field.type === 'button-group') {
+				const buttons = el.querySelectorAll('.inspector-btn-group-btn');
+				buttons.forEach(btn => {
+					btn.addEventListener('click', () => {
+						buttons.forEach(b => b.classList.remove('selected'));
+						btn.classList.add('selected');
+						if (field.set) field.set(btn.dataset.value);
+					});
+				});
+			}
+		});
 	}
 
 	buildPenStyleField(shape) {
@@ -471,31 +453,12 @@ class Inspector {
 	}
 
 	buildSection(section, shape) {
-		let html = `<div class="inspector-section">`;
-		html += `<div class="inspector-section-title">${section.title}</div>`;
-
-		for (const field of section.fields) {
-			html += this.buildField(field, shape);
-		}
-
-		html += `</div>`;
-		return html;
+		return this.buildSectionHtml(section, field => this.buildField(field, shape));
 	}
 
 	buildField(field, shape) {
 		const value = this.getFieldValue(field, shape);
-		let displayValue;
-
-		if (field.type === 'length' || field.type === 'readonly-length') {
-			// Use units.format() for length values (stored in mm)
-			displayValue = value !== null && value !== undefined
-				? units.format(value, undefined, false)
-				: '';
-		} else {
-			displayValue = field.precision !== undefined && value !== null && value !== undefined
-				? Number(value).toFixed(field.precision)
-				: value;
-		}
+		const displayValue = this.formatDisplayValue(value, field);
 
 		if (field.type === 'readonly') {
 			const suffix = field.suffix || '';
@@ -537,12 +500,7 @@ class Inspector {
 		}
 
 		if (field.type === 'select' && field.options) {
-			const currentValue = this.getFieldValue(field, shape);
-			const optionsHtml = field.options.map(opt => {
-				const selected = opt.value === currentValue ? 'selected' : '';
-				return `<option value="${opt.value}" ${selected}>${opt.label}</option>`;
-			}).join('');
-
+			const optionsHtml = this.buildSelectOptions(field.options, value);
 			return `<div class="inspector-row">
 				<label>${field.label}</label>
 				<select id="prop-${field.key}">${optionsHtml}</select>
@@ -595,6 +553,36 @@ class Inspector {
 		stage.render();
 	}
 
+	// Build options HTML for select fields
+	buildSelectOptions(options, currentValue) {
+		return options.map(opt => {
+			const selected = opt.value === currentValue ? 'selected' : '';
+			return `<option value="${opt.value}" ${selected}>${opt.label}</option>`;
+		}).join('');
+	}
+
+	// Build buttons HTML for button-group fields
+	buildButtonGroupOptions(options, currentValue) {
+		return options.map(opt => {
+			const selected = currentValue === opt.value ? 'selected' : '';
+			return `<button class="inspector-btn-group-btn ${selected}" data-value="${opt.value}">${opt.label}</button>`;
+		}).join('');
+	}
+
+	// Format a value for display based on field type
+	formatDisplayValue(value, field) {
+		if (value === null || value === undefined) {
+			return '';
+		}
+		if (field.type === 'length' || field.type === 'readonly-length') {
+			return units.format(value, undefined, false);
+		}
+		if (field.precision !== undefined) {
+			return Number(value).toFixed(field.precision);
+		}
+		return value;
+	}
+
 	getNestedValue(obj, path) {
 		return path.split('.').reduce((o, k) => o?.[k], obj);
 	}
@@ -605,6 +593,23 @@ class Inspector {
 		const target = parts.reduce((o, k) => o[k], obj);
 		if (target && last) {
 			target[last] = value;
+		}
+	}
+
+	// Iterate schema fields and call handler for each interactive field element
+	forEachSchemaField(schema, handler) {
+		if (!schema || !schema.sections) return;
+
+		for (const section of schema.sections) {
+			for (const field of section.fields) {
+				// Skip readonly field types
+				if (field.type === 'readonly' || field.type === 'readonly-length') continue;
+
+				const el = document.getElementById(`prop-${field.key}`);
+				if (!el) continue;
+
+				handler(field, el);
+			}
 		}
 	}
 
@@ -628,59 +633,47 @@ class Inspector {
 		}
 
 		// Schema-driven listeners
-		const schema = this.currentSchema;
-		if (!schema || !schema.sections) return;
-
-		for (const section of schema.sections) {
-			for (const field of section.fields) {
-				if (field.type === 'readonly') continue;
-
-				const el = document.getElementById(`prop-${field.key}`);
-				if (!el) continue;
-
-				// Handle button clicks
-				if (field.type === 'button' && field.action) {
-					el.addEventListener('click', () => {
-						field.action.call(shape, shape);
-						this.update(); // Refresh inspector after action
-					});
-					continue;
-				}
-
-				const eventType = field.type === 'select' ? 'change' : 'input';
-				el.addEventListener(eventType, (e) => {
-					this.setFieldValue(field, shape, e.target.value);
-					this.updateFieldValues(shape);
+		this.forEachSchemaField(this.currentSchema, (field, el) => {
+			// Handle button clicks
+			if (field.type === 'button' && field.action) {
+				el.addEventListener('click', () => {
+					field.action.call(shape, shape);
+					this.update();
 				});
-
-				// Handle arrow keys manually for number fields
-				if (field.type === 'number' && field.step !== undefined) {
-					el.addEventListener('keydown', (e) => {
-						if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-							e.preventDefault();
-							e.stopPropagation();
-
-							const currentValue = parseFloat(el.value) || 0;
-							const delta = e.key === 'ArrowUp' ? field.step : -field.step;
-							let newValue = currentValue + delta;
-
-							// Apply min/max constraints
-							if (field.min !== undefined && newValue < field.min) newValue = field.min;
-							if (field.max !== undefined && newValue > field.max) newValue = field.max;
-
-							// Update input directly to prevent input event from overwriting
-							const displayValue = field.precision !== undefined
-								? newValue.toFixed(field.precision)
-								: newValue;
-							el.value = displayValue;
-
-							this.setFieldValue(field, shape, newValue);
-							this.updateFieldValues(shape);
-						}
-					});
-				}
+				return;
 			}
-		}
+
+			const eventType = field.type === 'select' ? 'change' : 'input';
+			el.addEventListener(eventType, (e) => {
+				this.setFieldValue(field, shape, e.target.value);
+				this.updateFieldValues(shape);
+			});
+
+			// Handle arrow keys manually for number fields
+			if (field.type === 'number' && field.step !== undefined) {
+				el.addEventListener('keydown', (e) => {
+					if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+						e.preventDefault();
+						e.stopPropagation();
+
+						const currentValue = parseFloat(el.value) || 0;
+						const delta = e.key === 'ArrowUp' ? field.step : -field.step;
+						let newValue = currentValue + delta;
+
+						if (field.min !== undefined && newValue < field.min) newValue = field.min;
+						if (field.max !== undefined && newValue > field.max) newValue = field.max;
+
+						const displayValue = field.precision !== undefined
+							? newValue.toFixed(field.precision)
+							: newValue;
+						el.value = displayValue;
+
+						this.setFieldValue(field, shape, newValue);
+						this.updateFieldValues(shape);
+					}
+				});
+			}
+		});
 	}
 
 	// Update displayed values (when shape changes externally)
@@ -700,17 +693,7 @@ class Inspector {
 				if (activeId === elementId) continue;
 
 				const value = this.getFieldValue(field, shape);
-				let displayValue;
-
-				if (field.type === 'length' || field.type === 'readonly-length') {
-					displayValue = value !== null && value !== undefined
-						? units.format(value, undefined, false)
-						: '';
-				} else {
-					displayValue = field.precision !== undefined && value !== null && value !== undefined
-						? Number(value).toFixed(field.precision)
-						: value;
-				}
+				const displayValue = this.formatDisplayValue(value, field);
 
 				if (field.type === 'readonly') {
 					const el = this.container.querySelector(`[data-field="${field.key}"]`);
