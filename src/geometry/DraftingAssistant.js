@@ -323,7 +323,8 @@ class DraftingAssistant
 					snap.y = worldPt.y;
 				}
 
-				snap.shape = shape;
+				// AutoLayoutFrame provides snappable edges but shouldn't be a selectable target
+				snap.shape = (shape.geometry === Shape.AUTO_LAYOUT_FRAME) ? null : shape;
 				if(!closestSnap) {
 					closestSnap = snap;
 				}else if(snap.distance < closestSnap.distance){

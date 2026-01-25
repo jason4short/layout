@@ -264,6 +264,9 @@ export class Renderer
 		// Draw editing group indicator
 		this.drawEditingGroup(ctx);
 
+		// Draw auto-layout frame for selected groups
+		this.drawAutoLayoutFrame(ctx);
+
 		// Draw marquee selection box
 		this.drawMarquee(ctx);
 
@@ -364,6 +367,111 @@ export class Renderer
 		ctx.textBaseline = 'bottom';
 		ctx.fillStyle = '#2563eb';
 		ctx.fillText('Editing Group', topLeft.x - padding, topLeft.y - padding - 4);
+	}
+
+	// Draw auto-layout frame and resize handles for selected groups
+	drawAutoLayoutFrame(ctx){
+		// Find if selection represents an auto-layout group
+		const selected = data.getSelected();
+		if(selected.length === 0) return;
+
+		// Check if all selected shapes belong to the same auto-layout group
+		const groupId = this.findSelectedAutoLayoutGroup(selected);
+		if(!groupId) return;
+
+		const group = data.groups.get(groupId);
+		if(!group || !group.autoLayout) return;
+
+		const bounds = data.getAutoLayoutBounds(groupId);
+		if(!bounds) return;
+
+		// Convert to screen coords
+		const topLeft = this.toScreen(bounds.x, bounds.y);
+		const width = this.toScreenScale(bounds.width);
+		const height = this.toScreenScale(bounds.height);
+
+		// Draw subtle fill
+		ctx.fillStyle = 'rgba(59, 130, 246, 0.05)';
+		ctx.fillRect(topLeft.x, topLeft.y, width, height);
+
+		// Draw frame border
+		ctx.strokeStyle = '#3b82f6';
+		ctx.lineWidth = 1;
+		ctx.strokeRect(topLeft.x, topLeft.y, width, height);
+
+		// Draw resize handles
+		this.drawAutoLayoutHandles(ctx, bounds, group);
+
+		// Store for hit testing
+		this.autoLayoutFrame = { groupId, bounds };
+	}
+
+	// Find if selected shapes all belong to the same auto-layout group
+	findSelectedAutoLayoutGroup(selected){
+		if(selected.length === 0) return null;
+
+		// Get the root group of the first selected shape
+		let groupId = selected[0].groupId;
+		if(!groupId) return null;
+
+		// Walk up to root group
+		groupId = data.getRootGroupId(groupId);
+
+		// Check if this group has autoLayout enabled
+		const group = data.groups.get(groupId);
+		if(!group || !group.autoLayout) return null;
+
+		// Verify all selected shapes belong to this group
+		const groupShapes = data.getGroupShapes(groupId);
+		const groupShapeSet = new Set(groupShapes);
+		for(const shape of selected){
+			if(!groupShapeSet.has(shape)) return null;
+		}
+
+		return groupId;
+	}
+
+	// Draw resize handles for auto-layout frame
+	drawAutoLayoutHandles(ctx, bounds, group){
+		const handleSize = 6;
+
+		// Corner positions (world coords)
+		const corners = [
+			{ x: bounds.x, y: bounds.y, cursor: 'nwse-resize', corner: 'tl' },
+			{ x: bounds.x + bounds.width, y: bounds.y, cursor: 'nesw-resize', corner: 'tr' },
+			{ x: bounds.x + bounds.width, y: bounds.y + bounds.height, cursor: 'nwse-resize', corner: 'br' },
+			{ x: bounds.x, y: bounds.y + bounds.height, cursor: 'nesw-resize', corner: 'bl' }
+		];
+
+		// Edge midpoint positions
+		const edges = [
+			{ x: bounds.x + bounds.width / 2, y: bounds.y, cursor: 'ns-resize', edge: 'top' },
+			{ x: bounds.x + bounds.width, y: bounds.y + bounds.height / 2, cursor: 'ew-resize', edge: 'right' },
+			{ x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height, cursor: 'ns-resize', edge: 'bottom' },
+			{ x: bounds.x, y: bounds.y + bounds.height / 2, cursor: 'ew-resize', edge: 'left' }
+		];
+
+		ctx.fillStyle = '#FFFFFF';
+		ctx.strokeStyle = '#3b82f6';
+		ctx.lineWidth = 1;
+
+		// Draw corner handles (squares)
+		for(const corner of corners){
+			const pt = this.toScreen(corner.x, corner.y);
+			ctx.fillRect(pt.x - handleSize/2, pt.y - handleSize/2, handleSize, handleSize);
+			ctx.strokeRect(pt.x - handleSize/2, pt.y - handleSize/2, handleSize, handleSize);
+		}
+
+		// Draw edge handles (smaller squares)
+		const edgeSize = 4;
+		for(const edge of edges){
+			const pt = this.toScreen(edge.x, edge.y);
+			ctx.fillRect(pt.x - edgeSize/2, pt.y - edgeSize/2, edgeSize, edgeSize);
+			ctx.strokeRect(pt.x - edgeSize/2, pt.y - edgeSize/2, edgeSize, edgeSize);
+		}
+
+		// Store handle positions for hit testing (in world coords)
+		this.autoLayoutHandles = { corners, edges };
 	}
 
 	drawMarquee(ctx){

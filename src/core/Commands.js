@@ -4,6 +4,7 @@
 import data from '../data/Data.js';
 import { calculateLayout } from './LayoutEngine.js';
 import { Frame } from '../geometry/Frame.js';
+import { AutoLayoutFrame } from '../geometry/AutoLayoutFrame.js';
 
 // Base Command class
 export class Command {
@@ -573,11 +574,24 @@ export class GroupCommand extends Command {
 		data.groups.set(this.groupId, {
 			id: this.groupId,
 			parentId: null,
+			autoLayout: false,
 			layout: {
 				mode: 'none',
 				gap: 0,
 				alignment: 'start',
 				distribution: 'none'
+			},
+			sizing: {
+				widthMode: 'hug',
+				heightMode: 'hug',
+				fixedWidth: null,
+				fixedHeight: null
+			},
+			padding: {
+				top: 0,
+				right: 0,
+				bottom: 0,
+				left: 0
 			}
 		});
 		console.log('GroupCommand: created new group', this.groupId);
@@ -641,10 +655,23 @@ export class UngroupCommand extends Command {
 			const groupInfo = {
 				id: groupId,
 				parentId: parentId,
+				autoLayout: group.autoLayout || false,
 				layout: group.layout ? { ...group.layout } : null,
+				sizing: group.sizing ? { ...group.sizing } : null,
+				padding: group.padding ? { ...group.padding } : null,
+				frameShapeId: group.frameShapeId || null,
 				shapes: [],
 				childGroups: []
 			};
+
+			// Delete the AutoLayoutFrame if it exists
+			if (group.frameShapeId) {
+				const frame = data.shapes.find(s => s.id === group.frameShapeId);
+				if (frame) {
+					data.deleteShape(frame);
+					groupInfo.frameShape = frame; // Store for undo
+				}
+			}
 
 			// Move shapes to parent group
 			for(const shape of data.shapes){
@@ -670,12 +697,21 @@ export class UngroupCommand extends Command {
 	undo() {
 		// Restore groups in reverse order
 		for(const groupInfo of this.groupData.reverse()){
-			// Recreate group with layout
+			// Recreate group with all properties
 			data.groups.set(groupInfo.id, {
 				id: groupInfo.id,
 				parentId: groupInfo.parentId,
-				layout: groupInfo.layout || { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' }
+				autoLayout: groupInfo.autoLayout || false,
+				layout: groupInfo.layout || { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' },
+				sizing: groupInfo.sizing || { widthMode: 'hug', heightMode: 'hug', fixedWidth: null, fixedHeight: null },
+				padding: groupInfo.padding || { top: 0, right: 0, bottom: 0, left: 0 },
+				frameShapeId: groupInfo.frameShapeId || null
 			});
+
+			// Restore the AutoLayoutFrame if it existed
+			if (groupInfo.frameShape) {
+				data.addShape(groupInfo.frameShape);
+			}
 
 			// Restore shape groupIds
 			for(const {shape, oldGroupId} of groupInfo.shapes){
@@ -704,7 +740,7 @@ export class ApplyLayoutCommand extends Command {
 		if (!group || group.layout.mode === 'none') return;
 
 		const items = data.getLayoutItems(this.groupId);
-		const bounds = data.getGroupBounds(this.groupId);
+		const bounds = data.getAutoLayoutBounds(this.groupId);
 		if (!bounds || items.length === 0) return;
 
 		// Store original positions for undo
@@ -715,8 +751,11 @@ export class ApplyLayoutCommand extends Command {
 			y: item.bounds.y
 		}));
 
+		// Use content area for layout (respects padding)
+		const layoutBounds = bounds.contentArea || bounds;
+
 		// Calculate new positions
-		const moves = calculateLayout(items, bounds, group.layout);
+		const moves = calculateLayout(items, layoutBounds, group.layout);
 
 		// Apply moves
 		for (const move of moves) {
@@ -1009,6 +1048,54 @@ export class BreakApartPolygonCommand extends Command {
 		// Restore the polygon
 		data.addShape(this.polygon);
 		this.polygon.selected = true;
+
+		data.rebuildPOIs();
+	}
+}
+
+// Resize an auto-layout group
+export class ResizeAutoLayoutGroupCommand extends Command {
+	constructor(groupId, oldSizing, newSizing, oldPositions, newPositions) {
+		super('Resize Auto-Layout Group');
+		this.groupId = groupId;
+		this.oldSizing = oldSizing;
+		this.newSizing = newSizing;
+		this.oldPositions = oldPositions;  // [{shape, x, y}]
+		this.newPositions = newPositions;  // [{shape, x, y}]
+	}
+
+	execute() {
+		const group = data.groups.get(this.groupId);
+		if(group){
+			group.sizing = { ...this.newSizing };
+		}
+
+		// Restore new positions
+		for(const pos of this.newPositions){
+			const dx = pos.x - pos.shape.bounds.x;
+			const dy = pos.y - pos.shape.bounds.y;
+			if(dx !== 0 || dy !== 0){
+				pos.shape.translate(dx, dy);
+			}
+		}
+
+		data.rebuildPOIs();
+	}
+
+	undo() {
+		const group = data.groups.get(this.groupId);
+		if(group){
+			group.sizing = { ...this.oldSizing };
+		}
+
+		// Restore old positions
+		for(const pos of this.oldPositions){
+			const dx = pos.x - pos.shape.bounds.x;
+			const dy = pos.y - pos.shape.bounds.y;
+			if(dx !== 0 || dy !== 0){
+				pos.shape.translate(dx, dy);
+			}
+		}
 
 		data.rebuildPOIs();
 	}

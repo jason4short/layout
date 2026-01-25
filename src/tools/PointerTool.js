@@ -9,7 +9,9 @@ import undoManager			from '../core/UndoManager.js';
 import draftingAssistant 	from '../geometry/DraftingAssistant.js';
 
 import {AddShapesCommand,
-		MoveCommand} 	from '../core/Commands.js';
+		MoveCommand,
+		ResizeAutoLayoutGroupCommand} 	from '../core/Commands.js';
+import { calculateLayout } from '../core/LayoutEngine.js';
 
 export class PointerTool extends Tool
 {
@@ -81,6 +83,7 @@ export class PointerTool extends Tool
 		this.originalPositions 		= [];
 		this.clonedShapes 			= [];
 		this.cornerResize 			= null;
+		this.groupResize 			= null;
 		this.frameChildOriginals 	= null;
 
 		data.clearExcludeFromSnap();
@@ -91,6 +94,66 @@ export class PointerTool extends Tool
 
 	distanceTo(a, b){
 		return Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2));
+	}
+
+	// Check if clicking on an auto-layout group resize handle
+	checkForGroupResizeHandle(worldPos){
+		// Check if renderer has stored handle positions from last draw
+		const renderer = stage.renderer;
+		if(!renderer.autoLayoutFrame || !renderer.autoLayoutHandles) return null;
+
+		const { groupId, bounds } = renderer.autoLayoutFrame;
+		const { corners, edges } = renderer.autoLayoutHandles;
+
+		const hitRadius = 8 / stage.zoom; // Screen-space hit area converted to world
+
+		// Check corners first (they have priority)
+		for(const corner of corners){
+			const dx = worldPos.x - corner.x;
+			const dy = worldPos.y - corner.y;
+			if(Math.sqrt(dx*dx + dy*dy) < hitRadius){
+				const group = data.groups.get(groupId);
+				return {
+					groupId,
+					handleType: 'corner',
+					corner: corner.corner,
+					cursor: corner.cursor,
+					originalBounds: { ...bounds },
+					originalSizing: group ? { ...group.sizing } : null,
+					originalShapePositions: this.captureGroupShapePositions(groupId)
+				};
+			}
+		}
+
+		// Check edges
+		for(const edge of edges){
+			const dx = worldPos.x - edge.x;
+			const dy = worldPos.y - edge.y;
+			if(Math.sqrt(dx*dx + dy*dy) < hitRadius){
+				const group = data.groups.get(groupId);
+				return {
+					groupId,
+					handleType: 'edge',
+					edge: edge.edge,
+					cursor: edge.cursor,
+					originalBounds: { ...bounds },
+					originalSizing: group ? { ...group.sizing } : null,
+					originalShapePositions: this.captureGroupShapePositions(groupId)
+				};
+			}
+		}
+
+		return null;
+	}
+
+	// Capture positions of all shapes in a group for undo
+	captureGroupShapePositions(groupId){
+		const shapes = data.getGroupShapes(groupId);
+		return shapes.map(shape => ({
+			shape,
+			x: shape.bounds.x,
+			y: shape.bounds.y
+		}));
 	}
 
 	// Exclude selected shapes from snapping during move
@@ -313,6 +376,12 @@ export class PointerTool extends Tool
 		// Check if clicking on a shape
 		this.moveTarget = data.getTargetShape();
 
+		// Check if clicking on an auto-layout group resize handle
+		this.groupResize = this.checkForGroupResizeHandle(clickPos);
+		if(this.groupResize){
+			return; // Handle resize in onMouseMove/Up
+		}
+
 		// Check if clicking on a resize control point
 		// Shapes define their own control point types via getControlPointType()
 		this.cornerResize = null;
@@ -416,6 +485,13 @@ export class PointerTool extends Tool
 
 	onMouseMove(e){
 		if(!this.dragStart) return;
+
+		// Handle group resize
+		if(this.groupResize){
+			this.updateGroupResize(e);
+			stage.render();
+			return;
+		}
 
 		// Calculate distance in screen space for threshold check
 		const screenDx = e.screenX - this.dragStart.screenX;
@@ -525,9 +601,150 @@ export class PointerTool extends Tool
 		}
 	}
 
+	// Update auto-layout group resize based on current mouse position
+	updateGroupResize(e){
+		if(!this.groupResize) return;
+
+		const { groupId, handleType, corner, edge, originalBounds } = this.groupResize;
+		const group = data.groups.get(groupId);
+		if(!group) return;
+
+		// Current world position
+		const currentX = e.x;
+		const currentY = e.y;
+
+		// Calculate new dimensions based on which handle is being dragged
+		let newWidth = originalBounds.width;
+		let newHeight = originalBounds.height;
+
+		if(handleType === 'corner'){
+			// Corner handles affect both dimensions
+			switch(corner){
+				case 'br': // bottom-right
+					newWidth = currentX - originalBounds.x;
+					newHeight = currentY - originalBounds.y;
+					break;
+				case 'bl': // bottom-left
+					newWidth = (originalBounds.x + originalBounds.width) - currentX;
+					newHeight = currentY - originalBounds.y;
+					break;
+				case 'tr': // top-right
+					newWidth = currentX - originalBounds.x;
+					newHeight = (originalBounds.y + originalBounds.height) - currentY;
+					break;
+				case 'tl': // top-left
+					newWidth = (originalBounds.x + originalBounds.width) - currentX;
+					newHeight = (originalBounds.y + originalBounds.height) - currentY;
+					break;
+			}
+		} else if(handleType === 'edge'){
+			// Edge handles affect one dimension
+			switch(edge){
+				case 'right':
+					newWidth = currentX - originalBounds.x;
+					break;
+				case 'left':
+					newWidth = (originalBounds.x + originalBounds.width) - currentX;
+					break;
+				case 'bottom':
+					newHeight = currentY - originalBounds.y;
+					break;
+				case 'top':
+					newHeight = (originalBounds.y + originalBounds.height) - currentY;
+					break;
+			}
+		}
+
+		// Enforce minimum size
+		newWidth = Math.max(20, newWidth);
+		newHeight = Math.max(20, newHeight);
+
+		// Update group sizing - switch to fixed mode on dragged axes
+		if(handleType === 'corner' || edge === 'left' || edge === 'right'){
+			group.sizing.widthMode = 'fixed';
+			group.sizing.fixedWidth = newWidth;
+		}
+		if(handleType === 'corner' || edge === 'top' || edge === 'bottom'){
+			group.sizing.heightMode = 'fixed';
+			group.sizing.fixedHeight = newHeight;
+		}
+
+		// Trigger live layout
+		this.applyLiveLayout(groupId);
+
+		// Update cursor
+		stage.setCursor(this.groupResize.cursor);
+	}
+
+	// Apply layout without creating undo command (for live preview)
+	applyLiveLayout(groupId){
+		const group = data.groups.get(groupId);
+		if(!group || group.layout.mode === 'none') return;
+
+		const items = data.getLayoutItems(groupId);
+		const bounds = data.getAutoLayoutBounds(groupId);
+		if(!bounds || items.length === 0) return;
+
+		// Use content area for layout (respects padding)
+		const layoutBounds = bounds.contentArea || bounds;
+
+		const moves = calculateLayout(items, layoutBounds, group.layout);
+
+		// Apply moves
+		for(const move of moves){
+			if(move.dx === 0 && move.dy === 0) continue;
+
+			if(move.type === 'shape'){
+				move.item.translate(move.dx, move.dy);
+			} else if(move.type === 'group'){
+				const groupShapes = data.getGroupShapes(move.item);
+				for(const shape of groupShapes){
+					shape.translate(move.dx, move.dy);
+				}
+			}
+		}
+	}
+
+	// Finish group resize and create undo command
+	finishGroupResize(){
+		if(!this.groupResize) return;
+
+		const { groupId, originalSizing, originalShapePositions } = this.groupResize;
+		const group = data.groups.get(groupId);
+		if(!group) return;
+
+		// Capture new state
+		const newSizing = { ...group.sizing };
+		const newShapePositions = this.captureGroupShapePositions(groupId);
+
+		// Create undo command
+		undoManager.record(new ResizeAutoLayoutGroupCommand(
+			groupId,
+			originalSizing,
+			newSizing,
+			originalShapePositions,
+			newShapePositions
+		));
+
+		// Rebuild POIs
+		data.rebuildPOIs();
+
+		// Reset cursor
+		stage.setCursor('default');
+	}
+
 	onMouseUp(e){
 		this.generateGuides 	= false; // Enable snapping for move operations
 		data.resetSnaps();
+
+		// Handle group resize completion
+		if(this.groupResize){
+			this.finishGroupResize();
+			this.resetDrag();
+			stage.render();
+			return;
+		}
+
 		if(this.isMoving){
 			// Move operation complete - rebuild POI cache
 			data.rebuildPOIs();
@@ -556,10 +773,11 @@ export class PointerTool extends Tool
 				undoManager.record(new AddShapesCommand(this.clonedShapes));
 
 			} else if(this.originalPositions.length > 0){
+
 				// Record move command for undo
 				// Shapes in frames store LOCAL coords - MoveCommand handles this
-
 				const moveData = this.originalPositions.map(orig => {
+				
 					let newX, newY;
 					if(orig.index === -1){
 						// Whole shape translation - use bounds position

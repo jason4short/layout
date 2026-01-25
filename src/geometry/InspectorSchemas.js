@@ -9,6 +9,7 @@ import data from '../data/Data.js';
 import stage from '../core/Stage.js';
 import undoManager from '../core/UndoManager.js';
 import { DeleteShapesCommand, AddShapesCommand, ApplyLayoutCommand } from '../core/Commands.js';
+import { AutoLayoutFrame } from './AutoLayoutFrame.js';
 
 // Common field templates
 const positionFields = (prefix = '') => [
@@ -610,10 +611,30 @@ export function groupSchema(groupId) {
 	const group = data.groups.get(groupId);
 	if (!group) return null;
 
+	// Ensure defaults exist
+	if (!group.sizing) group.sizing = { widthMode: 'hug', heightMode: 'hug', fixedWidth: null, fixedHeight: null };
+	if (!group.padding) group.padding = { top: 0, right: 0, bottom: 0, left: 0 };
+
 	// Count items in group
 	const directShapes = data.getDirectGroupShapes(groupId);
 	const childGroups = data.getChildGroupIds(groupId);
 	const itemCount = directShapes.length + childGroups.length;
+
+	// Helper to apply layout automatically when properties change
+	const applyLayoutIfActive = () => {
+		if (group.autoLayout && group.layout.mode !== 'none') {
+			undoManager.execute(new ApplyLayoutCommand(groupId));
+		}
+		// Update the AutoLayoutFrame bounds
+		if (group.frameShapeId) {
+			const frame = data.shapes.find(s => s.id === group.frameShapeId);
+			if (frame) {
+				frame.update();
+				data.rebuildPOIs(); // Refresh snap points for the frame
+			}
+		}
+		stage.render();
+	};
 
 	return {
 		name: 'Group',
@@ -633,6 +654,33 @@ export function groupSchema(groupId) {
 				title: 'Auto-Layout',
 				fields: [
 					{
+						key: 'autoLayout',
+						label: 'Auto-Layout',
+						type: 'checkbox',
+						get: () => group.autoLayout || false,
+						set: (v) => {
+							group.autoLayout = v;
+							if (v) {
+								// Create AutoLayoutFrame geometry for this group
+								if (!group.frameShapeId) {
+									const frame = new AutoLayoutFrame([groupId]);
+									data.addShape(frame);
+									group.frameShapeId = frame.id;
+								}
+							} else {
+								// Remove AutoLayoutFrame geometry
+								if (group.frameShapeId) {
+									const frame = data.shapes.find(s => s.id === group.frameShapeId);
+									if (frame) {
+										data.deleteShape(frame);
+									}
+									group.frameShapeId = null;
+								}
+							}
+							stage.render();
+						}
+					},
+					{
 						key: 'layout.mode',
 						label: 'Direction',
 						type: 'select',
@@ -642,15 +690,21 @@ export function groupSchema(groupId) {
 							{ value: 'column', label: 'Vertical' }
 						],
 						get: () => group.layout.mode,
-						set: (v) => { group.layout.mode = v; }
+						set: (v) => {
+							group.layout.mode = v;
+							if (v !== 'none') group.autoLayout = true;
+							applyLayoutIfActive();
+						},
+						visible: () => group.autoLayout
 					},
 					{
 						key: 'layout.gap',
 						label: 'Gap',
 						type: 'length',
 						get: () => group.layout.gap,
-						set: (v) => { group.layout.gap = v; },
-						min: 0
+						set: (v) => { group.layout.gap = v; applyLayoutIfActive(); },
+						min: 0,
+						visible: () => group.autoLayout && group.layout.mode !== 'none'
 					},
 					{
 						key: 'layout.alignment',
@@ -662,7 +716,8 @@ export function groupSchema(groupId) {
 							{ value: 'end', label: 'End' }
 						],
 						get: () => group.layout.alignment,
-						set: (v) => { group.layout.alignment = v; }
+						set: (v) => { group.layout.alignment = v; applyLayoutIfActive(); },
+						visible: () => group.autoLayout && group.layout.mode !== 'none'
 					},
 					{
 						key: 'layout.distribution',
@@ -674,7 +729,8 @@ export function groupSchema(groupId) {
 							{ value: 'space-around', label: 'Space Around' }
 						],
 						get: () => group.layout.distribution,
-						set: (v) => { group.layout.distribution = v; }
+						set: (v) => { group.layout.distribution = v; applyLayoutIfActive(); },
+						visible: () => group.autoLayout && group.layout.mode !== 'none'
 					},
 					{
 						key: 'applyLayout',
@@ -685,7 +741,106 @@ export function groupSchema(groupId) {
 								undoManager.execute(new ApplyLayoutCommand(groupId));
 								stage.render();
 							}
+						},
+						visible: () => group.autoLayout && group.layout.mode !== 'none'
+					}
+				]
+			},
+			{
+				title: 'Sizing',
+				visible: () => group.autoLayout,
+				fields: [
+					{
+						key: 'sizing.widthMode',
+						label: 'Width',
+						type: 'select',
+						options: [
+							{ value: 'hug', label: 'Hug Contents' },
+							{ value: 'fixed', label: 'Fixed' }
+						],
+						get: () => group.sizing.widthMode,
+						set: (v) => {
+							group.sizing.widthMode = v;
+							if (v === 'fixed' && !group.sizing.fixedWidth) {
+								const bounds = data.getAutoLayoutBounds(groupId);
+								group.sizing.fixedWidth = bounds?.width || 100;
+							}
+							applyLayoutIfActive();
 						}
+					},
+					{
+						key: 'sizing.fixedWidth',
+						label: 'Width',
+						type: 'length',
+						get: () => group.sizing.fixedWidth || 0,
+						set: (v) => { group.sizing.fixedWidth = v; applyLayoutIfActive(); },
+						min: 1,
+						visible: () => group.sizing.widthMode === 'fixed'
+					},
+					{
+						key: 'sizing.heightMode',
+						label: 'Height',
+						type: 'select',
+						options: [
+							{ value: 'hug', label: 'Hug Contents' },
+							{ value: 'fixed', label: 'Fixed' }
+						],
+						get: () => group.sizing.heightMode,
+						set: (v) => {
+							group.sizing.heightMode = v;
+							if (v === 'fixed' && !group.sizing.fixedHeight) {
+								const bounds = data.getAutoLayoutBounds(groupId);
+								group.sizing.fixedHeight = bounds?.height || 100;
+							}
+							applyLayoutIfActive();
+						}
+					},
+					{
+						key: 'sizing.fixedHeight',
+						label: 'Height',
+						type: 'length',
+						get: () => group.sizing.fixedHeight || 0,
+						set: (v) => { group.sizing.fixedHeight = v; applyLayoutIfActive(); },
+						min: 1,
+						visible: () => group.sizing.heightMode === 'fixed'
+					}
+				]
+			},
+			{
+				title: 'Padding',
+				visible: () => group.autoLayout,
+				fields: [
+					{
+						key: 'padding.top',
+						label: 'Top',
+						type: 'length',
+						get: () => group.padding.top,
+						set: (v) => { group.padding.top = v; applyLayoutIfActive(); },
+						min: 0
+					},
+					{
+						key: 'padding.right',
+						label: 'Right',
+						type: 'length',
+						get: () => group.padding.right,
+						set: (v) => { group.padding.right = v; applyLayoutIfActive(); },
+						min: 0
+					},
+					{
+						key: 'padding.bottom',
+						label: 'Bottom',
+						type: 'length',
+						get: () => group.padding.bottom,
+						set: (v) => { group.padding.bottom = v; applyLayoutIfActive(); },
+						min: 0
+					},
+					{
+						key: 'padding.left',
+						label: 'Left',
+						type: 'length',
+						get: () => group.padding.left,
+						set: (v) => { group.padding.left = v; applyLayoutIfActive(); },
+						min: 0
 					}
 				]
 			}

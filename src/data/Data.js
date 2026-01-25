@@ -217,6 +217,9 @@ class Data
 		// Get frame transform if shape belongs to a frame
 		const frame = shape.frameId ? this.getFrame(shape.frameId) : null;
 
+		// AutoLayoutFrame provides snappable POIs but shouldn't be a selectable target
+		const isAutoLayoutFrame = shape.geometry === Shape.AUTO_LAYOUT_FRAME;
+
 		// Add shape reference, index, and transform to world coords if needed
 		for(let i = 0; i < points.length; i++){
 			let poi = points[i];
@@ -231,7 +234,8 @@ class Data
 				};
 			}
 
-			poi.shape = shape;
+			// Don't set shape reference for AutoLayoutFrame - its POIs are for snapping only
+			poi.shape = isAutoLayoutFrame ? null : shape;
 			poi.poiIndex = i;
 			this.shapePOIs.push(poi);
 		}
@@ -427,11 +431,24 @@ class Data
 		this.groups.set(groupId, {
 			id: groupId,
 			parentId: null,
+			autoLayout: false,      // Toggle auto-layout on/off
 			layout: {
 				mode: 'none',       // 'none' | 'row' | 'column'
 				gap: 0,             // spacing between children (mm)
 				alignment: 'start', // 'start' | 'center' | 'end'
 				distribution: 'none' // 'none' | 'space-between' | 'space-around'
+			},
+			sizing: {
+				widthMode: 'hug',   // 'hug' | 'fixed'
+				heightMode: 'hug',  // 'hug' | 'fixed'
+				fixedWidth: null,   // mm when widthMode is 'fixed'
+				fixedHeight: null   // mm when heightMode is 'fixed'
+			},
+			padding: {
+				top: 0,
+				right: 0,
+				bottom: 0,
+				left: 0
 			}
 		});
 
@@ -546,6 +563,43 @@ class Data
 		}
 
 		return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+	}
+
+	// Get bounds for auto-layout group (includes padding and fixed sizing)
+	getAutoLayoutBounds(groupId){
+		const group = this.groups.get(groupId);
+		if(!group || !group.autoLayout){
+			return this.getGroupBounds(groupId);
+		}
+
+		const content = this.getGroupBounds(groupId);
+		if(!content) return null;
+
+		const padding = group.padding || { top: 0, right: 0, bottom: 0, left: 0 };
+		const sizing = group.sizing || { widthMode: 'hug', heightMode: 'hug' };
+
+		// Calculate dimensions based on sizing mode
+		const width = sizing.widthMode === 'fixed' && sizing.fixedWidth !== null
+			? sizing.fixedWidth
+			: content.width + padding.left + padding.right;
+
+		const height = sizing.heightMode === 'fixed' && sizing.fixedHeight !== null
+			? sizing.fixedHeight
+			: content.height + padding.top + padding.bottom;
+
+		return {
+			x: content.x - padding.left,
+			y: content.y - padding.top,
+			width,
+			height,
+			// Content area for layout engine
+			contentArea: {
+				x: content.x - padding.left + padding.left,
+				y: content.y - padding.top + padding.top,
+				width: width - padding.left - padding.right,
+				height: height - padding.top - padding.bottom
+			}
+		};
 	}
 
 	// Get layout items for a group: direct shapes + child groups as units
@@ -883,8 +937,11 @@ class Data
 		let index = this.shapes.indexOf(shape);
 		if(index > -1){
 			this.shapes.splice(index, 1);
-			this.spatialGrid.removeShape(shape);
-			this.removeIntersectionsForShape(shape);
+			// AutoLayoutFrame was never added to spatial grid or intersections
+			if (shape.geometry !== Shape.AUTO_LAYOUT_FRAME) {
+				this.spatialGrid.removeShape(shape);
+				this.removeIntersectionsForShape(shape);
+			}
 			this.rebuildPOIs();
 			return;
 		}
@@ -910,18 +967,22 @@ class Data
 		// Store POIs for this shape
 		this.storeShapePOIs(newShape);
 
-		// Add to spatial grid for efficient neighbor queries
-		this.spatialGrid.addShape(newShape);
+		// AutoLayoutFrame is a virtual frame - skip spatial grid and intersections
+		const isAutoLayoutFrame = newShape.geometry === Shape.AUTO_LAYOUT_FRAME;
+		if (!isAutoLayoutFrame) {
+			// Add to spatial grid for efficient neighbor queries
+			this.spatialGrid.addShape(newShape);
 
-		// Find intersections using spatial grid (O(n×k) instead of O(n²))
-		const neighbors = this.spatialGrid.getNeighbors(newShape);
-		for(const neighbor of neighbors){
-			this.findAndRegisterIntersections(newShape, neighbor);
-		}
+			// Find intersections using spatial grid (O(n×k) instead of O(n²))
+			const neighbors = this.spatialGrid.getNeighbors(newShape);
+			for(const neighbor of neighbors){
+				this.findAndRegisterIntersections(newShape, neighbor);
+			}
 
-		// Also check constructions (not in spatial grid)
-		for(const construction of this.constructions){
-			this.findAndRegisterIntersections(newShape, construction);
+			// Also check constructions (not in spatial grid)
+			for(const construction of this.constructions){
+				this.findAndRegisterIntersections(newShape, construction);
+			}
 		}
 
 		// Add shape to the array

@@ -303,10 +303,19 @@ class Inspector {
 	}
 
 	buildGroupSection(section, groupId) {
+		// Check section visibility
+		if (section.visible && !section.visible()) {
+			return '';
+		}
+
 		let html = `<div class="inspector-section">`;
 		html += `<div class="inspector-section-title">${section.title}</div>`;
 
 		for (const field of section.fields) {
+			// Check field visibility
+			if (field.visible && !field.visible()) {
+				continue;
+			}
 			html += this.buildGroupField(field, groupId);
 		}
 
@@ -352,6 +361,16 @@ class Inspector {
 			</div>`;
 		}
 
+		if (field.type === 'checkbox') {
+			const checked = value ? 'checked' : '';
+			return `<div class="inspector-row inspector-checkbox-row">
+				<label>
+					<input type="checkbox" id="prop-${field.key}" ${checked}>
+					${field.label}
+				</label>
+			</div>`;
+		}
+
 		return '';
 	}
 
@@ -377,6 +396,8 @@ class Inspector {
 				if (field.type === 'select') {
 					el.addEventListener('change', (e) => {
 						if (field.set) field.set(e.target.value);
+						// Refresh panel to show/hide conditional fields
+						this.buildGroupPanel(groupId);
 					});
 				} else if (field.type === 'length') {
 					el.addEventListener('change', (e) => {
@@ -384,6 +405,12 @@ class Inspector {
 						if (numValue !== null && field.set) {
 							field.set(numValue);
 						}
+					});
+				} else if (field.type === 'checkbox') {
+					el.addEventListener('change', (e) => {
+						if (field.set) field.set(e.target.checked);
+						// Refresh panel to show/hide conditional fields
+						this.buildGroupPanel(groupId);
 					});
 				}
 			}
