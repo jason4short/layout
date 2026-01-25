@@ -1,4 +1,4 @@
-import {Shape, Geometry} from './Geometry.js';
+import {Shape, Geometry, SnapType} from './Geometry.js';
 import {Point} from './Point.js';
 import * as AngleUtils from './utils/AngleUtils.js';
 import * as VectorUtils from './utils/VectorUtils.js';
@@ -137,9 +137,9 @@ export class TangentArc extends Geometry
 	// POIs: start, tangent handle, end
 	getSnapPOIs() {
 		return [
-			this.startPoint,
-			this.tangentPoint,
-			this.endPoint
+			{ x: this.startPoint.x, y: this.startPoint.y, type: SnapType.ENDPOINT },
+			{ x: this.tangentPoint.x, y: this.tangentPoint.y, type: SnapType.ENDPOINT },
+			{ x: this.endPoint.x, y: this.endPoint.y, type: SnapType.ENDPOINT }
 		];
 	}
 

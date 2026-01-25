@@ -1,7 +1,8 @@
 import {Point} 				from './Point.js';
 import {Shape,
 		Geometry,
-		PenStyle} 			from './Geometry.js';
+		PenStyle,
+		SnapType} 			from './Geometry.js';
 import {GeometryUtils}		from './GeometryUtils.js';
 
 import * as VectorUtils 	from './utils/VectorUtils.js';
@@ -226,11 +227,13 @@ export class AngleDimension extends Geometry
 
 	getSnapPOIs() {
 		// POIs: 0=vertex (not selectable), 1=click1, 2=click2, 3=textPosition
+		const click1 = this.click1 || this.arcStart;
+		const click2 = this.click2 || this.arcEnd;
 		return [
-			this.vertex,
-			this.click1 || this.arcStart,  // fallback if no click point
-			this.click2 || this.arcEnd,
-			this.textPosition
+			{ x: this.vertex.x, y: this.vertex.y, type: SnapType.CENTER },
+			{ x: click1.x, y: click1.y, type: SnapType.ENDPOINT },
+			{ x: click2.x, y: click2.y, type: SnapType.ENDPOINT },
+			{ x: this.textPosition.x, y: this.textPosition.y, type: SnapType.ENDPOINT }
 		];
 	}
 

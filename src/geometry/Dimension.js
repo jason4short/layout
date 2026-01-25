@@ -1,7 +1,8 @@
 import {Point} 				from './Point.js';
 import {Shape,
 		Geometry,
-		PenStyle} 			from './Geometry.js';
+		PenStyle,
+		SnapType} 			from './Geometry.js';
 
 import * as VectorUtils 	from './utils/VectorUtils.js';
 import {serializeDimension, deserializeDimension} from './GeometrySerializers.js';
@@ -114,7 +115,11 @@ export class Dimension extends Geometry
 	}
 
 	getSnapPOIs() {
-		return [this.start, this.end, this.textPosition];
+		return [
+			{ x: this.start.x, y: this.start.y, type: SnapType.ENDPOINT },
+			{ x: this.end.x, y: this.end.y, type: SnapType.ENDPOINT },
+			{ x: this.textPosition.x, y: this.textPosition.y, type: SnapType.ENDPOINT }
+		];
 	}
 
 	getTransformablePoints() {

@@ -1,4 +1,4 @@
-import {Shape, Geometry} from './Geometry.js';
+import {Shape, Geometry, SnapType} from './Geometry.js';
 import {Point} from './Point.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as AngleUtils from './utils/AngleUtils.js';
@@ -72,7 +72,12 @@ export class Spline extends Geometry
 	getSnapPOIs() {
 		// Return all 4 control points
 		// POI indices: 0=p0(start), 1=p1(handle1), 2=p2(handle2), 3=p3(end)
-		return [this.p0, this.p1, this.p2, this.p3];
+		return [
+			{ x: this.p0.x, y: this.p0.y, type: SnapType.ENDPOINT },
+			{ x: this.p1.x, y: this.p1.y, type: SnapType.ENDPOINT },
+			{ x: this.p2.x, y: this.p2.y, type: SnapType.ENDPOINT },
+			{ x: this.p3.x, y: this.p3.y, type: SnapType.ENDPOINT }
+		];
 	}
 
 	getTransformablePoints() {

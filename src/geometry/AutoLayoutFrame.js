@@ -1,4 +1,4 @@
-import { Shape, Geometry } from './Geometry.js';
+import { Shape, Geometry, SnapType } from './Geometry.js';
 import { Point } from './Point.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import data from '../data/Data.js';
@@ -76,7 +76,16 @@ export class AutoLayoutFrame extends Geometry {
 		this.update();
 		const corners = this.getCorners();
 		const midpoints = this.getEdgeMidpoints();
-		return [...corners, ...midpoints];
+		return [
+			{ x: corners[0].x, y: corners[0].y, type: SnapType.ENDPOINT },
+			{ x: corners[1].x, y: corners[1].y, type: SnapType.ENDPOINT },
+			{ x: corners[2].x, y: corners[2].y, type: SnapType.ENDPOINT },
+			{ x: corners[3].x, y: corners[3].y, type: SnapType.ENDPOINT },
+			{ x: midpoints[0].x, y: midpoints[0].y, type: SnapType.MIDPOINT },
+			{ x: midpoints[1].x, y: midpoints[1].y, type: SnapType.MIDPOINT },
+			{ x: midpoints[2].x, y: midpoints[2].y, type: SnapType.MIDPOINT },
+			{ x: midpoints[3].x, y: midpoints[3].y, type: SnapType.MIDPOINT }
+		];
 	}
 
 	// No selectable control points - resize via group handles

@@ -1,4 +1,4 @@
-import {Shape, Geometry} from './Geometry.js';
+import {Shape, Geometry, SnapType} from './Geometry.js';
 import {Point} from './Point.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
@@ -176,18 +176,16 @@ export class Image extends Geometry
 
 	/**
 	 * POIs: 0=top-left, 1=top-right, 2=bottom-right, 3=bottom-left, 4=center
-	 * Returns cached points (no trig, no allocations).
+	 * Returns cached points with type info.
 	 */
 	getSnapPOIs()
 	{
-		//this.updateCachedGeometryIfNeeded();
-
 		return [
-			this.cachedCorners[0],
-			this.cachedCorners[1],
-			this.cachedCorners[2],
-			this.cachedCorners[3],
-			this.cachedCenter
+			{ x: this.cachedCorners[0].x, y: this.cachedCorners[0].y, type: SnapType.ENDPOINT },
+			{ x: this.cachedCorners[1].x, y: this.cachedCorners[1].y, type: SnapType.ENDPOINT },
+			{ x: this.cachedCorners[2].x, y: this.cachedCorners[2].y, type: SnapType.ENDPOINT },
+			{ x: this.cachedCorners[3].x, y: this.cachedCorners[3].y, type: SnapType.ENDPOINT },
+			{ x: this.cachedCenter.x, y: this.cachedCenter.y, type: SnapType.CENTER }
 		];
 	}
 

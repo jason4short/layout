@@ -1,7 +1,8 @@
 import {Point} 				from './Point.js';
 import {Shape,
 		Geometry,
-		PenStyle} 			from './Geometry.js';
+		PenStyle,
+		SnapType} 			from './Geometry.js';
 
 import * as VectorUtils 	from './utils/VectorUtils.js';
 import * as TransformUtils 	from './utils/TransformUtils.js';
@@ -116,7 +117,11 @@ export class RadialDimension extends Geometry
 	}
 
 	getSnapPOIs() {
-		return [this.center, this.dimLineEnd, this.textPosition];
+		return [
+			{ x: this.center.x, y: this.center.y, type: SnapType.CENTER },
+			{ x: this.dimLineEnd.x, y: this.dimLineEnd.y, type: SnapType.ENDPOINT },
+			{ x: this.textPosition.x, y: this.textPosition.y, type: SnapType.ENDPOINT }
+		];
 	}
 
 	// Returns the measured value (radius or diameter)

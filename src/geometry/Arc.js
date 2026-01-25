@@ -1,4 +1,4 @@
-import {Shape, Geometry} 	from './Geometry.js';
+import {Shape, Geometry, SnapType} 	from './Geometry.js';
 import {Circle} 			from './Circle.js';
 import {Point} 				from './Point.js';
 import * as AngleUtils 		from './utils/AngleUtils.js';
@@ -33,27 +33,29 @@ export class Arc extends Circle
 	}
 	
 	update(){
-		this.POIs = [{ x: this.x, y: this.y }];  // center
-		this.POIs.push(this.getPointAtAngle(this.startAngle));
-		this.POIs.push(this.getPointAtAngle(this.endAngle));
-		this.POIs.push(this.getPointAtAngle(this.getMidAngle()));
+		const startPt = this.getPointAtAngle(this.startAngle);
+		const endPt = this.getPointAtAngle(this.endAngle);
+		const midPt = this.getPointAtAngle(this.getMidAngle());
+
+		this.POIs = [
+			{ x: this.x, y: this.y, type: SnapType.CENTER },
+			{ x: startPt.x, y: startPt.y, type: SnapType.ENDPOINT },
+			{ x: endPt.x, y: endPt.y, type: SnapType.ENDPOINT },
+			{ x: midPt.x, y: midPt.y, type: SnapType.MIDPOINT }
+		];
 
 		// Only add quadrant points if they fall within the arc's angular range
-		// Right (0°)
 		if(this.containsAngle(0)){
-			this.POIs.push({ x: this.x + this.radius, y: this.y });
+			this.POIs.push({ x: this.x + this.radius, y: this.y, type: SnapType.QUADRANT });
 		}
-		// Left (π)
 		if(this.containsAngle(Math.PI)){
-			this.POIs.push({ x: this.x - this.radius, y: this.y });
+			this.POIs.push({ x: this.x - this.radius, y: this.y, type: SnapType.QUADRANT });
 		}
-		// Bottom (π/2) - Y increases downward in screen coords
 		if(this.containsAngle(Math.PI / 2)){
-			this.POIs.push({ x: this.x, y: this.y + this.radius });
+			this.POIs.push({ x: this.x, y: this.y + this.radius, type: SnapType.QUADRANT });
 		}
-		// Top (3π/2 or -π/2)
 		if(this.containsAngle(-Math.PI / 2) || this.containsAngle(3 * Math.PI / 2)){
-			this.POIs.push({ x: this.x, y: this.y - this.radius });
+			this.POIs.push({ x: this.x, y: this.y - this.radius, type: SnapType.QUADRANT });
 		}
 
 		super.update();

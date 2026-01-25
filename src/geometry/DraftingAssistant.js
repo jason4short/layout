@@ -38,9 +38,8 @@ class DraftingAssistant
 		// 1: snap on features of real geometry (endpoints, quadrants, etc...)
 		snap = this.findNearestSnapPoint_Geometry(mouse, data.getPOICandidates());
 		if(snap){
-			// Add POI type label
-			const poiLabel = this.getPOITypeLabel(snap.shape, snap.poiIndex);
-			snap.label = poiLabel ? [poiLabel] : [];
+			// POI type is now embedded in the snap point by each shape's getSnapPOIs()
+			snap.label = snap.type ? [snap.type] : [];
 			this.setCurrentSnapPoint(snap, generateGuides);
 			return;
 		}
@@ -116,64 +115,16 @@ class DraftingAssistant
 				return SnapType.PERPENDICULAR;
 				
 			default:
-				console.log("NULL")
 				return null;
 		}
 	}
 
-	// Determine POI type label based on shape geometry and POI index
-	// XXX These are magic numbers! SUS, have Geometry explicitly set POI type in getPOICandidates
-	getPOITypeLabel(shape, poiIndex){
-		if(!shape || poiIndex === undefined) return null;
-
-		switch(shape.geometry){
-			case Shape.LINE:
-				// Line POIs: 0=start, 1=end, 2=midpoint
-				if(poiIndex === 0 || poiIndex === 1) return SnapType.ENDPOINT;
-				if(poiIndex === 2) return SnapType.MIDPOINT;
-				break;
-
-			case Shape.CIRCLE:
-				// Circle POIs: 0=center, 1=radius control, 2-5=quadrants
-				if(poiIndex === 0) return SnapType.CENTER;
-				if(poiIndex === 1) return SnapType.RADIUS;
-				return SnapType.QUADRANT;
-
-			case Shape.ARC:
-			case Shape.TANGENT_ARC:
-				// Arc POIs: 0=center, 1=start, 2=end, 3=midpoint, rest=quadrants
-				if(poiIndex === 0) return SnapType.CENTER;
-				if(poiIndex === 1 || poiIndex === 2) return SnapType.ENDPOINT;
-				if(poiIndex === 3) return SnapType.MIDPOINT;
-				return SnapType.QUADRANT;
-
-			case Shape.ELLIPSE:
-				// Ellipse POIs: 0=center, rest=quadrants
-				if(poiIndex === 0) return SnapType.CENTER;
-				return SnapType.QUADRANT;
-
-			case Shape.SPLINE:
-				// Spline POIs: 0=start, 3=end (1,2 are handles)
-				if(poiIndex === 0 || poiIndex === 3) return SnapType.ENDPOINT;
-				break;
-
-			case Shape.DIMENSION:
-				// Dimension POIs: 0=start, 1=end, 2=text position
-				if(poiIndex === 0 || poiIndex === 1) return SnapType.ENDPOINT;
-				break;
-
-			case Shape.TEXT:
-			case Shape.IMAGE:
-				// Corners and center
-				if(poiIndex === 0) return SnapType.ENDPOINT; // anchor
-				break;
-		}
-
-		return SnapType.ENDPOINT; // Default
-	}
 
 	// tracks the current snapped point
 	setCurrentSnapPoint(p, store){
+		// Preserve the POI type label before it gets cleared by updateSourceSnapPointLabels
+		const poiLabel = p.label;
+
 		data.snapPoint = p;
 
 		if(store){
@@ -190,6 +141,13 @@ class DraftingAssistant
 		// Update labels on source snap points based on active guides
 		// (source points show guide relationship: align:x, tangent, etc.)
 		this.updateSourceSnapPointLabels(data.getGuides());
+
+		// Restore POI type label on current snap point
+		// (updateSourceSnapPointLabels clears labels on stored snap points,
+		// which includes the current one when store=true)
+		if(poiLabel){
+			data.snapPoint.label = poiLabel;
+		}
 	}
 
 	deActivateGuides(){
@@ -218,22 +176,6 @@ class DraftingAssistant
 			}
 		}
 	}
-	
-	// Add labels from active guides to the snap point
-	addGuideLabels(snapPoint, guides){
-		if(!snapPoint.label) snapPoint.label = [];
-
-		for(const guide of guides){
-			if(!guide.active) continue;
-
-			const label = this.getGuideLabelFromType(guide.guideType);
-			if(label && !snapPoint.label.includes(label)){
-				snapPoint.label.push(label);
-			}
-		}
-	}
-
-
 	
 	getCurrentSnapPoint(){ 
 		return data.snapPoint;

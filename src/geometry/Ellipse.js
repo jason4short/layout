@@ -1,4 +1,4 @@
-import {Shape, Geometry} from './Geometry.js';
+import {Shape, Geometry, SnapType} from './Geometry.js';
 import {Point} from './Point.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
@@ -57,22 +57,22 @@ export class Ellipse extends Geometry
 
 		if (this.controlMode === 'corners') {
 			return [
-				{ x: corner1X, y: corner1Y },  // corner1 (user's first click)
-				{ x: corner2X, y: corner2Y },  // corner2 (opposite corner)
-				{ x: this.x + this.radiusX, y: this.y },  // right
-				{ x: this.x - this.radiusX, y: this.y },  // left
-				{ x: this.x, y: this.y + this.radiusY },  // bottom
-				{ x: this.x, y: this.y - this.radiusY }   // top
+				{ x: corner1X, y: corner1Y, type: SnapType.ENDPOINT },
+				{ x: corner2X, y: corner2Y, type: SnapType.ENDPOINT },
+				{ x: this.x + this.radiusX, y: this.y, type: SnapType.QUADRANT },
+				{ x: this.x - this.radiusX, y: this.y, type: SnapType.QUADRANT },
+				{ x: this.x, y: this.y + this.radiusY, type: SnapType.QUADRANT },
+				{ x: this.x, y: this.y - this.radiusY, type: SnapType.QUADRANT }
 			];
 		} else {
 			// 'center' mode (default)
 			return [
-				{ x: this.x, y: this.y },  // center
-				{ x: corner1X, y: corner1Y },  // corner control point
-				{ x: this.x + this.radiusX, y: this.y },  // right
-				{ x: this.x - this.radiusX, y: this.y },  // left
-				{ x: this.x, y: this.y + this.radiusY },  // bottom
-				{ x: this.x, y: this.y - this.radiusY }   // top
+				{ x: this.x, y: this.y, type: SnapType.CENTER },
+				{ x: corner1X, y: corner1Y, type: SnapType.ENDPOINT },
+				{ x: this.x + this.radiusX, y: this.y, type: SnapType.QUADRANT },
+				{ x: this.x - this.radiusX, y: this.y, type: SnapType.QUADRANT },
+				{ x: this.x, y: this.y + this.radiusY, type: SnapType.QUADRANT },
+				{ x: this.x, y: this.y - this.radiusY, type: SnapType.QUADRANT }
 			];
 		}
 	}

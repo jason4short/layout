@@ -1,5 +1,5 @@
 import {Point} 				from './Point.js';
-import {Shape, Geometry} 	from './Geometry.js';
+import {Shape, Geometry, SnapType} 	from './Geometry.js';
 import {Rectangle} 			from './Rectangle.js';
 
 import * as VectorUtils 	from './utils/VectorUtils.js';
@@ -39,7 +39,11 @@ export class Line extends Geometry
 	}
 
 	getSnapPOIs() {
-		return [this.start, this.end, this.mid];
+		return [
+			{ x: this.start.x, y: this.start.y, type: SnapType.ENDPOINT },
+			{ x: this.end.x, y: this.end.y, type: SnapType.ENDPOINT },
+			{ x: this.mid.x, y: this.mid.y, type: SnapType.MIDPOINT }
+		];
 	}
 
 	getTransformablePoints() {

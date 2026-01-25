@@ -1,4 +1,4 @@
-import {Shape, Geometry} from './Geometry.js';
+import {Shape, Geometry, SnapType} from './Geometry.js';
 import {Ellipse} from './Ellipse.js';
 import {Point} from './Point.js';
 import * as AngleUtils from './utils/AngleUtils.js';
@@ -48,10 +48,10 @@ export class EllipticalArc extends Ellipse
 		const midPt = this.getPointAtAngle(this.getMidAngle());
 
 		return [
-			{ x: this.x, y: this.y },  // center
-			startPt,
-			endPt,
-			midPt
+			{ x: this.x, y: this.y, type: SnapType.CENTER },
+			{ x: startPt.x, y: startPt.y, type: SnapType.ENDPOINT },
+			{ x: endPt.x, y: endPt.y, type: SnapType.ENDPOINT },
+			{ x: midPt.x, y: midPt.y, type: SnapType.MIDPOINT }
 		];
 	}
 

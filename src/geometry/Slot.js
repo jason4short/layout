@@ -1,4 +1,4 @@
-import { Shape, Geometry } from './Geometry.js';
+import { Shape, Geometry, SnapType } from './Geometry.js';
 import { Point } from './Point.js';
 import { Line } from './Line.js';
 import { Arc } from './Arc.js';
@@ -135,10 +135,6 @@ export class Slot extends Geometry {
 		const r = this.width / 2;
 		const angle = this.angle();
 
-		// End arc centers (offset from start/end along centerline)
-		const endCenter1 = this.start;
-		const endCenter2 = this.end;
-
 		// Midpoints of straight edges
 		const topMid = {
 			x: (points[0].x + points[1].x) / 2,
@@ -162,16 +158,16 @@ export class Slot extends Geometry {
 		};
 
 		return [
-			this.start,      // 0: start control point (selectable)
-			this.end,        // 1: end control point (selectable)
-			points[0],       // 2: start-top tangent
-			points[1],       // 3: end-top tangent
-			points[2],       // 4: end-bottom tangent
-			points[3],       // 5: start-bottom tangent
-			topMid,          // 6: top edge midpoint
-			bottomMid,       // 7: bottom edge midpoint
-			startExtreme,    // 8: start arc extreme
-			endExtreme       // 9: end arc extreme
+			{ x: this.start.x, y: this.start.y, type: SnapType.CENTER },   // 0: start control point
+			{ x: this.end.x, y: this.end.y, type: SnapType.CENTER },       // 1: end control point
+			{ x: points[0].x, y: points[0].y, type: SnapType.ENDPOINT },   // 2: start-top tangent
+			{ x: points[1].x, y: points[1].y, type: SnapType.ENDPOINT },   // 3: end-top tangent
+			{ x: points[2].x, y: points[2].y, type: SnapType.ENDPOINT },   // 4: end-bottom tangent
+			{ x: points[3].x, y: points[3].y, type: SnapType.ENDPOINT },   // 5: start-bottom tangent
+			{ x: topMid.x, y: topMid.y, type: SnapType.MIDPOINT },         // 6: top edge midpoint
+			{ x: bottomMid.x, y: bottomMid.y, type: SnapType.MIDPOINT },   // 7: bottom edge midpoint
+			{ x: startExtreme.x, y: startExtreme.y, type: SnapType.QUADRANT },  // 8: start arc extreme
+			{ x: endExtreme.x, y: endExtreme.y, type: SnapType.QUADRANT }       // 9: end arc extreme
 		];
 	}
 

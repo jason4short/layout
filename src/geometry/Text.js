@@ -1,4 +1,4 @@
-import {Geometry, Shape, PenStyle} from './Geometry.js';
+import {Geometry, Shape, PenStyle, SnapType} from './Geometry.js';
 import {Point} from './Point.js';
 import * as TransformUtils from './utils/TransformUtils.js';
 import stage from '../core/Stage.js';
@@ -86,34 +86,18 @@ export class Text extends Geometry
 	// Points of interest for snapping and selection
 	getSnapPOIs()
 	{
-		const pois = [];
-
-		// Anchor point
-		const anchor = new Point(this.x, this.y);
-		anchor.shape = this;
-		anchor.index = 0;
-		pois.push(anchor);
-
 		// Corner points based on alignment
 		let left = this.x;
 		if(this.alignment === 'center') left = this.x - this.textWidth / 2;
 		else if(this.alignment === 'right') left = this.x - this.textWidth;
 
-		const corners = [
-			{ x: left, y: this.y },                                    // Top-left
-			{ x: left + this.textWidth, y: this.y },                   // Top-right
-			{ x: left + this.textWidth, y: this.y + this.textHeight }, // Bottom-right
-			{ x: left, y: this.y + this.textHeight }                   // Bottom-left
+		return [
+			{ x: this.x, y: this.y, type: SnapType.ENDPOINT },  // Anchor
+			{ x: left, y: this.y, type: SnapType.ENDPOINT },    // Top-left
+			{ x: left + this.textWidth, y: this.y, type: SnapType.ENDPOINT },  // Top-right
+			{ x: left + this.textWidth, y: this.y + this.textHeight, type: SnapType.ENDPOINT },  // Bottom-right
+			{ x: left, y: this.y + this.textHeight, type: SnapType.ENDPOINT }  // Bottom-left
 		];
-
-		for(let i = 0; i < corners.length; i++){
-			const p = new Point(corners[i].x, corners[i].y);
-			p.shape = this;
-			p.index = i + 1;
-			pois.push(p);
-		}
-
-		return pois;
 	}
 
 	// Hit detection

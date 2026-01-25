@@ -1,4 +1,4 @@
-import { Shape, Geometry, PenStyle } from './Geometry.js';
+import { Shape, Geometry, PenStyle, SnapType } from './Geometry.js';
 import { Point } from './Point.js';
 import { Line } from './Line.js';
 import * as VectorUtils from './utils/VectorUtils.js';
@@ -108,18 +108,18 @@ export class Polygon extends Geometry {
 		const midpoints = this.getEdgeMidpoints();
 
 		const pois = [
-			{ x: this.x, y: this.y },  // 0: center
-			vertices[0]                 // 1: radius control / first vertex
+			{ x: this.x, y: this.y, type: SnapType.CENTER },
+			{ x: vertices[0].x, y: vertices[0].y, type: SnapType.ENDPOINT }
 		];
 
 		// Add remaining vertices (2 to sides)
 		for (let i = 1; i < vertices.length; i++) {
-			pois.push(vertices[i]);
+			pois.push({ x: vertices[i].x, y: vertices[i].y, type: SnapType.ENDPOINT });
 		}
 
 		// Add edge midpoints
 		for (const mp of midpoints) {
-			pois.push(mp);
+			pois.push({ x: mp.x, y: mp.y, type: SnapType.MIDPOINT });
 		}
 
 		return pois;

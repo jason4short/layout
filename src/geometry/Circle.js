@@ -1,4 +1,4 @@
-import {Shape, Geometry, PenStyle} from './Geometry.js';
+import {Shape, Geometry, PenStyle, SnapType} from './Geometry.js';
 import {Point} from './Point.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
@@ -55,15 +55,16 @@ export class Circle extends Geometry
 		// POI 1 = radius control point at stored angle (selectable)
 		// POI 2-5 = quadrant points for snapping (right, left, bottom, top)
 		return [
-			{ x: this.x, y: this.y },
+			{ x: this.x, y: this.y, type: SnapType.CENTER },
 			{
 				x: this.x + Math.cos(this.radiusAngle) * this.radius,
-				y: this.y + Math.sin(this.radiusAngle) * this.radius
+				y: this.y + Math.sin(this.radiusAngle) * this.radius,
+				type: SnapType.RADIUS
 			},
-			{ x: this.x + this.radius, y: this.y },      // right
-			{ x: this.x - this.radius, y: this.y },      // left
-			{ x: this.x, y: this.y + this.radius },      // bottom
-			{ x: this.x, y: this.y - this.radius }       // top
+			{ x: this.x + this.radius, y: this.y, type: SnapType.QUADRANT },
+			{ x: this.x - this.radius, y: this.y, type: SnapType.QUADRANT },
+			{ x: this.x, y: this.y + this.radius, type: SnapType.QUADRANT },
+			{ x: this.x, y: this.y - this.radius, type: SnapType.QUADRANT }
 		];
 	}
 

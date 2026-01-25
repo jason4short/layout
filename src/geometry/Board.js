@@ -1,4 +1,4 @@
-import { Shape, Geometry } from './Geometry.js';
+import { Shape, Geometry, SnapType } from './Geometry.js';
 import { Point } from './Point.js';
 import { Line } from './Line.js';
 import * as VectorUtils from './utils/VectorUtils.js';
@@ -190,23 +190,23 @@ export class Board extends Geometry {
 
 		// Edge midpoints
 		const edgeMids = [
-			{ x: (corners[0].x + corners[1].x) / 2, y: (corners[0].y + corners[1].y) / 2 },  // top edge mid
-			{ x: (corners[1].x + corners[2].x) / 2, y: (corners[1].y + corners[2].y) / 2 },  // end edge mid
-			{ x: (corners[2].x + corners[3].x) / 2, y: (corners[2].y + corners[3].y) / 2 },  // bottom edge mid
-			{ x: (corners[3].x + corners[0].x) / 2, y: (corners[3].y + corners[0].y) / 2 }   // start edge mid
+			{ x: (corners[0].x + corners[1].x) / 2, y: (corners[0].y + corners[1].y) / 2 },
+			{ x: (corners[1].x + corners[2].x) / 2, y: (corners[1].y + corners[2].y) / 2 },
+			{ x: (corners[2].x + corners[3].x) / 2, y: (corners[2].y + corners[3].y) / 2 },
+			{ x: (corners[3].x + corners[0].x) / 2, y: (corners[3].y + corners[0].y) / 2 }
 		];
 
 		return [
-			this.start,     // 0: control point (selectable)
-			this.end,       // 1: control point (selectable)
-			corners[0],     // 2: start-top corner
-			corners[1],     // 3: end-top corner
-			corners[2],     // 4: end-bottom corner
-			corners[3],     // 5: start-bottom corner
-			edgeMids[0],    // 6: top edge midpoint
-			edgeMids[1],    // 7: end edge midpoint
-			edgeMids[2],    // 8: bottom edge midpoint
-			edgeMids[3]     // 9: start edge midpoint
+			{ x: this.start.x, y: this.start.y, type: SnapType.ENDPOINT },   // 0: control point
+			{ x: this.end.x, y: this.end.y, type: SnapType.ENDPOINT },       // 1: control point
+			{ x: corners[0].x, y: corners[0].y, type: SnapType.ENDPOINT },   // 2: start-top corner
+			{ x: corners[1].x, y: corners[1].y, type: SnapType.ENDPOINT },   // 3: end-top corner
+			{ x: corners[2].x, y: corners[2].y, type: SnapType.ENDPOINT },   // 4: end-bottom corner
+			{ x: corners[3].x, y: corners[3].y, type: SnapType.ENDPOINT },   // 5: start-bottom corner
+			{ x: edgeMids[0].x, y: edgeMids[0].y, type: SnapType.MIDPOINT }, // 6: top edge midpoint
+			{ x: edgeMids[1].x, y: edgeMids[1].y, type: SnapType.MIDPOINT }, // 7: end edge midpoint
+			{ x: edgeMids[2].x, y: edgeMids[2].y, type: SnapType.MIDPOINT }, // 8: bottom edge midpoint
+			{ x: edgeMids[3].x, y: edgeMids[3].y, type: SnapType.MIDPOINT }  // 9: start edge midpoint
 		];
 	}
 

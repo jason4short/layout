@@ -1,4 +1,4 @@
-import {Shape, Geometry} from './Geometry.js';
+import {Shape, Geometry, SnapType} from './Geometry.js';
 import {Point} from './Point.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
@@ -85,15 +85,15 @@ export class Paper extends Geometry
 		const w = this.getDisplayWidth();
 		const h = this.getDisplayHeight();
 		return [
-			{ x: this.x, y: this.y },                    // top-left
-			{ x: this.x + w, y: this.y },                // top-right
-			{ x: this.x + w, y: this.y + h },            // bottom-right
-			{ x: this.x, y: this.y + h },                // bottom-left
-			{ x: this.x + w / 2, y: this.y + h / 2 },    // center
-			{ x: this.x + w / 2, y: this.y },            // top-mid
-			{ x: this.x + w, y: this.y + h / 2 },        // right-mid
-			{ x: this.x + w / 2, y: this.y + h },        // bottom-mid
-			{ x: this.x, y: this.y + h / 2 }             // left-mid
+			{ x: this.x, y: this.y, type: SnapType.ENDPOINT },                    // top-left
+			{ x: this.x + w, y: this.y, type: SnapType.ENDPOINT },                // top-right
+			{ x: this.x + w, y: this.y + h, type: SnapType.ENDPOINT },            // bottom-right
+			{ x: this.x, y: this.y + h, type: SnapType.ENDPOINT },                // bottom-left
+			{ x: this.x + w / 2, y: this.y + h / 2, type: SnapType.CENTER },      // center
+			{ x: this.x + w / 2, y: this.y, type: SnapType.MIDPOINT },            // top-mid
+			{ x: this.x + w, y: this.y + h / 2, type: SnapType.MIDPOINT },        // right-mid
+			{ x: this.x + w / 2, y: this.y + h, type: SnapType.MIDPOINT },        // bottom-mid
+			{ x: this.x, y: this.y + h / 2, type: SnapType.MIDPOINT }             // left-mid
 		];
 	}
 

@@ -1,4 +1,4 @@
-import {Shape, Geometry} from './Geometry.js';
+import {Shape, Geometry, SnapType} from './Geometry.js';
 import {Point} from './Point.js';
 import {Transform} from './Transform.js';
 import * as VectorUtils from './utils/VectorUtils.js';
@@ -145,7 +145,7 @@ export class Frame extends Geometry {
 	getSnapPOIs() {
 		// Label is positioned at top-left, slightly above the frame
 		return [
-			{ x: this.x, y: this.y }  // 0: label/top-left corner
+			{ x: this.x, y: this.y, type: SnapType.ENDPOINT }  // 0: label/top-left corner
 		];
 	}
 

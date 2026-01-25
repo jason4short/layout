@@ -1,4 +1,4 @@
-import { Shape, Geometry } from './Geometry.js';
+import { Shape, Geometry, SnapType } from './Geometry.js';
 import { Rectangle } from './Rectangle.js';
 import data from '../data/Data.js';
 
