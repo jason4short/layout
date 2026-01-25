@@ -2,6 +2,8 @@ import {Tool} 				from "./Tool.js";
 import {Rectangle} 			from '../geometry/Rectangle.js';
 import {Shape} 				from '../geometry/Geometry.js';
 
+import { DoubleClick } 		from '../core/DoubleClick.js';
+
 import stage 				from '../core/Stage.js';
 import toolManager			from './ToolManager.js';
 import data 				from '../data/Data.js';
@@ -39,12 +41,13 @@ export class PointerTool extends Tool
 		this.moveStart			= null; // Snapped position when move started
 		this.originalPositions	= []; // Store original positions for delta calc
 		this.clonedShapes		= []; // Shapes created during clone operation
+		this.doubleClick		= new DoubleClick(); 
 
 		// Double-click tracking
-		this.lastClickTime		= 0;
-		this.lastClickPos		= null;
-		this.doubleClickThreshold = 300; // ms
-		this.doubleClickDistance = 5; // pixels
+// 		this.lastClickTime		= 0;
+// 		this.lastClickPos		= null;
+// 		this.doubleClickThreshold = 300; // ms
+// 		this.doubleClickDistance = 5; // pixels
 
 		this.onMouseDown 		= this.onMouseDown.bind(this);
 		this.onMouseMove 		= this.onMouseMove.bind(this);
@@ -316,56 +319,45 @@ export class PointerTool extends Tool
 		// store first click point
 		const clickPos = { x: data.snapPoint.x, y: data.snapPoint.y };
 
-		// 
-		if(this.lastClickPos){
-			const dx = clickPos.x - this.lastClickPos.x;
-			const dy = clickPos.y - this.lastClickPos.y;
-			// XXX kill sqrt?
-			const dist = Math.sqrt(dx * dx + dy * dy) * stage.zoom;
+		if(this.doubleClick.click()){
+			console.log("double clickl!")
 
-			if(now - this.lastClickTime < this.doubleClickThreshold && dist < this.doubleClickDistance){
-
-				// Double-click detected - let the shape handle it
-				const clickedShape = data.getTargetShape();
-				if(clickedShape){
-					const context = { toolManager, data, stage };
-					if(clickedShape.handleDoubleClick(clickPos, context)){
-						this.lastClickTime = 0;
-						this.lastClickPos = null;
-						return;
-					}
+			// Double-click detected - let the shape handle it
+			const clickedShape = data.getTargetShape();
+			if(clickedShape){
+				const context = { toolManager, data, stage };
+				if(clickedShape.handleDoubleClick(clickPos, context)){
+					this.lastClickTime = 0;
+					this.lastClickPos = null;
+					return;
 				}
+			}
 
-				// is it a group?
-				if(clickedShape && clickedShape.groupId){
+			// is it a group?
+			if(clickedShape && clickedShape.groupId){
 
-					// If already editing a group, go deeper into child group
-					if(data.isEditingGroup()){
-						// Check if clicking on a child group - enter that
-						if(data.isChildGroupOfEditingGroup(clickedShape.groupId)){
-							data.enterGroup(clickedShape.groupId);
-							stage.render();
-							this.lastClickTime = 0;
-							this.lastClickPos = null;
-							return;
-						}
-					} else {
-						// Enter the root group for editing
-						const rootId = data.getRootGroupId(clickedShape.groupId);
-						data.enterGroup(rootId);
+				// If already editing a group, go deeper into child group
+				if(data.isEditingGroup()){
+					// Check if clicking on a child group - enter that
+					if(data.isChildGroupOfEditingGroup(clickedShape.groupId)){
+						data.enterGroup(clickedShape.groupId);
 						stage.render();
 						this.lastClickTime = 0;
 						this.lastClickPos = null;
 						return;
 					}
+				} else {
+					// Enter the root group for editing
+					const rootId = data.getRootGroupId(clickedShape.groupId);
+					data.enterGroup(rootId);
+					stage.render();
+					this.lastClickTime = 0;
+					this.lastClickPos = null;
+					return;
 				}
 			}
 		}
 
-		//XXX move to object double click
-		this.lastClickTime = now;
-		this.lastClickPos = clickPos;
-		
 
 		// Store both world and screen coords
 		// XXX drag manager?
