@@ -394,8 +394,8 @@ export class Renderer
 		ctx.fillStyle = 'rgba(59, 130, 246, 0.05)';
 		ctx.fillRect(topLeft.x, topLeft.y, width, height);
 
-		// Draw frame border
-		ctx.strokeStyle = '#3b82f6';
+		// Draw frame border (50% transparent)
+		ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
 		ctx.lineWidth = 1;
 		ctx.strokeRect(topLeft.x, topLeft.y, width, height);
 

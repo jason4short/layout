@@ -190,7 +190,7 @@ export class AutoLayoutFrame extends Geometry {
 			const width = renderer.toScreenScale(b.width);
 			const height = renderer.toScreenScale(b.height);
 
-			ctx.strokeStyle = '#cccccc';  // Faint grey
+			ctx.strokeStyle = 'rgba(204, 204, 204, 0.5)';  // Faint grey, 50% transparent
 			ctx.lineWidth = 1;
 			ctx.setLineDash([]);
 			ctx.strokeRect(topLeft.x, topLeft.y, width, height);
