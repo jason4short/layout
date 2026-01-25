@@ -828,6 +828,49 @@ class Data
 		return count;
 	}
 
+	// Clone group hierarchy for a set of shapes
+	// Returns a Map of oldGroupId -> newGroupId
+	// Creates new groups with all properties copied
+	cloneGroupHierarchy(shapes){
+		const groupIdMap = new Map();
+
+		// Build mapping from old groupIds to new groupIds
+		for(const shape of shapes){
+			if(shape.groupId && !groupIdMap.has(shape.groupId)){
+				let currentId = shape.groupId;
+				while(currentId && !groupIdMap.has(currentId)){
+					const newId = `group_${this._nextGroupId++}`;
+					groupIdMap.set(currentId, newId);
+					const group = this.groups.get(currentId);
+					currentId = group ? group.parentId : null;
+				}
+			}
+		}
+
+		// Create new groups with remapped parentIds and all properties
+		for(const [oldId, newId] of groupIdMap){
+			const oldGroup = this.groups.get(oldId);
+			const newParentId = oldGroup?.parentId ? groupIdMap.get(oldGroup.parentId) : null;
+
+			this.groups.set(newId, {
+				id: newId,
+				parentId: newParentId,
+				autoLayout: oldGroup?.autoLayout || false,
+				layout: oldGroup?.layout
+					? { ...oldGroup.layout }
+					: { mode: 'column', gap: 1, alignment: 'start', distribution: 'none' },
+				sizing: oldGroup?.sizing
+					? { ...oldGroup.sizing }
+					: { widthMode: 'hug', heightMode: 'hug', fixedWidth: null, fixedHeight: null },
+				padding: oldGroup?.padding
+					? { ...oldGroup.padding }
+					: { top: 0, right: 0, bottom: 0, left: 0 }
+			});
+		}
+
+		return groupIdMap;
+	}
+
 	// Copy selected shapes to clipboard
 	copy(){
 		const selected = this.getSelected();
@@ -861,33 +904,8 @@ class Data
 		const offsetX = viewCenterX - this.clipboardCentroid.x;
 		const offsetY = viewCenterY - this.clipboardCentroid.y;
 
-		// Build mapping from old groupIds to new groupIds
-		const groupIdMap = new Map();
-		for(const shape of this.clipboard){
-			if(shape.groupId && !groupIdMap.has(shape.groupId)){
-				// Walk up the group hierarchy to capture all ancestor groups
-				let currentId = shape.groupId;
-				while(currentId && !groupIdMap.has(currentId)){
-					const newId = `group_${this._nextGroupId++}`;
-					groupIdMap.set(currentId, newId);
-					const group = this.groups.get(currentId);
-//					console.log(`preparePaste: mapping ${currentId} -> ${newId}, parent = ${group?.parentId}`);
-					currentId = group ? group.parentId : null;
-				}
-			}
-		}
-//		console.log('preparePaste: groupIdMap =', [...groupIdMap.entries()]);
-
-		// Create new groups with remapped parentIds and layout properties
-		for(const [oldId, newId] of groupIdMap){
-			const oldGroup = this.groups.get(oldId);
-			const newParentId = oldGroup && oldGroup.parentId ? groupIdMap.get(oldGroup.parentId) : null;
-			const layout = oldGroup && oldGroup.layout
-				? { ...oldGroup.layout }
-				: { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' };
-//			console.log(`preparePaste: creating group ${newId} with parentId ${newParentId}`);
-			this.groups.set(newId, { id: newId, parentId: newParentId, layout });
-		}
+		// Clone group hierarchy
+		const groupIdMap = this.cloneGroupHierarchy(this.clipboard);
 
 		// Clone and offset each shape, remapping groupId
 		const pastedShapes = [];

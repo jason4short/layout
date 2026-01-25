@@ -198,6 +198,7 @@ export class TrimTool extends Tool
 				info.bracketAfter.point.x, info.bracketAfter.point.y,
 				originalEnd.x, originalEnd.y
 			]);
+			newLine.groupId = line.groupId; // Inherit group
 			this.shapesAdded.push(newLine);
 			data.addShape(newLine);
 		}
@@ -558,6 +559,7 @@ export class TrimTool extends Tool
 			bracketAfter.normAngle,
 			bracketBefore.normAngle
 		]);
+		arc.groupId = ellipse.groupId; // Inherit group
 		this.shapesAdded.push(arc);
 		data.addShape(arc);
 	}
@@ -633,6 +635,7 @@ export class TrimTool extends Tool
 				boundaries[i],
 				boundaries[i + 1]
 			]);
+			newArc.groupId = arc.groupId; // Inherit group
 			this.shapesAdded.push(newArc);
 			data.addShape(newArc);
 		}
@@ -729,6 +732,7 @@ export class TrimTool extends Tool
 				segmentBoundaries[i],
 				segmentBoundaries[i + 1]
 			]);
+			newArc.groupId = arc.groupId; // Inherit group
 			this.shapesAdded.push(newArc);
 			data.addShape(newArc);
 		}
@@ -810,6 +814,7 @@ export class TrimTool extends Tool
 				startAngle,
 				endAngle
 			]);
+			arc.groupId = circle.groupId; // Inherit group
 			this.shapesAdded.push(arc);
 			data.addShape(arc);
 		}

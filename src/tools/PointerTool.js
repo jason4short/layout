@@ -186,29 +186,8 @@ export class PointerTool extends Tool
 
 		const selected = data.getSelected();
 
-		// Build mapping from old groupIds to new groupIds for group preservation
-		const groupIdMap = new Map();
-		for(const shape of selected){
-			if(shape.groupId && !groupIdMap.has(shape.groupId)){
-				let currentId = shape.groupId;
-				while(currentId && !groupIdMap.has(currentId)){
-					const newId = `group_${data._nextGroupId++}`;
-					groupIdMap.set(currentId, newId);
-					const group = data.groups.get(currentId);
-					currentId = group ? group.parentId : null;
-				}
-			}
-		}
-
-		// Create new groups with remapped parentIds
-		for(const [oldId, newId] of groupIdMap){
-			const oldGroup = data.groups.get(oldId);
-			const newParentId = oldGroup && oldGroup.parentId ? groupIdMap.get(oldGroup.parentId) : null;
-			const layout = oldGroup && oldGroup.layout
-				? { ...oldGroup.layout }
-				: { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' };
-			data.groups.set(newId, { id: newId, parentId: newParentId, layout });
-		}
+		// Clone group hierarchy (only used when not editing a group)
+		const groupIdMap = data.editingGroupId ? null : data.cloneGroupHierarchy(selected);
 
 		// Clone each shape using its cloneForDrag() method
 		for(const shape of selected){
@@ -218,7 +197,7 @@ export class PointerTool extends Tool
 			if(data.editingGroupId){
 				// When editing a group, clones stay in that group
 				clone.groupId = data.editingGroupId;
-			} else if(clone.groupId){
+			} else if(clone.groupId && groupIdMap){
 				// Otherwise remap group hierarchy for cloned groups
 				clone.groupId = groupIdMap.get(clone.groupId) || null;
 			}

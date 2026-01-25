@@ -393,6 +393,12 @@ class ToolManager extends EventDispatcher
 						const targetY = data.clipboardCentroid.y + data.lastTransform.dy;
 						const clones = data.preparePaste(targetX, targetY);
 						if(clones.length > 0){
+							// When editing a group, assign clones to that group
+							if(data.editingGroupId){
+								for(const clone of clones){
+									clone.groupId = data.editingGroupId;
+								}
+							}
 							undoManager.execute(new AddShapesCommand(clones));
 							data.selectNone();
 							for(const clone of clones) clone.selected = true;

@@ -324,6 +324,7 @@ export class FilletTool extends Tool
 
 		// Create fillet arc and add directly (command will track it)
 		const arc = new Arc([center.x, center.y, radius, arcStartAngle, arcEndAngle]);
+		arc.groupId = line1.groupId || line2.groupId; // Inherit group
 		data.addShape(arc);
 
 		this.lastFillet.arc = arc;
@@ -440,6 +441,7 @@ export class FilletTool extends Tool
 
 		// Create fillet arc
 		const filletArc = new Arc([bestCenter.x, bestCenter.y, radius, arcStartAngle, arcEndAngle]);
+		filletArc.groupId = line.groupId || circularShape.groupId; // Inherit group
 		data.addShape(filletArc);
 
 		// Trim line - keep the side the user clicked on
@@ -574,6 +576,7 @@ export class FilletTool extends Tool
 
 		// Create fillet arc
 		const filletArc = new Arc([bestCenter.x, bestCenter.y, radius, arcStartAngle, arcEndAngle]);
+		filletArc.groupId = circShape1.groupId || circShape2.groupId; // Inherit group
 		data.addShape(filletArc);
 
 		// Trim arcs - keep the side the user clicked on
