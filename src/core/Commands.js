@@ -702,7 +702,7 @@ export class UngroupCommand extends Command {
 				id: groupInfo.id,
 				parentId: groupInfo.parentId,
 				autoLayout: groupInfo.autoLayout || false,
-				layout: groupInfo.layout || { mode: 'none', gap: 0, alignment: 'start', distribution: 'none' },
+				layout: groupInfo.layout || { mode: 'column', gap: 1, alignment: 'start', distribution: 'none' },
 				sizing: groupInfo.sizing || { widthMode: 'hug', heightMode: 'hug', fixedWidth: null, fixedHeight: null },
 				padding: groupInfo.padding || { top: 0, right: 0, bottom: 0, left: 0 },
 				frameShapeId: groupInfo.frameShapeId || null

@@ -371,6 +371,17 @@ class Inspector {
 			</div>`;
 		}
 
+		if (field.type === 'button-group' && field.options) {
+			const buttons = field.options.map(opt => {
+				const selected = value === opt.value ? 'selected' : '';
+				return `<button class="inspector-btn-group-btn ${selected}" data-value="${opt.value}">${opt.label}</button>`;
+			}).join('');
+			return `<div class="inspector-row">
+				<label>${field.label}</label>
+				<div class="inspector-btn-group" id="prop-${field.key}">${buttons}</div>
+			</div>`;
+		}
+
 		return '';
 	}
 
@@ -411,6 +422,17 @@ class Inspector {
 						if (field.set) field.set(e.target.checked);
 						// Refresh panel to show/hide conditional fields
 						this.buildGroupPanel(groupId);
+					});
+				} else if (field.type === 'button-group') {
+					const buttons = el.querySelectorAll('.inspector-btn-group-btn');
+					buttons.forEach(btn => {
+						btn.addEventListener('click', () => {
+							// Update selection state
+							buttons.forEach(b => b.classList.remove('selected'));
+							btn.classList.add('selected');
+							// Set value
+							if (field.set) field.set(btn.dataset.value);
+						});
 					});
 				}
 			}

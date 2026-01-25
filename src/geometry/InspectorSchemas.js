@@ -622,7 +622,7 @@ export function groupSchema(groupId) {
 
 	// Helper to apply layout automatically when properties change
 	const applyLayoutIfActive = () => {
-		if (group.autoLayout && group.layout.mode !== 'none') {
+		if (group.autoLayout) {
 			undoManager.execute(new ApplyLayoutCommand(groupId));
 		}
 		// Update the AutoLayoutFrame bounds
@@ -661,12 +661,18 @@ export function groupSchema(groupId) {
 						set: (v) => {
 							group.autoLayout = v;
 							if (v) {
+								// Ensure mode is set (old groups may have 'none')
+								if (group.layout.mode === 'none') {
+									group.layout.mode = 'column';
+								}
 								// Create AutoLayoutFrame geometry for this group
 								if (!group.frameShapeId) {
 									const frame = new AutoLayoutFrame([groupId]);
 									data.addShape(frame);
 									group.frameShapeId = frame.id;
 								}
+								// Apply layout immediately when enabling
+								undoManager.execute(new ApplyLayoutCommand(groupId));
 							} else {
 								// Remove AutoLayoutFrame geometry
 								if (group.frameShapeId) {
@@ -685,14 +691,12 @@ export function groupSchema(groupId) {
 						label: 'Direction',
 						type: 'select',
 						options: [
-							{ value: 'none', label: 'None' },
-							{ value: 'row', label: 'Horizontal' },
-							{ value: 'column', label: 'Vertical' }
+							{ value: 'column', label: 'Vertical' },
+							{ value: 'row', label: 'Horizontal' }
 						],
 						get: () => group.layout.mode,
 						set: (v) => {
 							group.layout.mode = v;
-							if (v !== 'none') group.autoLayout = true;
 							applyLayoutIfActive();
 						},
 						visible: () => group.autoLayout
@@ -704,45 +708,20 @@ export function groupSchema(groupId) {
 						get: () => group.layout.gap,
 						set: (v) => { group.layout.gap = v; applyLayoutIfActive(); },
 						min: 0,
-						visible: () => group.autoLayout && group.layout.mode !== 'none'
+						visible: () => group.autoLayout
 					},
 					{
 						key: 'layout.alignment',
 						label: 'Align',
-						type: 'select',
+						type: 'button-group',
 						options: [
-							{ value: 'start', label: 'Start' },
-							{ value: 'center', label: 'Center' },
-							{ value: 'end', label: 'End' }
+							{ value: 'start', label: '⬅' },
+							{ value: 'center', label: '⬌' },
+							{ value: 'end', label: '➡' }
 						],
 						get: () => group.layout.alignment,
 						set: (v) => { group.layout.alignment = v; applyLayoutIfActive(); },
-						visible: () => group.autoLayout && group.layout.mode !== 'none'
-					},
-					{
-						key: 'layout.distribution',
-						label: 'Distribute',
-						type: 'select',
-						options: [
-							{ value: 'none', label: 'Fixed Gap' },
-							{ value: 'space-between', label: 'Space Between' },
-							{ value: 'space-around', label: 'Space Around' }
-						],
-						get: () => group.layout.distribution,
-						set: (v) => { group.layout.distribution = v; applyLayoutIfActive(); },
-						visible: () => group.autoLayout && group.layout.mode !== 'none'
-					},
-					{
-						key: 'applyLayout',
-						label: 'Apply Layout',
-						type: 'button',
-						action: () => {
-							if (group.layout.mode !== 'none') {
-								undoManager.execute(new ApplyLayoutCommand(groupId));
-								stage.render();
-							}
-						},
-						visible: () => group.autoLayout && group.layout.mode !== 'none'
+						visible: () => group.autoLayout
 					}
 				]
 			},

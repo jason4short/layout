@@ -48,6 +48,11 @@
 			.inspector-button-row { justify-content:stretch; }
 			.inspector-button { flex:1; padding:.4rem .75rem; font-size:12px; background:var(--blue); color:white; border:none; border-radius:.25rem; cursor:pointer; }
 			.inspector-button:hover { background:#1d4ed8; }
+			.inspector-btn-group { display:flex; flex:1; border:1px solid var(--border); border-radius:.25rem; overflow:hidden; }
+			.inspector-btn-group-btn { flex:1; padding:.3rem .5rem; font-size:11px; background:#fff; border:none; border-right:1px solid var(--border); cursor:pointer; }
+			.inspector-btn-group-btn:last-child { border-right:none; }
+			.inspector-btn-group-btn:hover { background:#f0f0f0; }
+			.inspector-btn-group-btn.selected { background:var(--blue); color:white; }
 
 			/* Palette Panel */
 			#palette-panel { margin-top:1rem; border-top:1px solid var(--border); padding-top:.75rem; }

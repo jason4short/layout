@@ -433,8 +433,8 @@ class Data
 			parentId: null,
 			autoLayout: false,      // Toggle auto-layout on/off
 			layout: {
-				mode: 'none',       // 'none' | 'row' | 'column'
-				gap: 0,             // spacing between children (mm)
+				mode: 'column',     // 'row' | 'column' (vertical by default)
+				gap: 1,             // spacing between children (mm)
 				alignment: 'start', // 'start' | 'center' | 'end'
 				distribution: 'none' // 'none' | 'space-between' | 'space-around'
 			},
