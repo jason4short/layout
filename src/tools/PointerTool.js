@@ -215,7 +215,11 @@ export class PointerTool extends Tool
 			if(shape.frameId) continue;  // Skip shapes that belong to frames
 
 			const clone = shape.cloneForDrag();
-			if(clone.groupId){
+			if(data.editingGroupId){
+				// When editing a group, clones stay in that group
+				clone.groupId = data.editingGroupId;
+			} else if(clone.groupId){
+				// Otherwise remap group hierarchy for cloned groups
 				clone.groupId = groupIdMap.get(clone.groupId) || null;
 			}
 			data.addShape(clone);

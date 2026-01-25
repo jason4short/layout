@@ -23,11 +23,13 @@ export class Command {
 
 // Add a single shape
 // If there's an active frame, converts shape coords to frame-local and assigns frameId
+// If editing a group, assigns the shape to that group
 export class AddShapeCommand extends Command {
 	constructor(shape) {
 		super('Add shape');
 		this.shape = shape;
 		this.frameId = null;  // Will be set if shape is added to a frame
+		this.groupId = null;  // Will be set if shape is added to a group
 		this.worldCoords = null;  // Store original world coords for undo
 	}
 
@@ -54,6 +56,13 @@ export class AddShapeCommand extends Command {
 				this.frameId = data.activeFrameId;
 			}
 		}
+
+		// Check for editing group - add shape to that group
+		if (data.editingGroupId) {
+			this.shape.groupId = data.editingGroupId;
+			this.groupId = data.editingGroupId;
+		}
+
 		data.addShape(this.shape);
 	}
 
@@ -64,17 +73,24 @@ export class AddShapeCommand extends Command {
 			this.shape.copyFrom(this.worldCoords);
 			this.shape.frameId = null;
 		}
+		// Clear group assignment
+		if (this.groupId) {
+			this.shape.groupId = null;
+		}
 	}
 }
 
 // Add multiple shapes at once
 // If there's an active frame, converts shape coords to frame-local and assigns frameId
+// If editing a group, assigns ungrouped shapes to that group
 export class AddShapesCommand extends Command {
 	constructor(shapes) {
 		super(`Add ${shapes.length} shapes`);
 		this.shapes = shapes;
 		this.frameId = null;  // Will be set if shapes are added to a frame
+		this.groupId = null;  // Will be set if shapes are added to a group
 		this.worldCoords = [];  // Store original world coords for undo
+		this.shapesAddedToGroup = [];  // Track which shapes were assigned to editing group
 	}
 
 	execute() {
@@ -100,6 +116,18 @@ export class AddShapesCommand extends Command {
 				}
 			}
 		}
+
+		// Check for editing group - add ungrouped shapes to that group
+		if (data.editingGroupId) {
+			this.groupId = data.editingGroupId;
+			for (const shape of this.shapes) {
+				if (!shape.groupId) {
+					shape.groupId = data.editingGroupId;
+					this.shapesAddedToGroup.push(shape);
+				}
+			}
+		}
+
 		for (const shape of this.shapes) {
 			data.addShape(shape);
 		}
@@ -117,6 +145,10 @@ export class AddShapesCommand extends Command {
 				}
 				this.shapes[i].frameId = null;
 			}
+		}
+		// Clear group assignment for shapes we added to group
+		for (const shape of this.shapesAddedToGroup) {
+			shape.groupId = null;
 		}
 	}
 }
