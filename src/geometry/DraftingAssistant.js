@@ -340,7 +340,8 @@ class DraftingAssistant
 	// snaps is a hash of keys and points
 	createGuides(snapPoint)
 	{
-		const screenLength = stage.worldToScreenScale(1000);
+		// Convert 2000 screen pixels to world units so guides fill the screen at any zoom
+		const guideLength = stage.screenToWorldScale(2000);
 
 		// Helper to create guide and link to source
 		const addGuide = (params) => {
@@ -350,23 +351,23 @@ class DraftingAssistant
 		};
 
 		// Vertical guide (align:x)
-		addGuide([snapPoint.x, snapPoint.y, 90, screenLength, GuideType.VERTICAL]);
+		addGuide([snapPoint.x, snapPoint.y, 90, guideLength, GuideType.VERTICAL]);
 
 		// Horizontal guide (align:y)
-		addGuide([snapPoint.x, snapPoint.y, 0, screenLength, GuideType.HORIZONTAL]);
+		addGuide([snapPoint.x, snapPoint.y, 0, guideLength, GuideType.HORIZONTAL]);
 
 		// 45° diagonal
-		addGuide([snapPoint.x, snapPoint.y, 45, screenLength, GuideType.DIAGONAL_45]);
+		addGuide([snapPoint.x, snapPoint.y, 45, guideLength, GuideType.DIAGONAL_45]);
 
 		// -45° diagonal
-		addGuide([snapPoint.x, snapPoint.y, -45, screenLength, GuideType.DIAGONAL_NEG45]);
+		addGuide([snapPoint.x, snapPoint.y, -45, guideLength, GuideType.DIAGONAL_NEG45]);
 
 		// Tangent and perpendicular guides if snap point is on a shape
 		if (snapPoint.shape) {
 			const tangentAngle = snapPoint.shape.getTangentAngle(snapPoint);
 			if(tangentAngle != null){
-				addGuide([snapPoint.x, snapPoint.y, tangentAngle, screenLength, 	 GuideType.TANGENT]);
-				addGuide([snapPoint.x, snapPoint.y, tangentAngle + 90, screenLength, GuideType.PERPENDICULAR]);
+				addGuide([snapPoint.x, snapPoint.y, tangentAngle, guideLength, GuideType.TANGENT]);
+				addGuide([snapPoint.x, snapPoint.y, tangentAngle + 90, guideLength, GuideType.PERPENDICULAR]);
 			}
 		}
 	}
