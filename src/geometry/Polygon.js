@@ -243,6 +243,11 @@ export class Polygon extends Geometry {
 		return lines;
 	}
 
+	// For BreakApartCommand
+	breakApart() {
+		return this.createLines();
+	}
+
 	toJSON() {
 		return serializePolygon(this);
 	}

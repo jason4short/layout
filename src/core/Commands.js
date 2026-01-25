@@ -187,30 +187,13 @@ export class DeleteConstructionsCommand extends Command {
 	}
 }
 
-// Delete a single shape
-export class DeleteShapeCommand extends Command {
-	constructor(shape) {
-		super('Delete shape');
-		this.shape = shape;
-		this.wasSelected = shape.selected;
-	}
-
-	execute() {
-		data.deleteShape(this.shape);
-	}
-
-	undo() {
-		data.addShape(this.shape);
-		this.shape.selected = this.wasSelected;
-	}
-}
-
 // Delete multiple shapes at once
 export class DeleteShapesCommand extends Command {
 	constructor(shapes) {
-		super(`Delete ${shapes.length} shapes`);
-		this.shapes = shapes;
-		this.wasSelected = shapes.map(s => s.selected);
+		const shapeArray = Array.isArray(shapes) ? shapes : [shapes];
+		super(shapeArray.length === 1 ? 'Delete shape' : `Delete ${shapeArray.length} shapes`);
+		this.shapes = shapeArray;
+		this.wasSelected = shapeArray.map(s => s.selected);
 	}
 
 	execute() {
@@ -226,6 +209,9 @@ export class DeleteShapesCommand extends Command {
 		}
 	}
 }
+
+// Convenience alias for single shape deletion
+export const DeleteShapeCommand = DeleteShapesCommand;
 
 // Move shapes/points by a delta
 // Coordinates are stored in frame-local space (or world space for non-frame shapes)
@@ -955,114 +941,38 @@ export class BreakApartInstanceCommand extends Command {
 	}
 }
 
-export class BreakApartBoardCommand extends Command {
-	constructor(board) {
-		super('Break Apart Board');
-		this.board = board;
-		this.newLines = [];
-	}
-
-	execute() {
-		// Create 4 lines from the board
-		this.newLines = this.board.createLines();
-
-		// Add lines to data
-		for (const line of this.newLines) {
-			data.addShape(line);
-			line.selected = true;
-		}
-
-		// Remove the board
-		data.deleteShape(this.board);
-
-		data.rebuildPOIs();
-	}
-
-	undo() {
-		// Remove the lines
-		for (const line of this.newLines) {
-			data.deleteShape(line);
-		}
-
-		// Restore the board
-		data.addShape(this.board);
-		this.board.selected = true;
-
-		data.rebuildPOIs();
-	}
-}
-
-export class BreakApartSlotCommand extends Command {
-	constructor(slot) {
-		super('Break Apart Slot');
-		this.slot = slot;
+// Generic command to break apart a compound shape into primitives
+// Shape must implement breakApart() method returning array of new shapes
+export class BreakApartCommand extends Command {
+	constructor(shape) {
+		super('Break Apart');
+		this.shape = shape;
 		this.newShapes = [];
 	}
 
 	execute() {
-		// Create 2 lines and 2 arcs from the slot
-		this.newShapes = this.slot.createShapes();
+		if (!this.shape.breakApart) {
+			throw new Error(`Shape ${this.shape.geometry} does not support breakApart`);
+		}
 
-		// Add shapes to data
+		this.newShapes = this.shape.breakApart();
+
 		for (const shape of this.newShapes) {
 			data.addShape(shape);
 			shape.selected = true;
 		}
 
-		// Remove the slot
-		data.deleteShape(this.slot);
-
+		data.deleteShape(this.shape);
 		data.rebuildPOIs();
 	}
 
 	undo() {
-		// Remove the new shapes
 		for (const shape of this.newShapes) {
 			data.deleteShape(shape);
 		}
 
-		// Restore the slot
-		data.addShape(this.slot);
-		this.slot.selected = true;
-
-		data.rebuildPOIs();
-	}
-}
-
-// Break apart a polygon into individual line segments
-export class BreakApartPolygonCommand extends Command {
-	constructor(polygon) {
-		super('Break Apart Polygon');
-		this.polygon = polygon;
-		this.newShapes = [];
-	}
-
-	execute() {
-		// Create lines from polygon edges
-		this.newShapes = this.polygon.createLines();
-
-		// Add shapes to data
-		for (const shape of this.newShapes) {
-			data.addShape(shape);
-			shape.selected = true;
-		}
-
-		// Remove the polygon
-		data.deleteShape(this.polygon);
-
-		data.rebuildPOIs();
-	}
-
-	undo() {
-		// Remove the new shapes
-		for (const shape of this.newShapes) {
-			data.deleteShape(shape);
-		}
-
-		// Restore the polygon
-		data.addShape(this.polygon);
-		this.polygon.selected = true;
-
+		data.addShape(this.shape);
+		this.shape.selected = true;
 		data.rebuildPOIs();
 	}
 }

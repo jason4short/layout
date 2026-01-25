@@ -596,8 +596,8 @@ export function polygonSchema(shape) {
 						label: 'Break Apart',
 						type: 'button',
 						action: (polygon) => {
-							const { BreakApartPolygonCommand } = require('../core/Commands.js');
-							undoManager.execute(new BreakApartPolygonCommand(polygon));
+							const { BreakApartCommand } = require('../core/Commands.js');
+							undoManager.execute(new BreakApartCommand(polygon));
 							stage.render();
 						}
 					}

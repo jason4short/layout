@@ -4,7 +4,7 @@ import { Line } from './Line.js';
 import { Arc } from './Arc.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import undoManager from '../core/UndoManager.js';
-import { BreakApartSlotCommand } from '../core/Commands.js';
+import { BreakApartCommand } from '../core/Commands.js';
 
 /**
  * Slot - A rounded-end rectangle (stadium shape).
@@ -417,7 +417,7 @@ export class Slot extends Geometry {
 							label: 'Break Apart',
 							type: 'button',
 							action: () => {
-								undoManager.execute(new BreakApartSlotCommand(this));
+								undoManager.execute(new BreakApartCommand(this));
 							}
 						}
 					]
@@ -468,6 +468,11 @@ export class Slot extends Geometry {
 		shapes.push(endArc);
 
 		return shapes;
+	}
+
+	// For BreakApartCommand
+	breakApart() {
+		return this.createShapes();
 	}
 
 	toJSON() {

@@ -3,7 +3,7 @@ import { Point } from './Point.js';
 import { Line } from './Line.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import undoManager from '../core/UndoManager.js';
-import { BreakApartBoardCommand } from '../core/Commands.js';
+import { BreakApartCommand } from '../core/Commands.js';
 
 /**
  * Board - A parametric lumber/sheet good representation.
@@ -439,7 +439,7 @@ export class Board extends Geometry {
 							label: 'Break Apart',
 							type: 'button',
 							action: () => {
-								undoManager.execute(new BreakApartBoardCommand(this));
+								undoManager.execute(new BreakApartCommand(this));
 							}
 						}
 					]
@@ -463,6 +463,11 @@ export class Board extends Geometry {
 		}
 
 		return lines;
+	}
+
+	// For BreakApartCommand
+	breakApart() {
+		return this.createLines();
 	}
 
 	toJSON() {
