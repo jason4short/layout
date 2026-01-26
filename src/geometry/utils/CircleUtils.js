@@ -106,11 +106,13 @@ export function circleLineOffsetIntersection(circleCenter, circleRadius, line, o
 }
 
 /**
- * Find tangent point on a circular arc from an external fillet center.
+ * Find tangent point on a circular arc from a fillet center.
+ * The tangent point is always on the line from arc center toward fillet center,
+ * at distance arcRadius from the arc center.
  * @param {Object} arcCenter - Arc center {x, y}
  * @param {number} arcRadius - Arc radius
  * @param {Object} filletCenter - Fillet center {x, y}
- * @param {boolean} isInternal - True if fillet is on concave side of arc
+ * @param {boolean} isInternal - (unused, kept for API compatibility)
  * @returns {Object|null} Tangent point {x, y} or null
  */
 export function tangentPointOnArc(arcCenter, arcRadius, filletCenter, isInternal) {
@@ -120,11 +122,10 @@ export function tangentPointOnArc(arcCenter, arcRadius, filletCenter, isInternal
 
 	if (dist < 1e-10) return null;
 
-	const sign = isInternal ? -1 : 1;
-
+	// Tangent point is always in direction from arc center toward fillet center
 	return {
-		x: arcCenter.x + sign * (dx / dist) * arcRadius,
-		y: arcCenter.y + sign * (dy / dist) * arcRadius
+		x: arcCenter.x + (dx / dist) * arcRadius,
+		y: arcCenter.y + (dy / dist) * arcRadius
 	};
 }
 
@@ -172,40 +173,52 @@ export function getTangentAngle(centerX, centerY, px, py) {
 
 /**
  * Trim an arc at trimPoint, keeping the side where clickPt is.
+ * Checks which segment (start→trim or trim→end) contains the click angle.
+ * NOTE: TangentArcs should be converted to regular Arcs before calling this.
  * @param {Object} arc - Arc to trim (modified in place)
  * @param {Object} trimPoint - Trim point {x, y}
  * @param {Object} clickPt - Click point {x, y}
  */
 export function trimArcKeepClickSide(arc, trimPoint, clickPt) {
+	// Use arc parameterization (0 = start, 1 = end) for robust comparison
+	const trimT = getArcParameter(arc, trimPoint);
+	const clickT = getArcParameter(arc, clickPt);
+
+	console.log("trimArcKeepClickSide (parameter-based):");
+	console.log("  trimT:", trimT.toFixed(3), "clickT:", clickT.toFixed(3));
+
 	const trimAngle = Math.atan2(trimPoint.y - arc.y, trimPoint.x - arc.x);
-	const clickAngle = Math.atan2(clickPt.y - arc.y, clickPt.x - arc.x);
 
-	// Compute parametric position along the arc (0 = start, 1 = end)
-	// This tells us where along the arc each point falls
-	const arcSweep = AngleUtils.getAngularSweep(arc.startAngle, arc.endAngle);
-	const normStart = AngleUtils.normalizeAngle(arc.startAngle);
-
-	// Where is the click along the arc? (as fraction 0-1)
-	let clickDelta = AngleUtils.normalizeAngle(clickAngle) - normStart;
-	if (clickDelta < 0) clickDelta += Math.PI * 2;
-	const clickT = clickDelta / arcSweep;
-
-	// Where is the trim point along the arc? (as fraction 0-1)
-	let trimDelta = AngleUtils.normalizeAngle(trimAngle) - normStart;
-	if (trimDelta < 0) trimDelta += Math.PI * 2;
-	const trimT = trimDelta / arcSweep;
-
-	// If click comes before trim along the arc, keep start→trim
-	// If click comes after trim along the arc, keep trim→end
 	if (clickT < trimT) {
-		// Click is in first portion (start → trim), keep it
+		// Click is before trim point - keep start → trim
+		console.log("  -> clickT < trimT: keeping START→TRIM");
 		arc.endAngle = trimAngle;
 	} else {
-		// Click is in second portion (trim → end), keep it
+		// Click is after trim point - keep trim → end
+		console.log("  -> clickT >= trimT: keeping TRIM→END");
 		arc.startAngle = trimAngle;
 	}
 
 	arc.update();
+}
+
+/**
+ * Get the parameter (0 to 1) of a point along an arc.
+ * 0 = start of arc, 1 = end of arc.
+ */
+function getArcParameter(arc, point) {
+	const pointAngle = Math.atan2(point.y - arc.y, point.x - arc.x);
+
+	// Calculate the arc's angular span (handling wrap-around)
+	let arcSpan = arc.endAngle - arc.startAngle;
+	if (arcSpan <= 0) arcSpan += Math.PI * 2;
+
+	// Calculate how far the point angle is from start (handling wrap-around)
+	let angleFromStart = pointAngle - arc.startAngle;
+	if (angleFromStart < 0) angleFromStart += Math.PI * 2;
+
+	// Parameter is the ratio
+	return angleFromStart / arcSpan;
 }
 
 /**

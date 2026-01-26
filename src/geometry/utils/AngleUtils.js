@@ -100,3 +100,40 @@ export function toDegrees(radians) {
 export function toRadians(degrees) {
 	return degrees * (Math.PI / 180);
 }
+
+/**
+ * Determine the correct arc direction (start/end angles) so the arc curves toward a reference point.
+ * Given two angles on a circle, there are two possible arcs - this picks the one whose midpoint
+ * is closer to the reference point.
+ *
+ * @param {number} angle1 - First angle in radians
+ * @param {number} angle2 - Second angle in radians
+ * @param {Object} center - Arc center {x, y}
+ * @param {number} radius - Arc radius
+ * @param {Object} referencePoint - Point the arc should curve toward {x, y}
+ * @returns {Object} {startAngle, endAngle} for the arc curving toward reference
+ */
+export function getArcDirectionToward(angle1, angle2, center, radius, referencePoint) {
+	// Option A: angle1 -> angle2 (CCW)
+	const midA = getMidAngle(angle1, angle2);
+	const midPointA = {
+		x: center.x + Math.cos(midA) * radius,
+		y: center.y + Math.sin(midA) * radius
+	};
+	const distA = Math.hypot(midPointA.x - referencePoint.x, midPointA.y - referencePoint.y);
+
+	// Option B: angle2 -> angle1 (the other way)
+	const midB = getMidAngle(angle2, angle1);
+	const midPointB = {
+		x: center.x + Math.cos(midB) * radius,
+		y: center.y + Math.sin(midB) * radius
+	};
+	const distB = Math.hypot(midPointB.x - referencePoint.x, midPointB.y - referencePoint.y);
+
+	// Pick the direction where the midpoint is closer to the reference
+	if (distA <= distB) {
+		return { startAngle: angle1, endAngle: angle2 };
+	} else {
+		return { startAngle: angle2, endAngle: angle1 };
+	}
+}

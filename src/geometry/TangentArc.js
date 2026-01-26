@@ -1,42 +1,42 @@
-import {Shape, Geometry, SnapType} from './Geometry.js';
+import {Shape, SnapType} from './Geometry.js';
+import {Arc} from './Arc.js';
 import {Point} from './Point.js';
 import * as AngleUtils from './utils/AngleUtils.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import {tangentArcSchema} from './InspectorSchemas.js';
 import {serializeTangentArc, deserializeTangentArc} from './GeometrySerializers.js';
 
-// Arc defined by start point, tangent direction, and end point
-// The tangent handle can be edited to change the arc's curvature
-export class TangentArc extends Geometry
+/**
+ * TangentArc - An arc defined by control points (start, tangent direction, end).
+ * Extends Arc to inherit all arc functionality.
+ * The control points define the arc geometry, which is stored in the base Arc class.
+ */
+export class TangentArc extends Arc
 {
 	constructor(params)
 	{
-		super();
-		this.type = Shape.PLAIN;
+		// params: [startX, startY, tangentX, tangentY, endX, endY]
+		// Initialize with dummy arc params, will be calculated
+		// Set flag to prevent update() during super() construction
+		super([0, 0, 1, 0, Math.PI]);
+
 		this.geometry = Shape.TANGENT_ARC;
 
-		// Primary constraint points
-		// params: [startX, startY, tangentX, tangentY, endX, endY]
+		// Control points that define the tangent arc
 		this.startPoint = new Point(params[0], params[1]);
 		this.tangentPoint = new Point(params[2], params[3]);
 		this.endPoint = new Point(params[4], params[5]);
 
-		// Derived arc properties (calculated from constraints)
-		this.x = 0;           // center x
-		this.y = 0;           // center y
-		this.radius = 0;
-		this.startAngle = 0;
-		this.endAngle = 0;
-
-		this.recalculate();
+		// Now that control points exist, calculate arc geometry
+		this._initialized = true;
+		this.recalculateFromControlPoints();
 	}
 
-	update() {
-		this.recalculate();
-	}
-
-	// Recalculate arc geometry from the three constraint points
-	recalculate() {
+	/**
+	 * Recalculate arc geometry (center, radius, angles) from the control points.
+	 * Call this when control points change.
+	 */
+	recalculateFromControlPoints() {
 		const startPoint = this.startPoint;
 		const tangentPoint = this.tangentPoint;
 		const endPoint = this.endPoint;
@@ -63,11 +63,9 @@ export class TangentArc extends Geometry
 		}
 
 		// The center lies on the perpendicular to the tangent at startPoint
-		// Perpendicular direction (rotate tangent 90 degrees)
 		const perpDir = VectorUtils.perpendicular(tangentNorm);
 
 		// The center also lies on the perpendicular bisector of start-end chord
-		// Midpoint of chord
 		const midpoint = {
 			x: (startPoint.x + endPoint.x) / 2,
 			y: (startPoint.y + endPoint.y) / 2
@@ -76,9 +74,7 @@ export class TangentArc extends Geometry
 		// Direction perpendicular to chord
 		const chordPerp = { x: -chordVec.y, y: chordVec.x };
 
-		// Find intersection of:
-		// Line 1: startPoint + t * perpDir
-		// Line 2: midpoint + s * chordPerp
+		// Find intersection of the two perpendicular lines
 		const denom = perpDir.x * chordPerp.y - perpDir.y * chordPerp.x;
 
 		if (Math.abs(denom) < 1e-10) {
@@ -88,11 +84,9 @@ export class TangentArc extends Geometry
 
 		const t = ((midpoint.x - startPoint.x) * chordPerp.y - (midpoint.y - startPoint.y) * chordPerp.x) / denom;
 
-		// Center point
+		// Set arc center and radius (inherited from Arc)
 		this.x = startPoint.x + t * perpDir.x;
 		this.y = startPoint.y + t * perpDir.y;
-
-		// Radius
 		this.radius = Math.abs(t);
 
 		if (this.radius < 1e-10) {
@@ -123,18 +117,44 @@ export class TangentArc extends Geometry
 			this.endAngle = startAngle;
 		}
 
-		this.updateBoundingBox();
+		// Update base Arc (POIs, bounding box, etc.)
+		super.update();
 	}
 
-	updateBoundingBox() {
-		// Conservative bounding box
-		this.bounds.x = this.x - this.radius;
-		this.bounds.y = this.y - this.radius;
-		this.bounds.width = this.radius * 2;
-		this.bounds.height = this.radius * 2;
+	/**
+	 * Override update to recalculate from control points.
+	 */
+	update() {
+		// Skip if not yet initialized (during super() construction)
+		if (!this._initialized) return;
+		this.recalculateFromControlPoints();
 	}
 
-	// POIs: start, tangent handle, end
+	/**
+	 * Alias for recalculateFromControlPoints (for backward compatibility).
+	 */
+	recalculate() {
+		this.recalculateFromControlPoints();
+	}
+
+	/**
+	 * Convert this TangentArc to a plain Arc.
+	 * Useful for operations that don't need control points (like trimming).
+	 */
+	toArc() {
+		const arc = new Arc([this.x, this.y, this.radius, this.startAngle, this.endAngle]);
+		arc.groupId = this.groupId;
+		arc.strokeColor = this.strokeColor;
+		arc.lineWidth = this.lineWidth;
+		arc.penStyle = this.penStyle;
+		arc.colorToken = this.colorToken;
+		return arc;
+	}
+
+	/**
+	 * Get snap points - returns control points for editing.
+	 * Indices match updateControlPoint: 0=start, 1=tangent, 2=end
+	 */
 	getSnapPOIs() {
 		return [
 			{ x: this.startPoint.x, y: this.startPoint.y, type: SnapType.ENDPOINT },
@@ -143,47 +163,33 @@ export class TangentArc extends Geometry
 		];
 	}
 
+	/**
+	 * Get points that can be transformed (for move/scale/rotate).
+	 */
 	getTransformablePoints() {
 		return [this.startPoint, this.tangentPoint, this.endPoint];
 	}
 
-	// Check if angle is within arc range
-	containsAngle(angle) {
-		return AngleUtils.isAngleInRange(angle, this.startAngle, this.endAngle);
-	}
-
-	getGeoSnap(mouse, mouseRect, pixelTolerance) {
-		if (!this.bounds.intersects(mouseRect)) {
-			return null;
+	/**
+	 * Update a control point by index.
+	 * POI indices: 0=start, 1=tangent handle, 2=end
+	 */
+	updateControlPoint(index, newX, newY) {
+		switch (index) {
+			case 0:
+				this.startPoint.x = newX;
+				this.startPoint.y = newY;
+				break;
+			case 1:
+				this.tangentPoint.x = newX;
+				this.tangentPoint.y = newY;
+				break;
+			case 2:
+				this.endPoint.x = newX;
+				this.endPoint.y = newY;
+				break;
 		}
-
-		if (this.radius <= 0) return null;
-
-		const centerPoint = new Point(this.x, this.y);
-		const distanceToCenter = this.distanceBetweenPoints(mouse, centerPoint);
-
-		if (distanceToCenter === 0) return null;
-
-		const distanceFromPerimeter = Math.abs(distanceToCenter - this.radius);
-
-		if (distanceFromPerimeter > pixelTolerance) return null;
-
-		const directionX = (mouse.x - this.x) / distanceToCenter;
-		const directionY = (mouse.y - this.y) / distanceToCenter;
-
-		const angle = Math.atan2(directionY, directionX);
-		if (!this.containsAngle(angle)) {
-			return null;
-		}
-
-		const point = new Point(
-			this.x + (directionX * this.radius),
-			this.y + (directionY * this.radius)
-		);
-
-		point.distance = this.distanceBetweenPoints(mouse, point);
-
-		return point;
+		this.recalculateFromControlPoints();
 	}
 
 	clone() {
@@ -200,49 +206,30 @@ export class TangentArc extends Geometry
 	}
 
 	copyFrom(other) {
-		this.startPoint.x = other.startPoint.x;
-		this.startPoint.y = other.startPoint.y;
-		this.tangentPoint.x = other.tangentPoint.x;
-		this.tangentPoint.y = other.tangentPoint.y;
-		this.endPoint.x = other.endPoint.x;
-		this.endPoint.y = other.endPoint.y;
+		if (other.startPoint) {
+			// Copying from another TangentArc
+			this.startPoint.x = other.startPoint.x;
+			this.startPoint.y = other.startPoint.y;
+			this.tangentPoint.x = other.tangentPoint.x;
+			this.tangentPoint.y = other.tangentPoint.y;
+			this.endPoint.x = other.endPoint.x;
+			this.endPoint.y = other.endPoint.y;
+			this.recalculateFromControlPoints();
+		} else {
+			// Copying from a regular Arc - just copy arc params
+			this.x = other.x;
+			this.y = other.y;
+			this.radius = other.radius;
+			this.startAngle = other.startAngle;
+			this.endAngle = other.endAngle;
+			super.update();
+		}
 		this.type = other.type;
-		this.geometry = other.geometry;
 		this.penStyle = other.penStyle;
-		this.recalculate();
 	}
-
-	// Arc length
-	length() {
-		let span = this.endAngle - this.startAngle;
-		if (span < 0) span += Math.PI * 2;
-		return this.radius * span;
-	}
-
-	// Transform methods inherited from Geometry base class via getTransformablePoints()
 
 	getInspectorSchema() {
 		return tangentArcSchema(this);
-	}
-
-	// Update control point by index
-	// POI indices: 0=start, 1=tangent handle, 2=end
-	updateControlPoint(index, newX, newY) {
-		switch (index) {
-			case 0:
-				this.startPoint.x = newX;
-				this.startPoint.y = newY;
-				break;
-			case 1:
-				this.tangentPoint.x = newX;
-				this.tangentPoint.y = newY;
-				break;
-			case 2:
-				this.endPoint.x = newX;
-				this.endPoint.y = newY;
-				break;
-		}
-		this.recalculate();
 	}
 
 	toJSON() {
@@ -253,15 +240,10 @@ export class TangentArc extends Geometry
 		return deserializeTangentArc(data, TangentArc);
 	}
 
-	draw(ctx, renderer) {
-		const center = renderer.toScreen(this.x, this.y);
-		const radius = renderer.toScreenScale(this.radius);
-
-		ctx.arc(center.x, center.y, radius, this.startAngle, this.endAngle);
-		ctx.stroke();
-		renderer.resetPenStyle(ctx);
-	}
-
+	/**
+	 * Draw is inherited from Arc - same rendering.
+	 * Only drawHandles is overridden to show control points.
+	 */
 	drawHandles(ctx, renderer) {
 		if (!this.showControlPoints) return;
 
