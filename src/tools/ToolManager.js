@@ -17,6 +17,7 @@ import { ThreePointArcTool } 			from "./ThreePointArcTool.js";
 import { CenterPointArcTool } 			from "./CenterPointArcTool.js";
 import { TangentPointArcTool } 			from "./TangentPointArcTool.js";
 import { FilletTool } 					from "./FilletTool.js";
+import { FilletTest } 					from "./FilletTest.js";
 import { ChamferTool } 					from "./ChamferTool.js";
 import { BoxTool } 						from "./BoxTool.js";
 import { OppositeCornerEllipseTool } 	from "./OppositeCornerEllipseTool.js";
@@ -67,6 +68,7 @@ class ToolManager extends EventDispatcher
 		this.centerPointArcTool			= new CenterPointArcTool();
 		this.tangentPointArcTool		= new TangentPointArcTool();
 		this.filletTool					= new FilletTool();
+		this.filletTest					= new FilletTest();
 		this.chamferTool				= new ChamferTool();
 		this.boxTool					= new BoxTool();
 		this.oppositeCornerEllipseTool	= new OppositeCornerEllipseTool();
@@ -109,6 +111,7 @@ class ToolManager extends EventDispatcher
 			{ category: 'Modify' },
 			{ tool: this.trimTool, 					name: 'Trim', shortcut: 'T', icon: 'trim' },
 			{ tool: this.filletTool, 				name: 'Fillet', shortcut: 'F', icon: 'fillet' },
+			{ tool: this.filletTest, 				name: 'Fillet Test', shortcut: null, icon: 'fillet' },
 			{ tool: this.chamferTool, 				name: 'Chamfer', shortcut: 'K', icon: 'chamfer' },
 			{ tool: this.parallelLineTool, 			name: 'Parallel', shortcut: 'P', icon: 'parallel' },
 			{ tool: this.scaleTool, 				name: 'Scale', shortcut: 'X', icon: 'scale' },
