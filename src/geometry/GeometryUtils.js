@@ -138,6 +138,14 @@ export class GeometryUtils {
 	}
 
 	/**
+	 * Find intersection points of a line with a circle.
+	 * Returns array of 0, 1, or 2 points.
+	 */
+	static lineCircleIntersection(line, center, radius) {
+		return CircleUtils.lineCircleIntersection(line, center, radius);
+	}
+
+	/**
 	 * Find intersection points of a circle with lines parallel to the given line.
 	 */
 	static circleLineOffsetIntersection(circleCenter, circleRadius, line, offsetDistance) {

@@ -50,6 +50,48 @@ export function circleCircleIntersection(c1x, c1y, r1, c2x, c2y, r2) {
 }
 
 /**
+ * Find intersection points of a line with a circle.
+ * @param {Object} line - Line with start and end points
+ * @param {Object} center - Circle center {x, y}
+ * @param {number} radius - Circle radius
+ * @returns {Array} Array of 0, 1, or 2 intersection points
+ */
+export function lineCircleIntersection(line, center, radius) {
+	const dx = line.end.x - line.start.x;
+	const dy = line.end.y - line.start.y;
+	const fx = line.start.x - center.x;
+	const fy = line.start.y - center.y;
+
+	const a = dx * dx + dy * dy;
+	const b = 2 * (fx * dx + fy * dy);
+	const c = fx * fx + fy * fy - radius * radius;
+
+	let discriminant = b * b - 4 * a * c;
+
+	if (discriminant < -1e-10) {
+		return []; // No intersection
+	}
+
+	if (discriminant < 1e-10) {
+		// One intersection (tangent)
+		const t = -b / (2 * a);
+		return [{
+			x: line.start.x + t * dx,
+			y: line.start.y + t * dy
+		}];
+	}
+
+	discriminant = Math.sqrt(discriminant);
+	const t1 = (-b - discriminant) / (2 * a);
+	const t2 = (-b + discriminant) / (2 * a);
+
+	return [
+		{ x: line.start.x + t1 * dx, y: line.start.y + t1 * dy },
+		{ x: line.start.x + t2 * dx, y: line.start.y + t2 * dy }
+	];
+}
+
+/**
  * Find intersection points of a circle with lines parallel to the given line.
  * Checks both sides of the line at offsetDistance.
  * @param {Object} circleCenter - Circle center {x, y}
