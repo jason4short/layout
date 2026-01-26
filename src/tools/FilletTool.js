@@ -341,7 +341,7 @@ export class FilletTool extends Tool
 
 	/**
 	 * Create a fillet between a line and a circular shape (arc or circle).
-	 * Uses the validated algorithm: find corner, input vector, dot product selection.
+	 * Uses simple distance-based scoring - pick candidate whose tangents are closest to clicks.
 	 */
 	createFilletLineArc(line, lineClickPt, circularShape, arcClickPt, radius) {
 		const arcCenter = { x: circularShape.x, y: circularShape.y };
@@ -352,95 +352,41 @@ export class FilletTool extends Tool
 		const lineOriginal = line.clone();
 		const arcOriginal = isCircle ? null : circularShape.clone();
 
-		// STEP 1: Find line-arc intersections (corner candidates)
-		const lineArcIntersections = GeometryUtils.lineCircleIntersection(line, arcCenter, arcRadius);
-		if (lineArcIntersections.length === 0) {
-			console.log("Line doesn't intersect arc - cannot fillet");
-			return null;
-		}
-
-		// STEP 2: Find click midpoint
-		const clickMidpoint = {
-			x: (lineClickPt.x + arcClickPt.x) / 2,
-			y: (lineClickPt.y + arcClickPt.y) / 2
-		};
-
-		// STEP 3: Find closest intersection to midpoint → corner
-		let corner = lineArcIntersections[0];
-		if (lineArcIntersections.length > 1) {
-			const d0 = GeometryUtils.distance(lineArcIntersections[0], clickMidpoint);
-			const d1 = GeometryUtils.distance(lineArcIntersections[1], clickMidpoint);
-			corner = d0 <= d1 ? lineArcIntersections[0] : lineArcIntersections[1];
-		}
-
-		// STEP 4: Define input vector (corner → click midpoint)
-		const inputVector = {
-			x: clickMidpoint.x - corner.x,
-			y: clickMidpoint.y - corner.y
-		};
-		const inputLen = Math.sqrt(inputVector.x * inputVector.x + inputVector.y * inputVector.y);
-		if (inputLen < 1e-10) {
-			console.log("Click midpoint too close to corner");
-			return null;
-		}
-
-		// STEP 5: Find fillet candidates (EXT and INT, pick closest to corner for each)
+		// Find ALL candidates from both tangency types
 		const candidates = [];
-		const combos = [
-			{ name: "EXT", dist: arcRadius + radius, isInternal: false },
-			{ name: "INT", dist: Math.abs(arcRadius - radius), isInternal: true }
-		];
 
-		for (const combo of combos) {
-			if (combo.isInternal && radius >= arcRadius) continue;
+		for (const isInternal of [false, true]) {
+			if (isInternal && radius >= arcRadius) continue;
+
+			const targetDist = isInternal ? Math.abs(arcRadius - radius) : arcRadius + radius;
 
 			const pts = GeometryUtils.circleLineOffsetIntersection(
-				arcCenter, combo.dist, line, radius
+				arcCenter, targetDist, line, radius
 			);
-			if (pts.length === 0) continue;
 
-			// Pick the candidate closest to the chosen corner
-			let bestPt = null;
-			let bestDist = Infinity;
-			for (const pt of pts) {
-				const d = GeometryUtils.distance(pt, corner);
-				if (d < bestDist) {
-					bestDist = d;
-					bestPt = pt;
+			for (const center of pts) {
+				const tLine = GeometryUtils.projectPointOntoLine(center, line);
+				const tArc = this.tangentPoint(arcCenter, arcRadius, center);
+				if (!tLine || !tArc) continue;
+
+				// Check if tangent point is on the arc (not just the circle)
+				if (!isCircle) {
+					const tArcAngle = Math.atan2(tArc.y - arcCenter.y, tArc.x - arcCenter.x);
+					if (!circularShape.containsAngle(tArcAngle)) continue;
 				}
+
+				// Score by distance from tangent points to click points
+				const score = GeometryUtils.distance(tLine, lineClickPt) +
+							  GeometryUtils.distance(tArc, arcClickPt);
+
+				candidates.push({
+					center,
+					tLine,
+					tArc,
+					score,
+					isInternal
+				});
 			}
-
-			const center = bestPt;
-			const tLine = GeometryUtils.projectPointOntoLine(center, line);
-			const tArc = this.tangentPoint(arcCenter, arcRadius, center);
-			if (!tLine || !tArc) continue;
-
-			// VALIDATION 1: Check if tangent point is on the arc
-			if (!isCircle) {
-				const tArcAngle = Math.atan2(tArc.y - arcCenter.y, tArc.x - arcCenter.x);
-				if (!circularShape.containsAngle(tArcAngle)) continue;
-			}
-
-			// VALIDATION 2: Check trimmed arc would have positive length
-			if (!isCircle) {
-				const tArcAngle = Math.atan2(tArc.y - arcCenter.y, tArc.x - arcCenter.x);
-				const tangentToStart = Math.abs(AngleUtils.normalizeAngleSigned(tArcAngle - circularShape.startAngle));
-				const tangentToEnd = Math.abs(AngleUtils.normalizeAngleSigned(tArcAngle - circularShape.endAngle));
-				if (Math.min(tangentToStart, tangentToEnd) < 0.05) continue;
-			}
-
-			// VALIDATION 3: Tangent points shouldn't be too far from corner
-			const tLineDist = GeometryUtils.distance(tLine, corner);
-			const tArcDist = GeometryUtils.distance(tArc, corner);
-			if (tLineDist > radius * 4 || tArcDist > radius * 4) continue;
-
-			candidates.push({
-				center,
-				tLine,
-				tArc,
-				combo: combo.name,
-				isInternal: combo.isInternal
-			});
 		}
 
 		if (candidates.length === 0) {
@@ -448,26 +394,9 @@ export class FilletTool extends Tool
 			return null;
 		}
 
-		// STEP 6 & 7: Compare vectors via dot product
-		for (const c of candidates) {
-			const toCenter = {
-				x: c.center.x - corner.x,
-				y: c.center.y - corner.y
-			};
-			const len2 = Math.sqrt(toCenter.x * toCenter.x + toCenter.y * toCenter.y);
-			c.dot = (inputVector.x * toCenter.x + inputVector.y * toCenter.y) / (inputLen * len2);
-		}
-
-		// STEP 8: Select best match (highest dot product)
-		candidates.sort((a, b) => b.dot - a.dot);
+		// Select best match (lowest score = tangents closest to clicks)
+		candidates.sort((a, b) => a.score - b.score);
 		const best = candidates[0];
-
-		// VALIDATION 4: Must be reasonably aligned with user input
-		const MIN_DOT = 0.3;
-		if (best.dot < MIN_DOT) {
-			console.log(`Fillet radius too large - best candidate not aligned (dot=${best.dot.toFixed(3)})`);
-			return null;
-		}
 
 		// STEP 9: Create fillet arc
 		const arcAngle1 = Math.atan2(best.tLine.y - best.center.y, best.tLine.x - best.center.x);
@@ -491,7 +420,7 @@ export class FilletTool extends Tool
 		filletArc.groupId = line.groupId || circularShape.groupId;
 		data.addShape(filletArc);
 
-		// STEP 10: Trim line and arc
+		// Trim line and arc
 		GeometryUtils.trimLineKeepClickSide(line, best.tLine, lineClickPt, best.tLine);
 
 		if (!isCircle) {
@@ -678,7 +607,7 @@ export class FilletTool extends Tool
 		filletArc.groupId = circShape1.groupId || circShape2.groupId;
 		data.addShape(filletArc);
 
-		// STEP 10: Trim arcs
+		// STEP 10: Trim arcs using angle-based method
 		if (!isCircle1) {
 			this.trimArc(circShape1, best.t1, clickPt1);
 		}
@@ -715,15 +644,20 @@ export class FilletTool extends Tool
 		};
 	}
 
-	// Helper: trim arc at trimPoint, keep side with clickPoint
+	// Trim arc at trimPoint, keeping the side where clickPoint is
+	// Uses angle-based comparison (same as working FilletTest implementation)
 	trimArc(arc, trimPoint, clickPoint) {
 		const trimAngle = Math.atan2(trimPoint.y - arc.y, trimPoint.x - arc.x);
 		const clickAngle = Math.atan2(clickPoint.y - arc.y, clickPoint.x - arc.x);
+
+		// Check if click is in the angular range from startAngle to trimAngle
 		const clickOnStartSide = AngleUtils.isAngleInRange(clickAngle, arc.startAngle, trimAngle);
 
 		if (clickOnStartSide) {
+			// Keep start → trim
 			arc.endAngle = trimAngle;
 		} else {
+			// Keep trim → end
 			arc.startAngle = trimAngle;
 		}
 		arc.update();
