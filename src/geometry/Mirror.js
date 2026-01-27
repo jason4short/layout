@@ -3,6 +3,9 @@ import { Point } from './Point.js';
 import { Rectangle } from './Rectangle.js';
 import * as TransformUtils from './utils/TransformUtils.js';
 import data from '../data/Data.js';
+import stage from '../core/Stage.js';
+import undoManager from '../core/UndoManager.js';
+import { BreakMirrorCommand } from '../core/Commands.js';
 
 /**
  * Mirror - A parametric mirror that reflects geometry across an axis line.
@@ -559,23 +562,10 @@ export class Mirror extends Geometry {
 							get: () => `${this.capturedShapeIds.size} shapes`
 						},
 						{
-							key: 'refresh',
-							label: 'Refresh Capture',
-							type: 'button',
-							action: (mirror) => {
-								mirror.updateCapturedShapes();
-								const stage = require('../core/Stage.js').default;
-								stage.render();
-							}
-						},
-						{
 							key: 'explode',
 							label: 'Break Mirror',
 							type: 'button',
 							action: (mirror) => {
-								const { BreakMirrorCommand } = require('../core/Commands.js');
-								const undoManager = require('../core/UndoManager.js').default;
-								const stage = require('../core/Stage.js').default;
 								undoManager.execute(new BreakMirrorCommand(mirror));
 								stage.render();
 							}
