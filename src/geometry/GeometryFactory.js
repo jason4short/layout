@@ -23,6 +23,7 @@ import {Board} 				from './Board.js';
 import {Slot} 				from './Slot.js';
 import {Polygon} 			from './Polygon.js';
 import {AutoLayoutFrame} 	from './AutoLayoutFrame.js';
+import {Mirror} 			from './Mirror.js';
 
 class GeometryFactory {
 	constructor() {
@@ -49,6 +50,7 @@ class GeometryFactory {
 		this.register(Shape.SLOT, 				Slot);
 		this.register(Shape.POLYGON, 			Polygon);
 		this.register(Shape.AUTO_LAYOUT_FRAME, 	AutoLayoutFrame);
+		this.register(Shape.MIRROR, 			Mirror);
 	}
 
 	/**

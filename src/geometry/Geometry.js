@@ -25,6 +25,7 @@ export const Shape = Object.freeze({
 	SLOT: "slot",
 	POLYGON: "polygon",
 	AUTO_LAYOUT_FRAME: "auto_layout_frame",
+	MIRROR: "mirror",
 
 	/*types*/
 	CONSTRUCTION: "construction",
@@ -47,7 +48,8 @@ export const SnapType = Object.freeze({
 	ALIGN_45: "align:45°",
 	ALIGN_NEG45: "align:45°",
 	TANGENT: "tangent",
-	PERPENDICULAR: "perpendicular"
+	PERPENDICULAR: "perpendicular",
+	MIRRORED: "mirrored"
 });
 
 // Guide types for drafting assistant guides

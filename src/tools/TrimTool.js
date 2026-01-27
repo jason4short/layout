@@ -66,31 +66,34 @@ export class TrimTool extends Tool
 		// Filter out the clicked shape from boundaries (can't trim a shape against itself)
 		const boundaries = data.getSelected().filter(s => s !== clickedShape);
 
+		// Use snapPoint for click position (world coordinates)
+		const clickPoint = { x: data.snapPoint.x, y: data.snapPoint.y };
+
 		if(stage.optionKey){
 			// Option key: extend OR trim-to-boundaries (keep only clicked segment)
 			if(clickedShape.geometry === Shape.LINE){
-				this.extendOrTrimToLine(clickedShape, boundaries, e);
+				this.extendOrTrimToLine(clickedShape, boundaries, clickPoint);
 			}else if(clickedShape.geometry === Shape.BOARD || clickedShape.geometry === Shape.SLOT){
-				this.extendPrimitive(clickedShape, boundaries, e);
+				this.extendPrimitive(clickedShape, boundaries, clickPoint);
 			}else{
-				this.extendLine(clickedShape, boundaries, e);
+				this.extendLine(clickedShape, boundaries, clickPoint);
 			}
 		}else{
 			// Handle different shape types
 			if(clickedShape.geometry === Shape.LINE){
-				this.trimLine(clickedShape, boundaries, e);
+				this.trimLine(clickedShape, boundaries, clickPoint);
 
 			}else if(clickedShape.geometry === Shape.CIRCLE){
-				this.trimCircle(clickedShape, boundaries, e);
+				this.trimCircle(clickedShape, boundaries, clickPoint);
 
 			}else if(clickedShape.geometry === Shape.ARC){
-				this.trimArc(clickedShape, boundaries, e);
+				this.trimArc(clickedShape, boundaries, clickPoint);
 
 			}else if(clickedShape.geometry === Shape.ELLIPSE || clickedShape.geometry === Shape.ELLIPTICAL_ARC){
-				this.trimEllipse(clickedShape, boundaries, e);
+				this.trimEllipse(clickedShape, boundaries, clickPoint);
 
 			}else if(clickedShape.geometry === Shape.BOARD || clickedShape.geometry === Shape.SLOT){
-				this.trimPrimitive(clickedShape, boundaries, e);
+				this.trimPrimitive(clickedShape, boundaries, clickPoint);
 			}
 		}
 

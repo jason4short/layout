@@ -731,6 +731,8 @@ class Data
 				return [0, 1]; // start, end control points only
 			case Shape.POLYGON:
 				return [0, 1]; // center, radius control point
+			case Shape.MIRROR:
+				return [0, 1]; // axis start, axis end (width handle is resize-only)
 			default:
 				return [];
 		}
@@ -1044,6 +1046,18 @@ class Data
 
 	getShapes(){
 		return [...this.shapes, ...this.constructions];
+	}
+
+	// Get a shape by its ID
+	getShapeById(id){
+		if (!id) return null;
+		for (const shape of this.shapes) {
+			if (shape.id === id) return shape;
+		}
+		for (const shape of this.constructions) {
+			if (shape.id === id) return shape;
+		}
+		return null;
 	}
 
 	// Set shapes to exclude from snapping

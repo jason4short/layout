@@ -989,3 +989,56 @@ export class ResizeAutoLayoutGroupCommand extends Command {
 		data.rebuildPOIs();
 	}
 }
+
+// Break a mirror zone into real geometry
+export class BreakMirrorCommand extends Command {
+	constructor(mirror) {
+		super('Break Mirror');
+		this.mirror = mirror;
+		this.newShapes = [];
+		this.newGroupId = null;
+	}
+
+	execute() {
+		// Get exploded shapes (mirrored copies as real geometry)
+		this.newShapes = this.mirror.explode();
+
+		// Add shapes to data
+		for (const shape of this.newShapes) {
+			data.addShape(shape);
+		}
+
+		// Group the new shapes if there are multiple
+		if (this.newShapes.length > 1) {
+			this.newGroupId = data.createGroup(this.newShapes);
+		}
+
+		// Remove the mirror
+		data.deleteShape(this.mirror);
+
+		// Select the new shapes
+		for (const shape of this.newShapes) {
+			shape.selected = true;
+		}
+
+		data.rebuildPOIs();
+	}
+
+	undo() {
+		// Remove the new shapes
+		for (const shape of this.newShapes) {
+			data.deleteShape(shape);
+		}
+
+		// Remove the group
+		if (this.newGroupId) {
+			data.groups.delete(this.newGroupId);
+		}
+
+		// Restore the mirror
+		data.addShape(this.mirror);
+		this.mirror.selected = true;
+
+		data.rebuildPOIs();
+	}
+}

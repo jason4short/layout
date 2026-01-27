@@ -35,6 +35,7 @@ import { FrameTool } 					from "./FrameTool.js";
 import { BoardTool } 					from "./BoardTool.js";
 import { SlotTool } 					from "./SlotTool.js";
 import { PolygonTool } 					from "./PolygonTool.js";
+import { LiveMirrorTool } 				from "./LiveMirrorTool.js";
 
 
 
@@ -86,6 +87,7 @@ class ToolManager extends EventDispatcher
 		this.boardTool					= new BoardTool();
 		this.slotTool					= new SlotTool();
 		this.polygonTool				= new PolygonTool();
+		this.liveMirrorTool				= new LiveMirrorTool();
 
 		// Tool palette configuration: [tool, displayName, shortcut, icon]
 		this.toolPaletteConfig = [
@@ -108,6 +110,7 @@ class ToolManager extends EventDispatcher
 			{ tool: this.boardTool, 				name: 'Board', shortcut: 'W', icon: 'board' },
 			{ tool: this.slotTool, 					name: 'Slot', shortcut: 'U', icon: 'slot' },
 			{ tool: this.polygonTool, 				name: 'Polygon', shortcut: 'G', icon: 'polygon' },
+			{ tool: this.liveMirrorTool, 			name: 'Live Mirror', shortcut: 'Z', icon: 'mirror' },
 			{ category: 'Modify' },
 			{ tool: this.trimTool, 					name: 'Trim', shortcut: 'T', icon: 'trim' },
 			{ tool: this.filletTool, 				name: 'Fillet', shortcut: 'F', icon: 'fillet' },

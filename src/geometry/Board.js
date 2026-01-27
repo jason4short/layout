@@ -330,6 +330,15 @@ export class Board extends Geometry {
 		this.start.y = mirroredStart.y;
 		this.end.x = mirroredEnd.x;
 		this.end.y = mirroredEnd.y;
+
+		// Flip edge alignment: top <-> bottom
+		if (this.alignment === 'top') {
+			this.alignment = 'bottom';
+		} else if (this.alignment === 'bottom') {
+			this.alignment = 'top';
+		}
+		// 'center' stays center
+
 		this.update();
 	}
 
