@@ -27,8 +27,7 @@ export class Image extends Geometry
 		this.flipY 			= false; // vertical flip
 		this.opacity 		= 1.0;   // 0.0 to 1.0
 
-		// Images default to locked for tracing
-		this.locked 		= true;
+		this.locked 		= false;
 
 		// Cached geometry for hot paths (mouse move)
 		this.cachedGeometryState = null;

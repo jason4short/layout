@@ -42,7 +42,11 @@ export class PointerTool extends Tool
 		this.moveStart			= null; // Snapped position when move started
 		this.originalPositions	= []; // Store original positions for delta calc
 		this.clonedShapes		= []; // Shapes created during clone operation
-		this.doubleClick		= new DoubleClick(); 
+		this.doubleClick		= new DoubleClick();
+
+		// Paper drag state (handled separately from geometry)
+		this.paperTarget		= null;  // Paper being dragged
+		this.paperDragStart		= null;  // {screenX, screenY} when drag started 
 
 		// Double-click tracking
 // 		this.lastClickTime		= 0;
@@ -90,9 +94,24 @@ export class PointerTool extends Tool
 		this.groupResize 			= null;
 		this.frameChildOriginals 	= null;
 
+		// Paper state
+		this.paperTarget 			= null;
+		this.paperDragStart 		= null;
+
 		data.clearExcludeFromSnap();
 		data.resetSnaps();
 		data.clearGuides();
+	}
+
+	// Check if screen coords hit a paper label
+	// Returns the Paper object if hit, null otherwise
+	getPaperAtScreen(screenX, screenY){
+		for(const shape of data.shapes){
+			if(shape.geometry === Shape.PAPER && shape.hitTestLabel(screenX, screenY)){
+				return shape;
+			}
+		}
+		return null;
 	}
 
 
@@ -291,15 +310,33 @@ export class PointerTool extends Tool
 	onMouseDown(e)
 	{
 		// Enable snapping for move operations
-		this.generateGuides 	= true; 
-	
+		this.generateGuides 	= true;
+
 		// clear any existing snaps
 		data.resetSnaps();
+
+		// Check for paper label click first (screen-space, not geometry)
+		const paper = this.getPaperAtScreen(e.screenX, e.screenY);
+		if(paper){
+			// Select only the paper, deselect everything else
+			data.selectNone();
+			paper.selected = true;
+			this.paperTarget = paper;
+			this.paperDragStart = {
+				screenX: e.screenX,
+				screenY: e.screenY,
+				origX: paper.x,
+				origY: paper.y
+			};
+			this.dragStart = { screenX: e.screenX, screenY: e.screenY };
+			stage.render();
+			return;
+		}
 
 		// Check for double-click on text to edit
 		// xxx move to double click object?
 		const now = Date.now();
-		
+
 		// store first click point
 		const clickPos = { x: data.snapPoint.x, y: data.snapPoint.y };
 
@@ -469,6 +506,25 @@ export class PointerTool extends Tool
 
 	onMouseMove(e){
 		if(!this.dragStart) return;
+
+		// Handle paper dragging (screen-space, not geometry)
+		if(this.paperTarget){
+			const screenDx = e.screenX - this.paperDragStart.screenX;
+			const screenDy = e.screenY - this.paperDragStart.screenY;
+
+			// Convert screen delta to world delta
+			const worldDx = screenDx / stage.zoom;
+			const worldDy = screenDy / stage.zoom;
+
+			// Move paper directly
+			this.paperTarget.translate(worldDx, worldDy);
+
+			// Update drag start for next frame
+			this.paperDragStart = { screenX: e.screenX, screenY: e.screenY };
+
+			stage.render();
+			return;
+		}
 
 		// Handle group resize
 		if(this.groupResize){
@@ -724,6 +780,31 @@ export class PointerTool extends Tool
 		// Handle group resize completion
 		if(this.groupResize){
 			this.finishGroupResize();
+			this.resetDrag();
+			stage.render();
+			return;
+		}
+
+		// Handle paper drag completion
+		if(this.paperTarget){
+			const paper = this.paperTarget;
+			const origX = this.paperDragStart.origX;
+			const origY = this.paperDragStart.origY;
+
+			// Only record undo if position changed
+			if(paper.x !== origX || paper.y !== origY){
+				// Record move for undo using MoveCommand with index -1 (whole shape)
+				const moveData = [{
+					shape: paper,
+					index: -1,
+					oldX: origX,
+					oldY: origY,
+					newX: paper.x,
+					newY: paper.y
+				}];
+				undoManager.record(new MoveCommand(moveData));
+			}
+
 			this.resetDrag();
 			stage.render();
 			return;

@@ -181,8 +181,10 @@ class Inspector {
 		const typeName = schema ? schema.name : 'Shape';
 		html += `<div class="inspector-header">${typeName}</div>`;
 
-		// Pen Style (common to all)
-		html += this.buildPenStyleField(shape);
+		// Pen Style (skip for shapes that don't use it, e.g. Paper)
+		if (shape.penStyle !== null) {
+			html += this.buildPenStyleField(shape);
+		}
 
 		// Schema-driven fields
 		if (schema && schema.sections) {

@@ -4,6 +4,12 @@ import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
 import {paperSchema} from './InspectorSchemas.js';
 import {serializePaper, deserializePaper} from './GeometrySerializers.js';
+import units from '../core/Units.js';
+
+// Label styling constants (screen pixels)
+const LABEL_HEIGHT = 20;
+const LABEL_PADDING = 6;
+const LABEL_GAP = 4;
 
 // Standard paper sizes in mm
 export const PaperSizes = Object.freeze({
@@ -33,6 +39,13 @@ export class Paper extends Geometry
 		this.paperSize = params[4] || 'custom';
 		this.scale = params[5] !== undefined ? params[5] : 100; // Print scale percentage
 
+		// Paper doesn't use pen styles or colors
+		this.penStyle = null;
+		this.colorToken = null;
+
+		// Screen-space label bounds (updated during draw)
+		this.screenLabelBounds = null;
+
 		this.update();
 	}
 
@@ -50,6 +63,23 @@ export class Paper extends Geometry
 		return this.height * this.getDisplayScale();
 	}
 
+	// Get dimension string for label (e.g., "11" x 17"" or "279 x 432 mm")
+	getDimensionString() {
+		const w = units.format(this.width, undefined, false);
+		const h = units.format(this.height, undefined, false);
+		const unitLabel = units.getUnit();
+		return `${w} x ${h} ${unitLabel}`;
+	}
+
+	// Hit test the label using screen coordinates
+	// Returns true if screen point is inside the label
+	hitTestLabel(screenX, screenY) {
+		if (!this.screenLabelBounds) return false;
+		const b = this.screenLabelBounds;
+		return screenX >= b.x && screenX <= b.x + b.width &&
+		       screenY >= b.y && screenY <= b.y + b.height;
+	}
+
 	update() {
 		// Bounds use display dimensions for hit testing
 		this.bounds.x = this.x;
@@ -62,8 +92,6 @@ export class Paper extends Geometry
 		const p = new Paper([this.x, this.y, this.width, this.height, this.paperSize, this.scale]);
 		p.type = this.type;
 		p.groupId = this.groupId;
-		p.penStyle = this.penStyle;
-		p.colorToken = this.colorToken;
 		return p;
 	}
 
@@ -76,70 +104,17 @@ export class Paper extends Geometry
 		this.scale = other.scale;
 		this.type = other.type;
 		this.geometry = other.geometry;
-		this.penStyle = other.penStyle;
 		this.update();
 	}
 
-	// Snap points: corners, center, edge midpoints (using display dimensions)
+	// Paper is not part of the snap system - returns empty array
 	getSnapPOIs() {
-		const w = this.getDisplayWidth();
-		const h = this.getDisplayHeight();
-		return [
-			{ x: this.x, y: this.y, type: SnapType.ENDPOINT },                    // top-left
-			{ x: this.x + w, y: this.y, type: SnapType.ENDPOINT },                // top-right
-			{ x: this.x + w, y: this.y + h, type: SnapType.ENDPOINT },            // bottom-right
-			{ x: this.x, y: this.y + h, type: SnapType.ENDPOINT },                // bottom-left
-			{ x: this.x + w / 2, y: this.y + h / 2, type: SnapType.CENTER },      // center
-			{ x: this.x + w / 2, y: this.y, type: SnapType.MIDPOINT },            // top-mid
-			{ x: this.x + w, y: this.y + h / 2, type: SnapType.MIDPOINT },        // right-mid
-			{ x: this.x + w / 2, y: this.y + h, type: SnapType.MIDPOINT },        // bottom-mid
-			{ x: this.x, y: this.y + h / 2, type: SnapType.MIDPOINT }             // left-mid
-		];
+		return [];
 	}
 
+	// Paper is not part of the snap system - always returns null
 	getGeoSnap(mouse, mouseRect, pixelTolerance) {
-		// Quick reject
-		if (!this.bounds.intersects(mouseRect)) {
-			return null;
-		}
-
-		const w = this.getDisplayWidth();
-		const h = this.getDisplayHeight();
-
-		// Check if mouse is inside the paper (for selection/dragging)
-		if (mouse.x >= this.x && mouse.x <= this.x + w &&
-			mouse.y >= this.y && mouse.y <= this.y + h) {
-			// Return the mouse point as a hit (distance 0 means inside)
-			const hitPoint = new Point(mouse.x, mouse.y);
-			hitPoint.distance = 0;
-			return hitPoint;
-		}
-
-		// Check distance to each edge for snapping near edges
-		const edges = [
-			{ x1: this.x, y1: this.y, x2: this.x + w, y2: this.y },         // top
-			{ x1: this.x + w, y1: this.y, x2: this.x + w, y2: this.y + h }, // right
-			{ x1: this.x, y1: this.y + h, x2: this.x + w, y2: this.y + h }, // bottom
-			{ x1: this.x, y1: this.y, x2: this.x, y2: this.y + h }          // left
-		];
-
-		let closestPoint = null;
-		let closestDist = Infinity;
-
-		for (const edge of edges) {
-			const start = { x: edge.x1, y: edge.y1 };
-			const end = { x: edge.x2, y: edge.y2 };
-			const point = VectorUtils.closestPointOnSegment(mouse, start, end);
-			const dist = VectorUtils.distance(mouse, point);
-
-			if (dist < closestDist && dist < pixelTolerance) {
-				closestDist = dist;
-				closestPoint = new Point(point.x, point.y);
-				closestPoint.distance = dist;
-			}
-		}
-
-		return closestPoint;
+		return null;
 	}
 
 	// Translate the paper
@@ -177,20 +152,9 @@ export class Paper extends Geometry
 		this.update();
 	}
 
-	// Update control point by index (only center for movement)
-	// POI indices: 0=TL, 1=TR, 2=BR, 3=BL, 4=center, 5-8=edge midpoints
+	// Paper doesn't use control points - drag via translate()
 	updateControlPoint(index, newX, newY) {
-		if (index === 4) {
-			// Center - move the paper
-			const w = this.getDisplayWidth();
-			const h = this.getDisplayHeight();
-			const cx = this.x + w / 2;
-			const cy = this.y + h / 2;
-			this.x += newX - cx;
-			this.y += newY - cy;
-		}
-		// Corners (0-3) no longer resize - use inspector to change size/scale
-		this.update();
+		// No-op: Paper uses translate() for movement
 	}
 
 	getInspectorSchema() {
@@ -215,9 +179,39 @@ export class Paper extends Geometry
 		const width = renderer.toScreenScale(displayWidth);
 		const height = renderer.toScreenScale(displayHeight);
 
-		// Border
-		ctx.strokeStyle = this.selected ? '#2563eb' : '#CCCCCC';
-		ctx.lineWidth = this.selected ? 1 : 0.5;
+		// Paper border (always light gray, not selectable)
+		ctx.strokeStyle = '#CCCCCC';
+		ctx.lineWidth = 0.5;
 		ctx.strokeRect(topLeft.x, topLeft.y, width, height);
+
+		// Draw label above paper
+		const text = this.getDimensionString();
+		ctx.font = '12px sans-serif';
+		const textMetrics = ctx.measureText(text);
+		const textWidth = textMetrics.width;
+
+		const labelWidth = textWidth + LABEL_PADDING * 2;
+		const labelX = topLeft.x;
+		const labelY = topLeft.y - LABEL_GAP - LABEL_HEIGHT;
+
+		// Store screen-space label bounds for hit testing
+		this.screenLabelBounds = {
+			x: labelX,
+			y: labelY,
+			width: labelWidth,
+			height: LABEL_HEIGHT
+		};
+
+		// Label background
+		ctx.fillStyle = this.selected ? '#2563eb' : '#3b82f6';
+		ctx.beginPath();
+		ctx.roundRect(labelX, labelY, labelWidth, LABEL_HEIGHT, 3);
+		ctx.fill();
+
+		// Label text
+		ctx.fillStyle = '#FFFFFF';
+		ctx.textBaseline = 'middle';
+		ctx.textAlign = 'left';
+		ctx.fillText(text, labelX + LABEL_PADDING, labelY + LABEL_HEIGHT / 2);
 	}
 }

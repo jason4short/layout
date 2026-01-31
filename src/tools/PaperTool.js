@@ -5,6 +5,7 @@ import { Paper, PaperSizes } from '../geometry/Paper.js';
 import stage from '../core/Stage.js';
 import data from '../data/Data.js';
 import undoManager from '../core/UndoManager.js';
+import toolManager from './ToolManager.js';
 import { AddShapeCommand, MoveCommand } from '../core/Commands.js';
 
 export class PaperTool extends Tool
@@ -112,20 +113,22 @@ export class PaperTool extends Tool
 			undoManager.execute(new AddShapeCommand(this.paper));
 			this.paper.selected = true;
 		} else {
-			// Record move for undo
+			// Record move for undo (index -1 = whole shape translation)
 			const moveData = [{
 				shape: this.paper,
-				index: 4, // center point
-				oldX: this.startPos.x + this.paper.width / 2,
-				oldY: this.startPos.y + this.paper.height / 2,
-				newX: this.paper.x + this.paper.width / 2,
-				newY: this.paper.y + this.paper.height / 2
+				index: -1,
+				oldX: this.startPos.x,
+				oldY: this.startPos.y,
+				newX: this.paper.x,
+				newY: this.paper.y
 			}];
 			undoManager.record(new MoveCommand(moveData));
-			data.rebuildPOIs();
 		}
 
 		this.isDragging = false;
 		stage.render();
+
+		// Switch back to pointer tool
+		toolManager.setTool(toolManager.pointerTool);
 	}
 }

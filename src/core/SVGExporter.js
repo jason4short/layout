@@ -198,6 +198,24 @@ function escapeXML(str) {
 		.replace(/'/g, '&apos;');
 }
 
+// Flatten primitives into basic shapes (lines, arcs, etc.)
+// Primitives like Slot, Board, Polygon decompose into basic geometry
+function flattenShapes(shapes) {
+	const result = [];
+	for (const shape of shapes) {
+		if (shape.createShapes) {
+			// Slot returns lines + arcs
+			result.push(...shape.createShapes());
+		} else if (shape.createLines) {
+			// Board, Polygon return lines
+			result.push(...shape.createLines());
+		} else {
+			result.push(shape);
+		}
+	}
+	return result;
+}
+
 // Check if shape bounds intersect with paper display bounds
 function shapeIntersectsPaper(shape, paper, displayWidth, displayHeight) {
 	if (!shape.bounds) return true; // Include if no bounds info
@@ -248,10 +266,12 @@ export function exportToSVG(shapes, paper) {
 	svg += `  <g clip-path="url(#paper-clip)">
 `;
 
-	// Convert each shape (only if it intersects the paper display area)
-	for (const shape of shapes) {
+	// Flatten primitives into basic shapes, then filter and convert
+	const flatShapes = flattenShapes(shapes);
+
+	for (const shape of flatShapes) {
 		if (shape.geometry === Shape.PAPER) continue;
-		if (shape.geometry === Shape.IMAGE) continue; // Skip images for now
+		if (shape.geometry === Shape.IMAGE) continue;
 		if (!shapeIntersectsPaper(shape, paper, displayWidth, displayHeight)) continue;
 
 		const shapeSVG = shapeToSVG(shape, paper);

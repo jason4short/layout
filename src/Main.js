@@ -10,6 +10,8 @@ import units from './core/Units.js';
 import {Shape} from './geometry/Geometry.js';
 import {Intersections} from './data/Intersections.js';
 import {exportToSVG, downloadSVG} from './core/SVGExporter.js';
+import {exportToGcode, downloadGcode} from './core/GcodeExporter.js';
+import {exportToDXF, downloadDXF} from './core/DXFExporter.js';
 import {openSVGFile} from './core/SVGImporter.js';
 import undoManager from './core/UndoManager.js';
 import {AddShapesCommand} from './core/Commands.js';
@@ -76,6 +78,29 @@ document.getElementById('btnExportSVG').addEventListener('click', () => {
 		? fileManager.currentFileName.replace(/\.[^.]+$/, '.svg')
 		: 'drawing.svg';
 	downloadSVG(svg, fileName);
+});
+
+// Export Gcode button
+document.getElementById('btnExportGcode').addEventListener('click', () => {
+	const paper = data.shapes.find(s => s.geometry === Shape.PAPER);
+	if (!paper) {
+		alert('Add a paper first (use the Paper tool to place one)');
+		return;
+	}
+	const gcode = exportToGcode(data.shapes, paper);
+	const fileName = fileManager.currentFileName
+		? fileManager.currentFileName.replace(/\.[^.]+$/, '.gcode')
+		: 'drawing.gcode';
+	downloadGcode(gcode, fileName);
+});
+
+// Export DXF button
+document.getElementById('btnExportDXF').addEventListener('click', () => {
+	const dxf = exportToDXF(data.shapes);
+	const fileName = fileManager.currentFileName
+		? fileManager.currentFileName.replace(/\.[^.]+$/, '.dxf')
+		: 'drawing.dxf';
+	downloadDXF(dxf, fileName);
 });
 
 document.addEventListener('contextmenu', (e) => {

@@ -720,7 +720,7 @@ class Data
 			case Shape.TEXT:
 				return [0]; // anchor point only - corners are for resizing
 			case Shape.PAPER:
-				return [4]; // center only - corners are for resizing
+				return []; // Paper handled separately via screen-space label
 			case Shape.SYMBOL:
 				return []; // No control points - instances drag as a whole unit
 			case Shape.FRAME:
