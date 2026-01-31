@@ -108,6 +108,9 @@ class Data
 			_nextId: 1
 		};
 
+		// Document settings
+		this.backgroundColor = '#E5E5E5';  // Canvas background color
+
 		// This is a singleton class
         return Data.instance;
 	}

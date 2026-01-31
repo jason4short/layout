@@ -59,7 +59,8 @@ class FileManager
 			shapes: shapes,
 			constructions: constructions,
 			groups: groups,
-			colorPalette: data.colorPalette
+			colorPalette: data.colorPalette,
+			backgroundColor: data.backgroundColor
 		};
 	}
 
@@ -112,6 +113,11 @@ class FileManager
 		// Restore color palette
 		if(json.colorPalette){
 			data.colorPalette = json.colorPalette;
+		}
+
+		// Restore background color
+		if(json.backgroundColor){
+			data.backgroundColor = json.backgroundColor;
 		}
 
 		// Recreate shapes - track old ID → new ID mapping for references

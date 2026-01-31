@@ -10,6 +10,13 @@ import {AddShapeCommand,
 		AddConstructionCommand,
 			MoveCommand} from '../core/Commands.js';
 
+// Shape types for offset operations
+const OFFSET_TYPE = {
+	LINE: 'line',
+	CIRCLE: 'circle',
+	ARC: 'arc'
+};
+
 const STATE = {
 	IDLE: 0,		// Waiting for click on a line
 	DRAGGING: 1,	// Dragging to set offset distance
@@ -22,22 +29,27 @@ export class ParallelLineTool extends Tool
 	{
 		super();
 
-		this.name 	= "Parallel Line";
-		this.usage 	= "Click a line, then drag to create a parallel copy at an offset distance.";
+		this.name 	= "Offset";
+		this.usage 	= "Click a line, arc, or circle, then drag to create an offset copy.";
 
 		this.generateGuides 	= false; // Enable snapping for move operations
 
 		this.state 			= STATE.IDLE;
-		this.originalLine 	= null;
-		this.previewLine 	= null;
-		this.createdLine 	= null;  // The committed line (for dimension adjustment)
+		this.offsetType		= null;  // OFFSET_TYPE.LINE, CIRCLE, or ARC
+		this.originalShape 	= null;
+		this.previewShape 	= null;
+		this.createdShape 	= null;  // The committed shape (for dimension adjustment)
 
-		// Drag state
+		// Drag state - lines
 		this.dragStartPt 	= null;
 		this.lineStartOrig 	= null;
 		this.lineEndOrig 	= null;
 		this.unitNormal 	= null;
 		this.signedOffset 	= 0;
+
+		// Drag state - circles/arcs
+		this.centerOrig		= null;
+		this.radiusOrig		= null;
 
 		this.onMouseDown 	= this.onMouseDown.bind(this);
 		this.onMouseMove 	= this.onMouseMove.bind(this);
@@ -76,20 +88,23 @@ export class ParallelLineTool extends Tool
 
 
 	reset() {
-		if (this.previewLine) {
+		if (this.previewShape) {
 			data.clearTempShapes();
-			this.previewLine = null;
+			this.previewShape = null;
 		}
 		data.resetSnaps();
 		data.clearGuides();
 		this.state 			= STATE.IDLE;
-		this.originalLine 	= null;
-		this.createdLine 	= null;
+		this.offsetType		= null;
+		this.originalShape 	= null;
+		this.createdShape 	= null;
 		this.dragStartPt 	= null;
 		this.lineStartOrig 	= null;
 		this.lineEndOrig 	= null;
 		this.unitNormal 	= null;
 		this.signedOffset 	= 0;
+		this.centerOrig		= null;
+		this.radiusOrig		= null;
 	}
 
 	onMouseDown(e) {
@@ -101,6 +116,39 @@ export class ParallelLineTool extends Tool
 		const clickedShape = data.getTargetShape();
 		if (!clickedShape) return;
 
+		this.dragStartPt = { x: data.snapPoint.x, y: data.snapPoint.y };
+
+		// Handle circles
+		if (clickedShape.geometry === Shape.CIRCLE) {
+			this.offsetType = OFFSET_TYPE.CIRCLE;
+			this.originalShape = clickedShape;
+			this.previewShape = clickedShape.clone();
+			data.addTempShape(this.previewShape);
+
+			this.centerOrig = { x: clickedShape.x, y: clickedShape.y };
+			this.radiusOrig = clickedShape.radius;
+
+			this.state = STATE.DRAGGING;
+			stage.render();
+			return;
+		}
+
+		// Handle arcs
+		if (clickedShape.geometry === Shape.ARC || clickedShape.geometry === Shape.TANGENT_ARC) {
+			this.offsetType = OFFSET_TYPE.ARC;
+			this.originalShape = clickedShape;
+			this.previewShape = clickedShape.clone();
+			data.addTempShape(this.previewShape);
+
+			this.centerOrig = { x: clickedShape.x, y: clickedShape.y };
+			this.radiusOrig = clickedShape.radius;
+
+			this.state = STATE.DRAGGING;
+			stage.render();
+			return;
+		}
+
+		// Handle lines (and primitives with lines)
 		let sourceLine = null;
 
 		if (clickedShape.geometry === Shape.LINE) {
@@ -117,16 +165,14 @@ export class ParallelLineTool extends Tool
 
 		if (!sourceLine) return;
 
-		// Start dragging
-		this.originalLine = sourceLine;
-		this.previewLine = this.originalLine.clone();
-		data.addTempShape(this.previewLine);
+		// Start dragging for line
+		this.offsetType = OFFSET_TYPE.LINE;
+		this.originalShape = sourceLine;
+		this.previewShape = sourceLine.clone();
+		data.addTempShape(this.previewShape);
 
-		//this.dragStartPt = { x: e.x, y: e.y };
-		this.dragStartPt = { x: data.snapPoint.x, y: data.snapPoint.y };
-		
-		this.lineStartOrig = { x: this.originalLine.start.x, y: this.originalLine.start.y };
-		this.lineEndOrig = { x: this.originalLine.end.x, y: this.originalLine.end.y };
+		this.lineStartOrig = { x: sourceLine.start.x, y: sourceLine.start.y };
+		this.lineEndOrig = { x: sourceLine.end.x, y: sourceLine.end.y };
 
 		// Calculate perpendicular unit normal
 		const dx = this.lineEndOrig.x - this.lineStartOrig.x;
@@ -147,15 +193,20 @@ export class ParallelLineTool extends Tool
 
 	onMouseMove(e) {
 		if (this.state !== STATE.DRAGGING) return;
-		if (!this.previewLine || !this.dragStartPt) return;
+		if (!this.previewShape || !this.dragStartPt) return;
 
 		const currentPt = { x: data.snapPoint.x, y: data.snapPoint.y };
 
-		// Project mouse delta onto line normal to get perpendicular offset
-		const mouseDx = currentPt.x - this.dragStartPt.x;
-		const mouseDy = currentPt.y - this.dragStartPt.y;
-
-		this.signedOffset = mouseDx * this.unitNormal.x + mouseDy * this.unitNormal.y;
+		if (this.offsetType === OFFSET_TYPE.LINE) {
+			// Project mouse delta onto line normal to get perpendicular offset
+			const mouseDx = currentPt.x - this.dragStartPt.x;
+			const mouseDy = currentPt.y - this.dragStartPt.y;
+			this.signedOffset = mouseDx * this.unitNormal.x + mouseDy * this.unitNormal.y;
+		} else {
+			// For circles/arcs, offset is radial distance from center
+			const distFromCenter = VectorUtils.distance(currentPt, this.centerOrig);
+			this.signedOffset = distFromCenter - this.radiusOrig;
+		}
 
 		this.updatePreviewOffset(this.signedOffset);
 		stage.render();
@@ -163,21 +214,31 @@ export class ParallelLineTool extends Tool
 
 	onMouseUp(e) {
 		if (this.state !== STATE.DRAGGING) return;
-		if (!this.previewLine) return;
+		if (!this.previewShape) return;
 
-		// Commit the preview line
+		// Don't create if radius would be zero or negative for circles/arcs
+		if (this.offsetType !== OFFSET_TYPE.LINE) {
+			const newRadius = this.radiusOrig + this.signedOffset;
+			if (newRadius <= 0) {
+				this.reset();
+				stage.render();
+				return;
+			}
+		}
+
+		// Commit the preview shape
 		data.clearTempShapes();
-		this.previewLine.update();
-	
-		if(this.previewLine.type == Shape.CONSTRUCTION){
-			undoManager.execute(new AddConstructionCommand(this.previewLine));
+		this.previewShape.update();
+
+		if(this.previewShape.type == Shape.CONSTRUCTION){
+			undoManager.execute(new AddConstructionCommand(this.previewShape));
 		}else{
-			undoManager.execute(new AddShapeCommand(this.previewLine));
+			undoManager.execute(new AddShapeCommand(this.previewShape));
 		}
 
 		// Keep reference for dimension adjustment
-		this.createdLine = this.previewLine;
-		this.previewLine = null;
+		this.createdShape = this.previewShape;
+		this.previewShape = null;
 
 		this.state = STATE.ADJUSTING;
 
@@ -189,58 +250,76 @@ export class ParallelLineTool extends Tool
 	}
 
 	updatePreviewOffset(offset) {
-		if (!this.previewLine) return;
+		if (!this.previewShape) return;
 
-		const tx = this.unitNormal.x * offset;
-		const ty = this.unitNormal.y * offset;
+		if (this.offsetType === OFFSET_TYPE.LINE) {
+			const tx = this.unitNormal.x * offset;
+			const ty = this.unitNormal.y * offset;
 
-		this.previewLine.start.x = this.lineStartOrig.x + tx;
-		this.previewLine.start.y = this.lineStartOrig.y + ty;
-		this.previewLine.end.x = this.lineEndOrig.x + tx;
-		this.previewLine.end.y = this.lineEndOrig.y + ty;
-		this.previewLine.update();
+			this.previewShape.start.x = this.lineStartOrig.x + tx;
+			this.previewShape.start.y = this.lineStartOrig.y + ty;
+			this.previewShape.end.x = this.lineEndOrig.x + tx;
+			this.previewShape.end.y = this.lineEndOrig.y + ty;
+		} else {
+			// Circle or arc - adjust radius
+			const newRadius = Math.max(0.1, this.radiusOrig + offset);
+			this.previewShape.radius = newRadius;
+		}
+
+		this.previewShape.update();
 	}
 
 	updateDimension(newDim) {
 		const dim = parseFloat(newDim);
 		if (isNaN(dim) || dim === 0) return;
 		if (this.state !== STATE.ADJUSTING) return;
-		if (!this.createdLine) return;
+		if (!this.createdShape) return;
 
 		// Apply sign from original drag direction
 		const signedDim = this.signedOffset < 0 ? -Math.abs(dim) : Math.abs(dim);
 
-		const tx = this.unitNormal.x * signedDim;
-		const ty = this.unitNormal.y * signedDim;
+		if (this.offsetType === OFFSET_TYPE.LINE) {
+			const tx = this.unitNormal.x * signedDim;
+			const ty = this.unitNormal.y * signedDim;
 
-		// Calculate new positions
-		const newStartX = this.lineStartOrig.x + tx;
-		const newStartY = this.lineStartOrig.y + ty;
-		const newEndX = this.lineEndOrig.x + tx;
-		const newEndY = this.lineEndOrig.y + ty;
+			// Calculate new positions
+			const newStartX = this.lineStartOrig.x + tx;
+			const newStartY = this.lineStartOrig.y + ty;
+			const newEndX = this.lineEndOrig.x + tx;
+			const newEndY = this.lineEndOrig.y + ty;
 
-		// Build move data for undo (indices: 0=start, 1=end)
-		const moveData = [
-			{
-				shape: this.createdLine,
-				index: 0,
-				oldX: this.createdLine.start.x,
-				oldY: this.createdLine.start.y,
-				newX: newStartX,
-				newY: newStartY
-			},
-			{
-				shape: this.createdLine,
-				index: 1,
-				oldX: this.createdLine.end.x,
-				oldY: this.createdLine.end.y,
-				newX: newEndX,
-				newY: newEndY
-			}
-		];
+			// Build move data for undo (indices: 0=start, 1=end)
+			const moveData = [
+				{
+					shape: this.createdShape,
+					index: 0,
+					oldX: this.createdShape.start.x,
+					oldY: this.createdShape.start.y,
+					newX: newStartX,
+					newY: newStartY
+				},
+				{
+					shape: this.createdShape,
+					index: 1,
+					oldX: this.createdShape.end.x,
+					oldY: this.createdShape.end.y,
+					newX: newEndX,
+					newY: newEndY
+				}
+			];
 
-		// Execute move command (handles undo and intersection recalculation)
-		undoManager.execute(new MoveCommand(moveData));
+			// Execute move command (handles undo and intersection recalculation)
+			undoManager.execute(new MoveCommand(moveData));
+		} else {
+			// Circle or arc - update radius directly
+			const newRadius = this.radiusOrig + signedDim;
+			if (newRadius <= 0) return;
+
+			this.createdShape.radius = newRadius;
+			this.createdShape.update();
+			data.rebuildPOIs();
+			data.recalculateIntersectionsForShape(this.createdShape);
+		}
 
 		this.signedOffset = signedDim;
 

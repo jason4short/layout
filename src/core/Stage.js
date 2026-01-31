@@ -89,7 +89,7 @@ class Stage extends View
 	
     init(){
 		this.canvas 	= document.getElementById('stage');
-		this.ctx 		= this.canvas.getContext('2d');;
+		this.ctx 		= this.canvas.getContext('2d', { alpha: false });
 		this.document 	= document;
 
 		// Initial DPI setup + on window resize (CSS size may change)

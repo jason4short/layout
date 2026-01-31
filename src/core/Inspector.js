@@ -15,6 +15,7 @@ class Inspector {
 		this.currentSchema = null;
 		this.lastMultiCount = 0;
 		this.currentGroupId = null; // Track when showing group inspector
+		this.showingDocumentPanel = false;
 
 		Inspector.instance = this;
 		return this;
@@ -24,7 +25,7 @@ class Inspector {
 		this.container = document.getElementById('inspector');
 		if (!this.container) return;
 
-		this.container.innerHTML = '<div class="inspector-empty">No selection</div>';
+		this.buildDocumentPanel();
 	}
 
 	// Find if the selection represents a complete group at any level
@@ -109,15 +110,17 @@ class Inspector {
 		const selected = data.getSelected();
 
 		if (selected.length === 0) {
-			if (this.currentShape !== null || this.currentGroupId !== null || this.lastMultiCount !== 0) {
+			if (!this.showingDocumentPanel) {
 				this.currentShape = null;
 				this.currentSchema = null;
 				this.currentGroupId = null;
 				this.lastMultiCount = 0;
-				this.container.innerHTML = '<div class="inspector-empty">No selection</div>';
+				this.buildDocumentPanel();
 			}
 			return;
 		}
+
+		this.showingDocumentPanel = false;
 
 		// Check if selection represents a complete group (at any level)
 		const groupId = this.findSelectedGroup(selected);
@@ -170,6 +173,35 @@ class Inspector {
 
 		// Update field values from current shape
 		this.updateFieldValues(this.currentShape);
+	}
+
+	buildDocumentPanel() {
+		this.showingDocumentPanel = true;
+
+		let html = '<div class="inspector-panel">';
+		html += '<div class="inspector-header">Document</div>';
+
+		html += `
+			<div class="inspector-section">
+				<div class="inspector-section-title">Canvas</div>
+				<div class="inspector-row">
+					<label>Background</label>
+					<input type="color" id="prop-backgroundColor" value="${data.backgroundColor}">
+				</div>
+			</div>
+		`;
+
+		html += '</div>';
+		this.container.innerHTML = html;
+
+		// Attach listener
+		const bgColorEl = document.getElementById('prop-backgroundColor');
+		if (bgColorEl) {
+			bgColorEl.addEventListener('input', (e) => {
+				data.backgroundColor = e.target.value;
+				stage.render();
+			});
+		}
 	}
 
 	buildPanel(shape) {

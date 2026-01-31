@@ -57,6 +57,13 @@ src/
 - Updated Inspector.js to skip Appearance section for shapes with `penStyle === null` (Paper)
 - Added DXF export: created `DXFExporter.js` (AutoCAD R2000 format), wired up in Main.js, added button to index.html
 - Simplified DXF export to use world coordinates directly - no Paper required, exports entire shape database
+- Added `{ alpha: false }` to canvas context in Stage.js for better compositing performance
+- Fixed Shift+click to deselect already-selected shapes (was only toggling unselected shapes)
+- Added canvas background color: stored in `data.backgroundColor`, editable in Inspector when nothing selected, saved/loaded with document
+- Fixed Inspector to show Document panel on init and when deselecting (was showing "No selection")
+- Tool palette now hugs content instead of stretching full height
+- DA snap labels now use canvas background color instead of hardcoded white
+- Extended ParallelLineTool to support circles and arcs (renamed to "Offset" tool) - creates concentric copies with adjusted radius
 
 ---
 *Last updated: Jan 31, 2026*

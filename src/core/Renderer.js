@@ -162,7 +162,8 @@ export class Renderer
 	draw()
 	{
 		let ctx = stage.ctx;
-		ctx.clearRect(0, 0, stage.canvas.width, stage.canvas.height);
+		ctx.fillStyle = data.backgroundColor;
+		ctx.fillRect(0, 0, stage.canvas.width, stage.canvas.height);
 
 		// Calculate viewport once for frustum culling
 		const viewport = this.getViewport();
@@ -297,8 +298,12 @@ export class Renderer
 		const textHeight = 12;
 		const padding = 2;
 
-		// Draw semi-transparent background
-		ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+		// Draw semi-transparent background using canvas background color
+		const bg = data.backgroundColor;
+		const r = parseInt(bg.slice(1, 3), 16);
+		const g = parseInt(bg.slice(3, 5), 16);
+		const b = parseInt(bg.slice(5, 7), 16);
+		ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.9)`;
 		ctx.fillRect(
 			x - padding,
 			y - textHeight - padding,

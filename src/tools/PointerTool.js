@@ -442,7 +442,20 @@ export class PointerTool extends Tool
 				// Don't change selection - point drag will be handled by move logic
 				stage.render();
 			} else if(shapeAlreadySelected && !clickingOnPOI){
-				// Clicking on an already-selected shape (not on a POI) - maintain selection for drag
+				// Clicking on an already-selected shape (not on a POI)
+				if(stage.shiftKey){
+					// Shift+click on selected shape - deselect it
+					if(shape.groupId){
+						const rootId = data.getRootGroupId(shape.groupId);
+						const groupShapes = data.getGroupShapes(rootId);
+						for(const s of groupShapes){
+							s.selected = false;
+						}
+					} else {
+						shape.selected = false;
+					}
+				}
+				// Otherwise maintain selection for drag
 				stage.render();
 			} else if(stage.shiftKey){
 				// Shift+click toggles selection (including group)
