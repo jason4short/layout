@@ -751,7 +751,12 @@ class Data
 			// Special handling for symbol instances - only select if entirely contained
 			if(shape.geometry === Shape.SYMBOL){
 				if(rect.containsRect(shape.bounds)){
-					shape.selected = true;
+					if(shiftKey){
+						// Toggle selection
+						shape.selected = !shape.selected;
+					} else {
+						shape.selected = true;
+					}
 				}
 				continue;
 			}
@@ -786,20 +791,47 @@ class Data
 
 			// Check if ALL selectable points are inside
 			if(insideIndices.length === selectableIndices.length && selectableIndices.length > 0){
-				// ALL selectable points inside → select whole shape
-				shape.selected = true;
-				this.selectedPoints.delete(shape);
-
-			} else if(insideIndices.length > 0){
-				// SOME points inside → partial point selection
-				shape.selected = false;
-
-				if(!this.selectedPoints.has(shape)){
-					this.selectedPoints.set(shape, new Set());
+				if(shiftKey){
+					// Toggle whole shape selection
+					shape.selected = !shape.selected;
+					if(shape.selected){
+						this.selectedPoints.delete(shape);
+					}
+				} else {
+					// ALL selectable points inside → select whole shape
+					shape.selected = true;
+					this.selectedPoints.delete(shape);
 				}
 
-				for(const idx of insideIndices){
-					this.selectedPoints.get(shape).add(idx);
+			} else if(insideIndices.length > 0){
+				if(shiftKey){
+					// Toggle partial point selection
+					if(!this.selectedPoints.has(shape)){
+						this.selectedPoints.set(shape, new Set());
+					}
+					const pointSet = this.selectedPoints.get(shape);
+					for(const idx of insideIndices){
+						if(pointSet.has(idx)){
+							pointSet.delete(idx);
+						} else {
+							pointSet.add(idx);
+						}
+					}
+					// Clean up empty sets
+					if(pointSet.size === 0){
+						this.selectedPoints.delete(shape);
+					}
+				} else {
+					// SOME points inside → partial point selection
+					shape.selected = false;
+
+					if(!this.selectedPoints.has(shape)){
+						this.selectedPoints.set(shape, new Set());
+					}
+
+					for(const idx of insideIndices){
+						this.selectedPoints.get(shape).add(idx);
+					}
 				}
 			}
 		}

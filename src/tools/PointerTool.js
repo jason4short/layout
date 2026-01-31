@@ -393,7 +393,15 @@ export class PointerTool extends Tool
 
 			// If shape is already selected and clicking on a POI, allow point dragging
 			// (don't change selection - just let the drag happen)
-			if(shapeAlreadySelected && clickingOnPOI){
+			// Exception: Shift+click promotes partial selection to whole shape
+			const hasPartialSelection = data.getSelectedPoints().has(shape) && !shape.selected;
+
+			if(stage.shiftKey && hasPartialSelection){
+				// Shift+click on shape with partial point selection → promote to whole shape
+				data.selectedPoints.delete(shape);
+				shape.selected = true;
+				stage.render();
+			} else if(shapeAlreadySelected && clickingOnPOI){
 				// Don't change selection - point drag will be handled by move logic
 				stage.render();
 			} else if(shapeAlreadySelected && !clickingOnPOI){
