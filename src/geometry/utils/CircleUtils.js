@@ -201,6 +201,7 @@ export function getAngleToPoint(centerX, centerY, px, py) {
 /**
  * Get tangent angle (in degrees) at a point on a circle.
  * Tangent is perpendicular to the radius at that point.
+ * Returns angle in standard math convention (0°=right, 90°=up) for use with Guide.js.
  * @param {number} centerX - Circle center x
  * @param {number} centerY - Circle center y
  * @param {number} px - Point x on circle
@@ -208,7 +209,8 @@ export function getAngleToPoint(centerX, centerY, px, py) {
  * @returns {number} Tangent angle in degrees
  */
 export function getTangentAngle(centerX, centerY, px, py) {
-	const radiusAngle = Math.atan2(py - centerY, px - centerX);
+	// Negate Y to convert from canvas coords (Y-down) to math coords (Y-up)
+	const radiusAngle = Math.atan2(centerY - py, px - centerX);
 	const tangentAngle = radiusAngle + Math.PI / 2;
 	return tangentAngle * (180 / Math.PI);
 }

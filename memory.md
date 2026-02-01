@@ -64,6 +64,9 @@ src/
 - Tool palette now hugs content instead of stretching full height
 - DA snap labels now use canvas background color instead of hardcoded white
 - Extended ParallelLineTool to support circles and arcs (renamed to "Offset" tool) - creates concentric copies with adjusted radius
+- Fixed `Circle.js:getTangentAngle` - removed incorrect special cases for cardinal points; now always delegates to CircleUtils.getTangentAngle
+- Fixed `CircleUtils.js:getTangentAngle` - negated Y in atan2 to convert from canvas coords (Y-down) to standard math coords (Y-up), matching Guide.js expectations and other shapes (Line, Ellipse, Spline)
+- Updated PointerTool: clicking on an already-selected shape (without dragging) now deselects it - true toggle behavior
 
 ---
 *Last updated: Jan 31, 2026*

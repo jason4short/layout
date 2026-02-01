@@ -54,6 +54,9 @@ export class PointerTool extends Tool
 // 		this.doubleClickThreshold = 300; // ms
 // 		this.doubleClickDistance = 5; // pixels
 
+		// Track if we clicked on an already-selected shape (for toggle on mouseUp)
+		this.clickedOnSelected	= null;
+
 		this.onMouseDown 		= this.onMouseDown.bind(this);
 		this.onMouseMove 		= this.onMouseMove.bind(this);
 		this.onMouseUp 			= this.onMouseUp.bind(this);
@@ -97,6 +100,9 @@ export class PointerTool extends Tool
 		// Paper state
 		this.paperTarget 			= null;
 		this.paperDragStart 		= null;
+
+		// Toggle tracking
+		this.clickedOnSelected		= null;
 
 		data.clearExcludeFromSnap();
 		data.resetSnaps();
@@ -440,11 +446,13 @@ export class PointerTool extends Tool
 				stage.render();
 			} else if(shapeAlreadySelected && clickingOnPOI){
 				// Don't change selection - point drag will be handled by move logic
+				// Track for toggle on mouseUp (if no drag occurs)
+				this.clickedOnSelected = shape;
 				stage.render();
 			} else if(shapeAlreadySelected && !clickingOnPOI){
 				// Clicking on an already-selected shape (not on a POI)
 				if(stage.shiftKey){
-					// Shift+click on selected shape - deselect it
+					// Shift+click on selected shape - deselect immediately
 					if(shape.groupId){
 						const rootId = data.getRootGroupId(shape.groupId);
 						const groupShapes = data.getGroupShapes(rootId);
@@ -454,8 +462,10 @@ export class PointerTool extends Tool
 					} else {
 						shape.selected = false;
 					}
+				} else {
+					// Track for toggle on mouseUp (if no drag occurs)
+					this.clickedOnSelected = shape;
 				}
-				// Otherwise maintain selection for drag
 				stage.render();
 			} else if(stage.shiftKey){
 				// Shift+click toggles selection (including group)
@@ -910,6 +920,19 @@ export class PointerTool extends Tool
 			// Finish marquee selection
 			data.selectByMarquee(this.marqueeRect, stage.shiftKey);
 			this.marqueeRect = null;
+
+		} else if(this.clickedOnSelected && !this.isDragging && !this.isMoving){
+			// Click (no drag) on already-selected shape - deselect it
+			const shape = this.clickedOnSelected;
+			if(shape.groupId){
+				const rootId = data.getRootGroupId(shape.groupId);
+				const groupShapes = data.getGroupShapes(rootId);
+				for(const s of groupShapes){
+					s.selected = false;
+				}
+			} else {
+				shape.selected = false;
+			}
 
 		} else if(this.dragStart && !this.isDragging && !this.isMoving && !this.moveTarget){
 			// Click on empty space (no shape) - deselect all and exit group editing

@@ -120,17 +120,11 @@ export class Circle extends Geometry
 	// Get tangent angle (in degrees) at a point on the circle
 	// Tangent is perpendicular to the radius at that point
 	getTangentAngle(point) {
-	
-		// if point eq a POI, return precomputed tangent
+		// Center has no tangent
 		if(point.x == this.x && point.y == this.y){
-			// center = no tangent
 			return null;
-		}else if (point.x == this.x){
-			return (point.y > this.y) ? 90:-90;
-		}else if (point.y == this.y){
-			return (point.x > this.x) ? 0:180;
-		}else 
-			return CircleUtils.getTangentAngle(this.x, this.y, point.x, point.y);
+		}
+		return CircleUtils.getTangentAngle(this.x, this.y, point.x, point.y);
 	}
 
 	// Translate the circle by offset
