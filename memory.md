@@ -74,6 +74,15 @@ src/
   - Reset button (↺) appears when a style has been overridden
   - Save/load in FileManager.js
   - Added `foreground` color to themes for DA snap labels
+  - Fixed Dimension.js to use theme dimension color instead of hardcoded #111111
+- Added font controls to Text tool:
+  - Created `textSchema` in InspectorSchemas.js with font family dropdown, size, bold/italic checkboxes
+  - Wired up in Text.js via getInspectorSchema()
+
+## Future Ideas
+- **Database storage** - Move from JSON files to DB backend (prerequisite for multiplayer)
+- **Text to outlines** - Convert text to geometry using opentype.js (~200KB library)
+- **Multiplayer** - Real-time collaboration (CRDTs, presence, sync)
 
 ---
 *Last updated: Jan 31, 2026*

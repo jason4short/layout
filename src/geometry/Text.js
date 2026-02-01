@@ -3,6 +3,7 @@ import {Point} from './Point.js';
 import * as TransformUtils from './utils/TransformUtils.js';
 import stage from '../core/Stage.js';
 import {serializeText, deserializeText} from './GeometrySerializers.js';
+import {textSchema} from './InspectorSchemas.js';
 
 export class Text extends Geometry
 {
@@ -243,6 +244,10 @@ export class Text extends Geometry
 		if(this.alignment === 'left') this.alignment = 'right';
 		else if(this.alignment === 'right') this.alignment = 'left';
 		this.update();
+	}
+
+	getInspectorSchema() {
+		return textSchema(this);
 	}
 
 	// JSON serialization

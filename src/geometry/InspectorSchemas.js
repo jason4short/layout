@@ -346,6 +346,69 @@ export function paperSchema(shape) {
 	};
 }
 
+export function textSchema(shape) {
+	const fontOptions = [
+		{ value: 'Arial', label: 'Arial' },
+		{ value: 'Helvetica', label: 'Helvetica' },
+		{ value: 'Times New Roman', label: 'Times New Roman' },
+		{ value: 'Georgia', label: 'Georgia' },
+		{ value: 'Courier New', label: 'Courier New' },
+		{ value: 'Verdana', label: 'Verdana' },
+		{ value: 'Tahoma', label: 'Tahoma' },
+		{ value: 'Trebuchet MS', label: 'Trebuchet MS' },
+		{ value: 'Impact', label: 'Impact' },
+		{ value: 'Comic Sans MS', label: 'Comic Sans MS' }
+	];
+
+	return {
+		name: 'Text',
+		sections: [
+			{
+				title: 'Font',
+				fields: [
+					{
+						key: 'fontFamily',
+						label: 'Family',
+						type: 'select',
+						options: fontOptions,
+						get: () => shape.fontFamily,
+						set: (v) => { shape.fontFamily = v; shape.update(); }
+					},
+					{
+						key: 'fontSize',
+						label: 'Size',
+						type: 'number',
+						get: () => shape.fontSize,
+						set: (v) => { shape.fontSize = v; shape.update(); },
+						min: 1,
+						max: 500,
+						step: 1,
+						precision: 0
+					},
+					{
+						key: 'fontWeight',
+						label: 'Bold',
+						type: 'checkbox',
+						get: () => shape.fontWeight === 'bold',
+						set: (v) => { shape.fontWeight = v ? 'bold' : 'normal'; shape.update(); }
+					},
+					{
+						key: 'fontStyle',
+						label: 'Italic',
+						type: 'checkbox',
+						get: () => shape.fontStyle === 'italic',
+						set: (v) => { shape.fontStyle = v ? 'italic' : 'normal'; shape.update(); }
+					}
+				]
+			},
+			{
+				title: 'Position',
+				fields: positionFields()
+			}
+		]
+	};
+}
+
 export function dimensionSchema(shape) {
 	return {
 		name: 'Dimension',
