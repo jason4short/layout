@@ -3,6 +3,7 @@ import stage from './Stage.js';
 import { Shape, PenStyle } from '../geometry/Geometry.js';
 import units from './Units.js';
 import { groupSchema } from '../geometry/InspectorSchemas.js';
+import { ThemePresets } from './Renderer.js';
 
 class Inspector {
 	constructor() {
@@ -181,9 +182,19 @@ class Inspector {
 		let html = '<div class="inspector-panel">';
 		html += '<div class="inspector-header">Document</div>';
 
+		// Theme selector
 		html += `
 			<div class="inspector-section">
-				<div class="inspector-section-title">Canvas</div>
+				<div class="inspector-section-title">Theme</div>
+				<div class="inspector-row">
+					<label>Preset</label>
+					<select id="prop-theme">`;
+		for (const [id, theme] of Object.entries(ThemePresets)) {
+			const selected = data.theme === id ? 'selected' : '';
+			html += `<option value="${id}" ${selected}>${theme.name}</option>`;
+		}
+		html += `</select>
+				</div>
 				<div class="inspector-row">
 					<label>Background</label>
 					<input type="color" id="prop-backgroundColor" value="${data.backgroundColor}">
@@ -191,10 +202,50 @@ class Inspector {
 			</div>
 		`;
 
+		// Pen style colors
+		html += `
+			<div class="inspector-section">
+				<div class="inspector-section-title">Pen Style Colors</div>`;
+
+		const penStyleLabels = {
+			[PenStyle.VISIBLE]: 'Visible',
+			[PenStyle.CONSTRUCTION]: 'Construction',
+			[PenStyle.CENTERLINE]: 'Centerline',
+			[PenStyle.HIDDEN]: 'Hidden',
+			[PenStyle.PHANTOM]: 'Phantom',
+			[PenStyle.OUTLINE]: 'Outline',
+			[PenStyle.DIMENSION]: 'Dimension'
+		};
+
+		for (const [style, label] of Object.entries(penStyleLabels)) {
+			const theme = ThemePresets[data.theme] || ThemePresets.light;
+			const themeColor = theme.colors[style];
+			const currentColor = data.penStyleOverrides[style] || themeColor;
+			const isOverridden = data.penStyleOverrides[style] ? true : false;
+
+			html += `
+				<div class="inspector-row">
+					<label>${label}</label>
+					<input type="color" id="prop-penStyle-${style}" value="${currentColor}"
+						data-style="${style}" data-theme-color="${themeColor}">
+					${isOverridden ? `<button class="reset-btn" data-style="${style}" title="Reset to theme">↺</button>` : ''}
+				</div>`;
+		}
+		html += '</div>';
+
 		html += '</div>';
 		this.container.innerHTML = html;
 
-		// Attach listener
+		// Attach listeners
+		const themeEl = document.getElementById('prop-theme');
+		if (themeEl) {
+			themeEl.addEventListener('change', (e) => {
+				data.applyTheme(e.target.value, ThemePresets);
+				this.buildDocumentPanel();  // Rebuild to update colors
+				stage.render();
+			});
+		}
+
 		const bgColorEl = document.getElementById('prop-backgroundColor');
 		if (bgColorEl) {
 			bgColorEl.addEventListener('input', (e) => {
@@ -202,6 +253,27 @@ class Inspector {
 				stage.render();
 			});
 		}
+
+		// Pen style color pickers
+		for (const style of Object.keys(penStyleLabels)) {
+			const colorEl = document.getElementById(`prop-penStyle-${style}`);
+			if (colorEl) {
+				colorEl.addEventListener('input', (e) => {
+					data.setPenStyleOverride(style, e.target.value);
+					stage.render();
+				});
+			}
+		}
+
+		// Reset buttons
+		this.container.querySelectorAll('.reset-btn').forEach(btn => {
+			btn.addEventListener('click', (e) => {
+				const style = e.target.dataset.style;
+				data.clearPenStyleOverride(style);
+				this.buildDocumentPanel();  // Rebuild to update UI
+				stage.render();
+			});
+		});
 	}
 
 	buildPanel(shape) {

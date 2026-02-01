@@ -60,7 +60,9 @@ class FileManager
 			constructions: constructions,
 			groups: groups,
 			colorPalette: data.colorPalette,
-			backgroundColor: data.backgroundColor
+			backgroundColor: data.backgroundColor,
+			theme: data.theme,
+			penStyleOverrides: data.penStyleOverrides
 		};
 	}
 
@@ -118,6 +120,14 @@ class FileManager
 		// Restore background color
 		if(json.backgroundColor){
 			data.backgroundColor = json.backgroundColor;
+		}
+
+		// Restore theme settings
+		if(json.theme){
+			data.theme = json.theme;
+		}
+		if(json.penStyleOverrides){
+			data.penStyleOverrides = json.penStyleOverrides;
 		}
 
 		// Recreate shapes - track old ID → new ID mapping for references

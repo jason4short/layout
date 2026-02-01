@@ -6,6 +6,52 @@ import toolManager from '../tools/ToolManager.js';
 // Cache for frame transforms during render
 let frameTransformCache = new Map();
 
+// Theme presets: background + pen style colors + UI colors
+export const ThemePresets = {
+	light: {
+		name: 'Light',
+		background: '#E5E5E5',
+		foreground: '#333333',
+		colors: {
+			[PenStyle.VISIBLE]:      '#111111',
+			[PenStyle.CONSTRUCTION]: '#B400F5',
+			[PenStyle.CENTERLINE]:   '#00CC00',
+			[PenStyle.HIDDEN]:       '#666666',
+			[PenStyle.PHANTOM]:      '#888888',
+			[PenStyle.OUTLINE]:      '#000000',
+			[PenStyle.DIMENSION]:    '#0000FF'
+		}
+	},
+	dark: {
+		name: 'Dark',
+		background: '#1E1E1E',
+		foreground: '#EEEEEE',
+		colors: {
+			[PenStyle.VISIBLE]:      '#DDDDDD',
+			[PenStyle.CONSTRUCTION]: '#E066FF',
+			[PenStyle.CENTERLINE]:   '#33FF66',
+			[PenStyle.HIDDEN]:       '#888888',
+			[PenStyle.PHANTOM]:      '#AAAAAA',
+			[PenStyle.OUTLINE]:      '#FFFFFF',
+			[PenStyle.DIMENSION]:    '#66AAFF'
+		}
+	},
+	blueprint: {
+		name: 'Blueprint',
+		background: '#0A2463',
+		foreground: '#FFFFFF',
+		colors: {
+			[PenStyle.VISIBLE]:      '#FFFFFF',
+			[PenStyle.CONSTRUCTION]: '#87CEEB',
+			[PenStyle.CENTERLINE]:   '#90EE90',
+			[PenStyle.HIDDEN]:       '#B0C4DE',
+			[PenStyle.PHANTOM]:      '#ADD8E6',
+			[PenStyle.OUTLINE]:      '#FFFFFF',
+			[PenStyle.DIMENSION]:    '#FFD700'
+		}
+	}
+};
+
 export class Renderer
 {
 
@@ -15,16 +61,43 @@ export class Renderer
 		this.zoomRect = null;    // Set by StrokeTool during zoom gesture
 		this.textCursorInfo = null; // Updated via events from TextTool
 
-		// Pen style definitions: [color, dashPattern, lineWidth]
-		this.penStyles = {
-			[PenStyle.VISIBLE]:      { color: '#111111', dash: [],           width: 0.5 },
-			[PenStyle.CONSTRUCTION]: { color: '#B400F5', dash: [1, 4],       width: 0.5 },
-			[PenStyle.CENTERLINE]:   { color: '#00CC00', dash: [12, 3, 3, 3], width: 0.5 },
-			[PenStyle.HIDDEN]:       { color: '#666666', dash: [6, 3],       width: 0.5 },
-			[PenStyle.PHANTOM]:      { color: '#888888', dash: [12, 3, 2, 3, 2, 3], width: 0.5 },
-			[PenStyle.OUTLINE]:      { color: '#000000', dash: [],           width: 1.5 },
-			[PenStyle.DIMENSION]:    { color: '#0000FF', dash: [],           width: 0.5 }
+		// Pen style definitions: dash patterns and widths (colors come from theme)
+		this.penStyleDefs = {
+			[PenStyle.VISIBLE]:      { dash: [],                   width: 0.5 },
+			[PenStyle.CONSTRUCTION]: { dash: [1, 4],               width: 0.5 },
+			[PenStyle.CENTERLINE]:   { dash: [12, 3, 3, 3],        width: 0.5 },
+			[PenStyle.HIDDEN]:       { dash: [6, 3],               width: 0.5 },
+			[PenStyle.PHANTOM]:      { dash: [12, 3, 2, 3, 2, 3],  width: 0.5 },
+			[PenStyle.OUTLINE]:      { dash: [],                   width: 1.5 },
+			[PenStyle.DIMENSION]:    { dash: [],                   width: 0.5 }
 		};
+	}
+
+	// Get effective color for a pen style (theme + overrides)
+	getPenStyleColor(penStyle) {
+		// Check for user override first
+		if (data.penStyleOverrides && data.penStyleOverrides[penStyle]) {
+			return data.penStyleOverrides[penStyle];
+		}
+		// Fall back to theme
+		const theme = ThemePresets[data.theme] || ThemePresets.light;
+		return theme.colors[penStyle] || '#000000';
+	}
+
+	// Get full pen style (color + dash + width)
+	getPenStyle(penStyle) {
+		const def = this.penStyleDefs[penStyle] || this.penStyleDefs[PenStyle.VISIBLE];
+		return {
+			color: this.getPenStyleColor(penStyle),
+			dash: def.dash,
+			width: def.width
+		};
+	}
+
+	// Get foreground/text color from theme
+	getForegroundColor() {
+		const theme = ThemePresets[data.theme] || ThemePresets.light;
+		return theme.foreground;
 	}
 
 	init(){
@@ -53,7 +126,7 @@ export class Renderer
 
 		// Special handling for construction geometry type (infinite construction lines)
 		if(shape.type === Shape.CONSTRUCTION) {
-			const style = this.penStyles[PenStyle.CONSTRUCTION];
+			const style = this.getPenStyle(PenStyle.CONSTRUCTION);
 			ctx.strokeStyle = style.color;
 			ctx.lineWidth = style.width;
 			ctx.setLineDash(style.dash);
@@ -74,7 +147,7 @@ export class Renderer
 
 		// Apply pen style
 		const penStyle 		= shape.penStyle || PenStyle.VISIBLE;
-		const style			= this.penStyles[penStyle] || this.penStyles[PenStyle.VISIBLE];
+		const style			= this.getPenStyle(penStyle);
 
 		// Use color token if assigned, otherwise use pen style default
 		if (shape.colorToken) {
@@ -252,7 +325,7 @@ export class Renderer
 		const s = this.toScreen(data.snapPoint.x, data.snapPoint.y);
 		const cs = 3; // crosshair size in screen pixels
 
-		ctx.strokeStyle = '#000';
+		ctx.strokeStyle = this.getForegroundColor();
 		ctx.lineWidth = 1;
 		ctx.beginPath(); ctx.moveTo(s.x + cs, s.y + cs); ctx.lineTo(s.x - cs, s.y - cs); ctx.stroke();
 		ctx.beginPath(); ctx.moveTo(s.x - cs, s.y + cs); ctx.lineTo(s.x + cs, s.y - cs); ctx.stroke();
@@ -311,8 +384,8 @@ export class Renderer
 			textHeight + padding * 2
 		);
 
-		// Draw text
-		ctx.fillStyle = '#333';
+		// Draw text using theme foreground color
+		ctx.fillStyle = this.getForegroundColor();
 		ctx.fillText(labelText, x, y);
 	}
 

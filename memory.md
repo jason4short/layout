@@ -67,6 +67,13 @@ src/
 - Fixed `Circle.js:getTangentAngle` - removed incorrect special cases for cardinal points; now always delegates to CircleUtils.getTangentAngle
 - Fixed `CircleUtils.js:getTangentAngle` - negated Y in atan2 to convert from canvas coords (Y-down) to standard math coords (Y-up), matching Guide.js expectations and other shapes (Line, Ellipse, Spline)
 - Updated PointerTool: clicking on an already-selected shape (without dragging) now deselects it - true toggle behavior
+- Added color theme system:
+  - `ThemePresets` in Renderer.js (Light, Dark, Blueprint)
+  - `data.theme` and `data.penStyleOverrides` for storage
+  - Theme dropdown + per-style color pickers in Document panel (Inspector.js)
+  - Reset button (↺) appears when a style has been overridden
+  - Save/load in FileManager.js
+  - Added `foreground` color to themes for DA snap labels
 
 ---
 *Last updated: Jan 31, 2026*

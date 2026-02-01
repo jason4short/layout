@@ -110,6 +110,8 @@ class Data
 
 		// Document settings
 		this.backgroundColor = '#E5E5E5';  // Canvas background color
+		this.theme = 'light';              // Current theme preset
+		this.penStyleOverrides = {};       // Per-style color overrides
 
 		// This is a singleton class
         return Data.instance;
@@ -1386,6 +1388,26 @@ class Data
 			value: t.id,
 			label: t.name
 		}));
+	}
+
+	// Apply a theme preset (sets background and clears overrides)
+	applyTheme(themeId, ThemePresets) {
+		const theme = ThemePresets[themeId];
+		if (!theme) return;
+
+		this.theme = themeId;
+		this.backgroundColor = theme.background;
+		this.penStyleOverrides = {};  // Clear overrides when switching themes
+	}
+
+	// Set a per-style color override
+	setPenStyleOverride(penStyle, color) {
+		this.penStyleOverrides[penStyle] = color;
+	}
+
+	// Clear a per-style override (revert to theme default)
+	clearPenStyleOverride(penStyle) {
+		delete this.penStyleOverrides[penStyle];
 	}
 
 
