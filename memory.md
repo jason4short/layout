@@ -79,10 +79,22 @@ src/
   - Created `textSchema` in InspectorSchemas.js with font family dropdown, size, bold/italic checkboxes
   - Wired up in Text.js via getInspectorSchema()
 
+### Feb 1, 2026
+- Added Outline Text tool for laser cutting:
+  - `FontManager.js` - loads fonts from Google Fonts CDN, supports user uploads
+  - `OutlineText.js` - geometry class that renders text as vector paths using opentype.js
+  - `OutlineTextTool.js` - click to place, edit in properties panel
+  - Properties: text content, font family, size, bold
+  - Break Apart button converts to editable Splines/Lines
+  - Added opentype.js via CDN
+  - Fixed Y-axis rendering: opentype uses Y-up, canvas uses Y-down
+    - draw() uses `ctx.scale(scale, -scale)` transform for proper flip
+    - breakApart() uses `this.y - cmd.y` to convert coordinates
+  - Added 'string' field type to Inspector.js for text input
+
 ## Future Ideas
 - **Database storage** - Move from JSON files to DB backend (prerequisite for multiplayer)
-- **Text to outlines** - Convert text to geometry using opentype.js (~200KB library)
 - **Multiplayer** - Real-time collaboration (CRDTs, presence, sync)
 
 ---
-*Last updated: Jan 31, 2026*
+*Last updated: Feb 1, 2026*

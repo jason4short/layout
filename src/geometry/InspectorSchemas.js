@@ -8,8 +8,11 @@ import { PaperSizes } from './Paper.js';
 import data from '../data/Data.js';
 import stage from '../core/Stage.js';
 import undoManager from '../core/UndoManager.js';
-import { DeleteShapesCommand, AddShapesCommand, ApplyLayoutCommand } from '../core/Commands.js';
+import { DeleteShapesCommand, AddShapesCommand, ApplyLayoutCommand, BreakApartCommand } from '../core/Commands.js';
 import { AutoLayoutFrame } from './AutoLayoutFrame.js';
+import fontManager from '../core/FontManager.js';
+// Note: Cannot import Inspector here due to circular dependency
+// Inspector imports groupSchema from this file
 
 // Common field templates
 const positionFields = (prefix = '') => [
@@ -404,6 +407,124 @@ export function textSchema(shape) {
 			{
 				title: 'Position',
 				fields: positionFields()
+			}
+		]
+	};
+}
+
+export function outlineTextSchema(shape) {
+	const fontOptions = fontManager.getAvailableFonts().map(name => ({
+		value: name,
+		label: name
+	}));
+
+	return {
+		name: 'Outline Text',
+		sections: [
+			{
+				title: 'Text',
+				fields: [
+					{
+						key: 'text',
+						label: 'Content',
+						type: 'string',
+						get: () => shape.text,
+						set: (v) => {
+							shape.text = v;
+							shape.invalidateCache();
+							shape.update();
+						}
+					}
+				]
+			},
+			{
+				title: 'Font',
+				fields: [
+					{
+						key: 'fontFamily',
+						label: 'Family',
+						type: 'select',
+						options: fontOptions,
+						get: () => shape.fontFamily,
+						set: (v) => {
+							shape.fontFamily = v;
+							shape.invalidateCache();
+							shape.loadFont();
+						}
+					},
+					{
+						key: 'fontSize',
+						label: 'Size',
+						type: 'number',
+						get: () => shape.fontSize,
+						set: (v) => {
+							shape.fontSize = v;
+							shape.invalidateCache();
+							shape.update();
+						},
+						min: 1,
+						max: 500,
+						step: 1,
+						precision: 0
+					},
+					{
+						key: 'fontWeight',
+						label: 'Bold',
+						type: 'checkbox',
+						get: () => shape.fontWeight === 'bold',
+						set: (v) => {
+							shape.fontWeight = v ? 'bold' : 'normal';
+							shape.invalidateCache();
+							shape.loadFont();
+						}
+					},
+					{
+						key: 'uploadFont',
+						label: 'Upload Font...',
+						type: 'button',
+						action: async () => {
+							const input = document.createElement('input');
+							input.type = 'file';
+							input.accept = '.ttf,.otf,.woff';
+							input.onchange = async (e) => {
+								const file = e.target.files[0];
+								if (!file) return;
+								try {
+									const result = await fontManager.loadFontFromFile(file);
+									shape.fontFamily = result.name;
+									shape.invalidateCache();
+									shape.loadFont();
+									// Dynamic import to avoid circular dependency
+									const { default: inspector } = await import('../core/Inspector.js');
+									inspector.update();
+									stage.render();
+								} catch (err) {
+									console.error('Failed to load font:', err);
+									alert('Failed to load font: ' + err.message);
+								}
+							};
+							input.click();
+						}
+					}
+				]
+			},
+			{
+				title: 'Position',
+				fields: positionFields()
+			},
+			{
+				title: 'Actions',
+				fields: [
+					{
+						key: 'breakApart',
+						label: 'Break Apart',
+						type: 'button',
+						action: (outlineText) => {
+							undoManager.execute(new BreakApartCommand(outlineText));
+							stage.render();
+						}
+					}
+				]
 			}
 		]
 	};

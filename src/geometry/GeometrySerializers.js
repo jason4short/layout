@@ -300,6 +300,35 @@ export function deserializeText(data, TextClass, PenStyle) {
 	return text;
 }
 
+// ============ Outline Text ============
+
+export function serializeOutlineText(shape) {
+	return {
+		...serializeBase(shape),
+		x: shape.x,
+		y: shape.y,
+		text: shape.text,
+		fontSize: shape.fontSize,
+		fontFamily: shape.fontFamily,
+		fontWeight: shape.fontWeight,
+		fontStyle: shape.fontStyle
+	};
+}
+
+export function deserializeOutlineText(data, OutlineTextClass) {
+	const outlineText = new OutlineTextClass([
+		data.x, data.y,
+		data.text,
+		data.fontSize,
+		data.fontFamily
+	]);
+	outlineText.fontWeight = data.fontWeight || 'normal';
+	outlineText.fontStyle = data.fontStyle || 'normal';
+	outlineText.penStyle = data.penStyle || 'visible';
+	if (data.colorToken) outlineText.colorToken = data.colorToken;
+	return outlineText;
+}
+
 // ============ Paper ============
 
 export function serializePaper(shape) {

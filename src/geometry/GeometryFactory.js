@@ -16,6 +16,7 @@ import {Dimension} 			from './Dimension.js';
 import {RadialDimension} 	from './RadialDimension.js';
 import {AngleDimension} 	from './AngleDimension.js';
 import {Text} 				from './Text.js';
+import {OutlineText} 		from './OutlineText.js';
 import {Paper} 				from './Paper.js';
 import {Frame} 				from './Frame.js';
 import {SymbolInstance} 	from './Symbol.js';
@@ -43,6 +44,7 @@ class GeometryFactory {
 		this.register(Shape.RADIAL_DIMENSION, 	RadialDimension);
 		this.register(Shape.ANGLE_DIMENSION, 	AngleDimension);
 		this.register(Shape.TEXT, 				Text);
+		this.register(Shape.OUTLINE_TEXT, 		OutlineText);
 		this.register(Shape.PAPER, 				Paper);
 		this.register(Shape.FRAME, 				Frame);
 		this.register(Shape.SYMBOL, 			SymbolInstance);

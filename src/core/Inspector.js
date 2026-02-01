@@ -17,6 +17,7 @@ class Inspector {
 		this.lastMultiCount = 0;
 		this.currentGroupId = null; // Track when showing group inspector
 		this.showingDocumentPanel = false;
+		this.currentTool = null; // Track when showing tool inspector
 
 		Inspector.instance = this;
 		return this;
@@ -104,6 +105,29 @@ class Inspector {
 		return null;
 	}
 
+	/**
+	 * Show tool properties panel (called when a tool with properties is activated)
+	 */
+	showToolPanel(tool) {
+		if (!this.container) return;
+		if (!tool || !tool.getInspectorSchema) return;
+
+		this.currentTool = tool;
+		this.currentShape = null;
+		this.currentSchema = tool.getInspectorSchema();
+		this.currentGroupId = null;
+		this.showingDocumentPanel = false;
+
+		this.buildToolPanel(tool);
+	}
+
+	/**
+	 * Clear tool panel (called when tool is deactivated)
+	 */
+	clearToolPanel() {
+		this.currentTool = null;
+	}
+
 	// Called when selection changes
 	update() {
 		if (!this.container) return;
@@ -111,6 +135,11 @@ class Inspector {
 		const selected = data.getSelected();
 
 		if (selected.length === 0) {
+			// If a tool with properties is active, show its panel
+			if (this.currentTool && this.currentTool.getInspectorSchema) {
+				this.showToolPanel(this.currentTool);
+				return;
+			}
 			if (!this.showingDocumentPanel) {
 				this.currentShape = null;
 				this.currentSchema = null;
@@ -120,6 +149,9 @@ class Inspector {
 			}
 			return;
 		}
+
+		// Selection exists, clear tool panel tracking
+		this.currentTool = null;
 
 		this.showingDocumentPanel = false;
 
@@ -274,6 +306,140 @@ class Inspector {
 				stage.render();
 			});
 		});
+	}
+
+	buildToolPanel(tool) {
+		const schema = this.currentSchema;
+		if (!schema) return;
+
+		let html = '<div class="inspector-panel">';
+
+		// Header with tool name
+		html += `<div class="inspector-header">${schema.name}</div>`;
+
+		// Schema-driven fields
+		if (schema.sections) {
+			for (const section of schema.sections) {
+				html += this.buildToolSection(section, tool);
+			}
+		}
+
+		html += '</div>';
+		this.container.innerHTML = html;
+
+		// Attach event listeners
+		this.attachToolListeners(tool, schema);
+	}
+
+	buildToolSection(section, tool) {
+		return this.buildSectionHtml(section, field => this.buildToolField(field, tool));
+	}
+
+	buildToolField(field, tool) {
+		const value = field.get ? field.get() : tool[field.key];
+		const displayValue = this.formatDisplayValue(value, field);
+
+		if (field.type === 'string') {
+			return `<div class="inspector-row">
+				<label>${field.label}</label>
+				<input type="text" id="prop-${field.key}" value="${displayValue}">
+			</div>`;
+		}
+
+		if (field.type === 'number') {
+			const attrs = [
+				`type="number"`,
+				`id="prop-${field.key}"`,
+				`value="${displayValue}"`,
+				field.min !== undefined ? `min="${field.min}"` : '',
+				field.max !== undefined ? `max="${field.max}"` : ''
+			].filter(Boolean).join(' ');
+
+			return `<div class="inspector-row">
+				<label>${field.label}</label>
+				<input ${attrs}>
+			</div>`;
+		}
+
+		if (field.type === 'select' && field.options) {
+			const optionsHtml = this.buildSelectOptions(field.options, value);
+			return `<div class="inspector-row">
+				<label>${field.label}</label>
+				<select id="prop-${field.key}">${optionsHtml}</select>
+			</div>`;
+		}
+
+		if (field.type === 'checkbox') {
+			const checked = value ? 'checked' : '';
+			return `<div class="inspector-row inspector-checkbox-row">
+				<label>
+					<input type="checkbox" id="prop-${field.key}" ${checked}>
+					${field.label}
+				</label>
+			</div>`;
+		}
+
+		if (field.type === 'button') {
+			return `<div class="inspector-row inspector-button-row">
+				<button id="prop-${field.key}" class="inspector-button">${field.label}</button>
+			</div>`;
+		}
+
+		return '';
+	}
+
+	attachToolListeners(tool, schema) {
+		if (!schema || !schema.sections) return;
+
+		for (const section of schema.sections) {
+			for (const field of section.fields) {
+				const el = document.getElementById(`prop-${field.key}`);
+				if (!el) continue;
+
+				if (field.type === 'button' && field.action) {
+					el.addEventListener('click', () => {
+						field.action();
+					});
+				} else if (field.type === 'select' || field.type === 'string') {
+					el.addEventListener('change', (e) => {
+						if (field.set) {
+							field.set(e.target.value);
+						} else {
+							tool[field.key] = e.target.value;
+						}
+					});
+					// Also listen for input on string fields for live updates
+					if (field.type === 'string') {
+						el.addEventListener('input', (e) => {
+							if (field.set) {
+								field.set(e.target.value);
+							} else {
+								tool[field.key] = e.target.value;
+							}
+						});
+					}
+				} else if (field.type === 'number') {
+					el.addEventListener('input', (e) => {
+						const numValue = parseFloat(e.target.value);
+						if (!isNaN(numValue)) {
+							if (field.set) {
+								field.set(numValue);
+							} else {
+								tool[field.key] = numValue;
+							}
+						}
+					});
+				} else if (field.type === 'checkbox') {
+					el.addEventListener('change', (e) => {
+						if (field.set) {
+							field.set(e.target.checked);
+						} else {
+							tool[field.key] = e.target.checked;
+						}
+					});
+				}
+			}
+		}
 	}
 
 	buildPanel(shape) {
@@ -619,6 +785,13 @@ class Inspector {
 			</div>`;
 		}
 
+		if (field.type === 'string') {
+			return `<div class="inspector-row">
+				<label>${field.label}</label>
+				<input type="text" id="prop-${field.key}" value="${displayValue}">
+			</div>`;
+		}
+
 		return '';
 	}
 
@@ -633,8 +806,8 @@ class Inspector {
 		let finalValue;
 
 		// Parse value based on field type
-		if (field.type === 'select') {
-			// Select fields pass string value directly
+		if (field.type === 'select' || field.type === 'string') {
+			// Select and string fields pass value directly
 			finalValue = value;
 		} else if (field.type === 'length') {
 			// Use units parser for length fields (handles "1in", "25mm", "1 1/2"", etc.)

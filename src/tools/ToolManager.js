@@ -30,6 +30,7 @@ import { ImageTool } 					from "./ImageTool.js";
 import { DimensionTool } 				from "./DimensionTool.js";
 import { AngleDimensionTool } 			from "./AngleDimensionTool.js";
 import { TextTool } 					from "./TextTool.js";
+import { OutlineTextTool } 				from "./OutlineTextTool.js";
 import { PaperTool } 					from "./PaperTool.js";
 import { FrameTool } 					from "./FrameTool.js";
 import { BoardTool } 					from "./BoardTool.js";
@@ -82,6 +83,7 @@ class ToolManager extends EventDispatcher
 		this.dimensionTool				= new DimensionTool();
 		this.angleDimensionTool			= new AngleDimensionTool();
 		this.textTool					= new TextTool();
+		this.outlineTextTool			= new OutlineTextTool();
 		this.paperTool					= new PaperTool();
 		this.frameTool					= new FrameTool();
 		this.boardTool					= new BoardTool();
@@ -124,6 +126,7 @@ class ToolManager extends EventDispatcher
 			{ tool: this.dimensionTool, 			name: 'Dimension', shortcut: 'D', icon: 'dimension' },
 			{ tool: this.angleDimensionTool, 		name: 'Angle Dim', shortcut: null, icon: 'angle-dimension' },
 			{ tool: this.textTool, 					name: 'Text', shortcut: 'N', icon: 'text' },
+			{ tool: this.outlineTextTool, 			name: 'Outline Text', shortcut: null, icon: 'outline-text' },
 			{ category: 'Layout' },
 			{ tool: this.paperTool, 				name: 'Paper', shortcut: 'O', icon: 'paper' },
 			{ tool: this.frameTool, 				name: 'Frame', shortcut: 'Y', icon: 'frame' },
