@@ -474,6 +474,13 @@ export class Board extends Geometry {
 		return lines;
 	}
 
+	/**
+	 * Returns edge lines for intersection calculations.
+	 */
+	getIntersectionPrimitives() {
+		return this.createLines();
+	}
+
 	// For BreakApartCommand
 	breakApart() {
 		return this.createLines();

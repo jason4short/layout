@@ -248,6 +248,13 @@ export class Polygon extends Geometry {
 		return this.createLines();
 	}
 
+	/**
+	 * Returns edge lines for intersection calculations.
+	 */
+	getIntersectionPrimitives() {
+		return this.createLines();
+	}
+
 	toJSON() {
 		return serializePolygon(this);
 	}

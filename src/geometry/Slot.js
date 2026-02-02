@@ -475,6 +475,13 @@ export class Slot extends Geometry {
 		return this.createShapes();
 	}
 
+	/**
+	 * Returns edge shapes (lines and arcs) for intersection calculations.
+	 */
+	getIntersectionPrimitives() {
+		return this.createShapes();
+	}
+
 	toJSON() {
 		return {
 			geometry: this.geometry,

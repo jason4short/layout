@@ -134,6 +134,16 @@ export class Geometry
 	}
 
 	/**
+	 * Returns primitive shapes for intersection calculations.
+	 * Composite shapes (Board, Slot, Polygon) override this to return their edges.
+	 * Simple primitives (Line, Circle, Arc) return themselves.
+	 * @returns {Array} Array of primitive shapes to use for intersections
+	 */
+	getIntersectionPrimitives() {
+		return [this];
+	}
+
+	/**
 	 * Draw this shape to the canvas context.
 	 * Override in subclasses to implement shape-specific rendering.
 	 * @param {CanvasRenderingContext2D} ctx - The canvas context

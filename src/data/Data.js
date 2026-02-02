@@ -150,10 +150,20 @@ class Data
 		if(!shapeA.bounds.intersects(shapeB.bounds)){
 			return;
 		}
-		const points = this.intersections.intersect_shapes(shapeA, shapeB);
-		if(points && points.length){
-			for(const point of points){
-				this.registerIntersection(shapeA, shapeB, point);
+
+		// Expand composite shapes (Board, Slot, Polygon) into primitives
+		const primitivesA = shapeA.getIntersectionPrimitives();
+		const primitivesB = shapeB.getIntersectionPrimitives();
+
+		for(const primA of primitivesA){
+			for(const primB of primitivesB){
+				const points = this.intersections.intersect_shapes(primA, primB);
+				if(points && points.length){
+					for(const point of points){
+						// Register with original shapes, not primitives
+						this.registerIntersection(shapeA, shapeB, point);
+					}
+				}
 			}
 		}
 	}
@@ -274,20 +284,30 @@ class Data
 	findIntersections(newShape, intersectionArray){
 		// take the new shape and look across all shapes for intersections
 		// skip shapes that dont overlap bounds
-				
+
+		// Expand composite shapes (Board, Slot, Polygon) into primitives for intersection
+		const newPrimitives = newShape.getIntersectionPrimitives();
+
 		for(const shape of this.getShapesToIntersect())
 		{
 			const intersects = newShape.bounds.intersects(shape.bounds);
-			
+
 			if(intersects){
-				const intersectionPoints = this.intersections.intersect_shapes(newShape, shape);
-				
-				if(intersectionPoints && intersectionPoints.length){
-					intersectionArray.push(...intersectionPoints);
-				}					
+				// Expand the target shape into primitives
+				const targetPrimitives = shape.getIntersectionPrimitives();
+
+				// Check all primitive combinations
+				for(const newPrim of newPrimitives){
+					for(const targetPrim of targetPrimitives){
+						const intersectionPoints = this.intersections.intersect_shapes(newPrim, targetPrim);
+
+						if(intersectionPoints && intersectionPoints.length){
+							intersectionArray.push(...intersectionPoints);
+						}
+					}
+				}
 			}
 		}
-		//console.log("intersectionArray: "+intersectionArray.length)
 	}
 	
 	
@@ -319,26 +339,25 @@ class Data
 	findIntersectionsWithBoundaries(shape, boundaries)
 	{
 		const intersections = [];
-		for (const boundary of boundaries) {
-			// Expand primitives to their constituent shapes
-			let boundaryShapes;
-			if (typeof boundary.createLines === 'function') {
-				boundaryShapes = boundary.createLines();
-			} else if (typeof boundary.createShapes === 'function') {
-				boundaryShapes = boundary.createShapes();
-			} else {
-				boundaryShapes = [boundary];
-			}
 
-			// Find intersections with each constituent shape
-			for (const subShape of boundaryShapes) {
-				const points = this.intersections.intersect_shapes(shape, subShape);
-				if (points && points.length) {
-					intersections.push(...points);
+		// Expand the shape into primitives (for composite shapes like Board, Slot, Polygon)
+		const shapePrimitives = shape.getIntersectionPrimitives();
+
+		for (const boundary of boundaries) {
+			// Expand boundary into primitives
+			const boundaryPrimitives = boundary.getIntersectionPrimitives();
+
+			// Find intersections between all primitive combinations
+			for (const shapePrim of shapePrimitives) {
+				for (const boundaryPrim of boundaryPrimitives) {
+					const points = this.intersections.intersect_shapes(shapePrim, boundaryPrim);
+					if (points && points.length) {
+						intersections.push(...points);
+					}
 				}
 			}
 		}
-		// returns a array of points
+		// returns an array of points
 		return intersections;
 	}
 	
