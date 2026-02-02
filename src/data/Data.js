@@ -1264,7 +1264,12 @@ class Data
 		// Store symbols for selection box rendering (accessed by renderer)
 		this._symbolInstances = symbols;
 
-		return [...papers, ...frames, ...images, ...other, ...this.constructions, ...this.guides, ...this.shapePreviews].filter(Boolean);
+		// Combine all shapes, then partition so selected shapes render last (on top)
+		const allShapes = [...papers, ...frames, ...images, ...other, ...this.constructions, ...this.guides, ...this.shapePreviews].filter(Boolean);
+		const unselected = allShapes.filter(s => !s.selected);
+		const selected = allShapes.filter(s => s.selected);
+
+		return [...unselected, ...selected];
 	}
 
 	// Array of all intersection points we could snap to

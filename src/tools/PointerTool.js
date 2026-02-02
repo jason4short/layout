@@ -44,9 +44,9 @@ export class PointerTool extends Tool
 		this.clonedShapes		= []; // Shapes created during clone operation
 		this.doubleClick		= new DoubleClick();
 
-		// Paper drag state (handled separately from geometry)
-		this.paperTarget		= null;  // Paper being dragged
-		this.paperDragStart		= null;  // {screenX, screenY} when drag started 
+		// Label drag state (for Paper, Symbol, or any shape with hitTestLabel)
+		this.labelTarget		= null;  // Shape being dragged by its label
+		this.labelDragStart		= null;  // {screenX, screenY, origX, origY} when drag started
 
 		// Double-click tracking
 // 		this.lastClickTime		= 0;
@@ -97,9 +97,9 @@ export class PointerTool extends Tool
 		this.groupResize 			= null;
 		this.frameChildOriginals 	= null;
 
-		// Paper state
-		this.paperTarget 			= null;
-		this.paperDragStart 		= null;
+		// Label drag state
+		this.labelTarget 			= null;
+		this.labelDragStart 		= null;
 
 		// Toggle tracking
 		this.clickedOnSelected		= null;
@@ -109,17 +109,16 @@ export class PointerTool extends Tool
 		data.clearGuides();
 	}
 
-	// Check if screen coords hit a paper label
-	// Returns the Paper object if hit, null otherwise
-	getPaperAtScreen(screenX, screenY){
+	// Check if screen coords hit any shape's label (Paper, Symbol, etc.)
+	// Returns the shape if hit, null otherwise
+	getLabelTargetAtScreen(screenX, screenY){
 		for(const shape of data.shapes){
-			if(shape.geometry === Shape.PAPER && shape.hitTestLabel(screenX, screenY)){
+			if(shape.hitTestLabel && shape.hitTestLabel(screenX, screenY)){
 				return shape;
 			}
 		}
 		return null;
 	}
-
 
 	distanceTo(a, b){
 		return Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2));
@@ -321,18 +320,18 @@ export class PointerTool extends Tool
 		// clear any existing snaps
 		data.resetSnaps();
 
-		// Check for paper label click first (screen-space, not geometry)
-		const paper = this.getPaperAtScreen(e.screenX, e.screenY);
-		if(paper){
-			// Select only the paper, deselect everything else
+		// Check for label click (Paper, Symbol, etc. - screen-space, not geometry)
+		const labelTarget = this.getLabelTargetAtScreen(e.screenX, e.screenY);
+		if(labelTarget){
+			// Select only the target, deselect everything else
 			data.selectNone();
-			paper.selected = true;
-			this.paperTarget = paper;
-			this.paperDragStart = {
+			labelTarget.selected = true;
+			this.labelTarget = labelTarget;
+			this.labelDragStart = {
 				screenX: e.screenX,
 				screenY: e.screenY,
-				origX: paper.x,
-				origY: paper.y
+				origX: labelTarget.x,
+				origY: labelTarget.y
 			};
 			this.dragStart = { screenX: e.screenX, screenY: e.screenY };
 			stage.render();
@@ -530,20 +529,21 @@ export class PointerTool extends Tool
 	onMouseMove(e){
 		if(!this.dragStart) return;
 
-		// Handle paper dragging (screen-space, not geometry)
-		if(this.paperTarget){
-			const screenDx = e.screenX - this.paperDragStart.screenX;
-			const screenDy = e.screenY - this.paperDragStart.screenY;
+		// Handle label dragging (Paper, Symbol, etc. - screen-space, not geometry)
+		if(this.labelTarget){
+			const screenDx = e.screenX - this.labelDragStart.screenX;
+			const screenDy = e.screenY - this.labelDragStart.screenY;
 
 			// Convert screen delta to world delta
 			const worldDx = screenDx / stage.zoom;
 			const worldDy = screenDy / stage.zoom;
 
-			// Move paper directly
-			this.paperTarget.translate(worldDx, worldDy);
+			// Move target directly
+			this.labelTarget.translate(worldDx, worldDy);
 
-			// Update drag start for next frame
-			this.paperDragStart = { screenX: e.screenX, screenY: e.screenY };
+			// Update drag start for next frame (keep origX/origY for undo)
+			this.labelDragStart.screenX = e.screenX;
+			this.labelDragStart.screenY = e.screenY;
 
 			stage.render();
 			return;
@@ -808,22 +808,22 @@ export class PointerTool extends Tool
 			return;
 		}
 
-		// Handle paper drag completion
-		if(this.paperTarget){
-			const paper = this.paperTarget;
-			const origX = this.paperDragStart.origX;
-			const origY = this.paperDragStart.origY;
+		// Handle label drag completion (Paper, Symbol, etc.)
+		if(this.labelTarget){
+			const target = this.labelTarget;
+			const origX = this.labelDragStart.origX;
+			const origY = this.labelDragStart.origY;
 
 			// Only record undo if position changed
-			if(paper.x !== origX || paper.y !== origY){
+			if(target.x !== origX || target.y !== origY){
 				// Record move for undo using MoveCommand with index -1 (whole shape)
 				const moveData = [{
-					shape: paper,
+					shape: target,
 					index: -1,
 					oldX: origX,
 					oldY: origY,
-					newX: paper.x,
-					newY: paper.y
+					newX: target.x,
+					newY: target.y
 				}];
 				undoManager.record(new MoveCommand(moveData));
 			}

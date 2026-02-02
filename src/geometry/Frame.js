@@ -1,5 +1,4 @@
-import {Shape, Geometry, SnapType} from './Geometry.js';
-import {Point} from './Point.js';
+import {Shape, Geometry} from './Geometry.js';
 import {Transform} from './Transform.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
@@ -36,6 +35,9 @@ export class Frame extends Geometry {
 		// Parent frame for nested frames (future)
 		this.parent = null;
 
+		// Screen-space label bounds (updated during draw)
+		this.screenLabelBounds = null;
+
 		this.update();
 	}
 
@@ -51,6 +53,14 @@ export class Frame extends Geometry {
 		this.bounds.y = this.y;
 		this.bounds.width = this.width;
 		this.bounds.height = this.height;
+	}
+
+	// Hit test the label using screen coordinates
+	hitTestLabel(screenX, screenY) {
+		if (!this.screenLabelBounds) return false;
+		const b = this.screenLabelBounds;
+		return screenX >= b.x && screenX <= b.x + b.width &&
+		       screenY >= b.y && screenY <= b.y + b.height;
 	}
 
 	clone() {
@@ -141,36 +151,13 @@ export class Frame extends Geometry {
 		return this.transform.applyDelta(dx, dy);
 	}
 
-	// Only the label area is interactive - returns a single POI at label position
+	// Frame is not part of the snap system - returns empty array
 	getSnapPOIs() {
-		// Label is positioned at top-left, slightly above the frame
-		return [
-			{ x: this.x, y: this.y, type: SnapType.ENDPOINT }  // 0: label/top-left corner
-		];
+		return [];
 	}
 
+	// Frame is not part of the snap system - always returns null
 	getGeoSnap(mouse, mouseRect, pixelTolerance) {
-		// Only the label area is interactive
-		// Label is positioned above the frame's top-left corner
-		// Approximate label bounds in world coords (label is ~15px tall, variable width)
-		const labelHeight = pixelTolerance * 2;  // Use tolerance as rough world-space size
-		const labelWidth = pixelTolerance * 8;   // Approximate label width
-
-		const labelBounds = {
-			x: this.x,
-			y: this.y - labelHeight,
-			width: labelWidth,
-			height: labelHeight
-		};
-
-		// Check if mouse is in label area
-		if (mouse.x >= labelBounds.x && mouse.x <= labelBounds.x + labelBounds.width &&
-			mouse.y >= labelBounds.y && mouse.y <= labelBounds.y + labelBounds.height) {
-			const hitPoint = new Point(this.x, this.y);
-			hitPoint.distance = 0;
-			return hitPoint;
-		}
-
 		return null;
 	}
 
@@ -281,23 +268,37 @@ export class Frame extends Geometry {
 		ctx.setLineDash([]);
 		ctx.strokeRect(topLeft.x, topLeft.y, width, height);
 
-		// Label at top
+		// Label at top (styled like Paper for consistent drag behavior)
 		if (this.label) {
-			ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
-			ctx.textAlign = 'left';
-			ctx.textBaseline = 'bottom';
+			const LABEL_HEIGHT = 20;
+			const LABEL_PADDING = 6;
+			const LABEL_GAP = 4;
 
-			const labelX = topLeft.x + 4;
-			const labelY = topLeft.y - 4;
+			ctx.font = '12px sans-serif';
+			const metrics = ctx.measureText(this.label);
+			const labelWidth = metrics.width + LABEL_PADDING * 2;
+			const labelX = topLeft.x;
+			const labelY = topLeft.y - LABEL_GAP - LABEL_HEIGHT;
+
+			// Store screen-space label bounds for hit testing
+			this.screenLabelBounds = {
+				x: labelX,
+				y: labelY,
+				width: labelWidth,
+				height: LABEL_HEIGHT
+			};
 
 			// Label background
-			const metrics = ctx.measureText(this.label);
-			ctx.fillStyle = this.selected ? '#2563eb' : '#6b7280';
-			ctx.fillRect(labelX - 2, labelY - 12, metrics.width + 4, 14);
+			ctx.fillStyle = this.selected ? '#2563eb' : '#3b82f6';
+			ctx.beginPath();
+			ctx.roundRect(labelX, labelY, labelWidth, LABEL_HEIGHT, 3);
+			ctx.fill();
 
 			// Label text
 			ctx.fillStyle = '#ffffff';
-			ctx.fillText(this.label, labelX, labelY);
+			ctx.textBaseline = 'middle';
+			ctx.textAlign = 'left';
+			ctx.fillText(this.label, labelX + LABEL_PADDING, labelY + LABEL_HEIGHT / 2);
 		}
 	}
 

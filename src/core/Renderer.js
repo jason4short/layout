@@ -278,8 +278,13 @@ export class Renderer
 			}
 		}
 
-		// No bounding boxes for groups or symbol instances
-		// Instances are drawn via getShapesForRender() and show selection on their geometry
+		// Draw symbol instance labels (for selection/dragging)
+		// Instances are expanded in getShapesToRender() but we need to draw their labels
+		if (data._symbolInstances) {
+			for (const symbol of data._symbolInstances) {
+				symbol.draw(ctx, this);
+			}
+		}
 
 /* debugging - disabled for performance
 		// Draw snap point indicators

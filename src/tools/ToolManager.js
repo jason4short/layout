@@ -1,5 +1,6 @@
 import stage 							from '../core/Stage.js';
 import data 							from '../data/Data.js';
+import { Shape }						from '../geometry/Geometry.js';
 import undoManager						from '../core/UndoManager.js';
 import fileManager						from '../core/FileManager.js';
 import { AddShapeCommand, AddShapesCommand, GroupCommand, UngroupCommand, MoveCommand, DeleteShapesCommand, ConvertToSymbolCommand, ApplyLayoutCommand }	from '../core/Commands.js';
@@ -374,6 +375,11 @@ class ToolManager extends EventDispatcher
 					break;
 	
 				case 'v':
+					// Check if a single Frame is selected (paste into it)
+					const selected = data.getSelected();
+					const selectedFrame = selected.length === 1 && selected[0].geometry === Shape.FRAME
+						? selected[0] : null;
+
 					// Calculate view center in world coordinates
 					const centerX = stage.canvas.clientWidth / 2;
 					const centerY = stage.canvas.clientHeight / 2;
@@ -381,13 +387,21 @@ class ToolManager extends EventDispatcher
 
 					const shapesToPaste = data.preparePaste(worldCenter.x, worldCenter.y);
 					if(shapesToPaste.length > 0){
+						// Temporarily set activeFrameId so AddShapesCommand handles coord conversion
+						const prevActiveFrame = data.activeFrameId;
+						if (selectedFrame) {
+							data.activeFrameId = selectedFrame.id;
+						}
+
 						undoManager.execute(new AddShapesCommand(shapesToPaste));
-						// Select pasted shapes
-						data.selectNone();
+
+						// Restore previous activeFrameId
+						data.activeFrameId = prevActiveFrame;
+
+						// Select pasted shapes (keep frame selected too for continued pasting)
 						for(const shape of shapesToPaste){
 							shape.selected = true;
 						}
-						//console.log(`Pasted ${shapesToPaste.length} shape(s)`);
 						stage.render();
 					}
 					break;

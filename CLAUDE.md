@@ -91,6 +91,20 @@ src/
     - draw() uses `ctx.scale(scale, -scale)` transform for proper flip
     - breakApart() uses `this.y - cmd.y` to convert coordinates
   - Added 'string' field type to Inspector.js for text input
+- Selected geometry now renders on top of unselected (Data.js `getShapesToRender`)
+- Symbol instance improvements:
+  - Added blue draggable label (only visible when selected)
+  - `hitTestLabel()` and `screenLabelBounds` for screen-space hit testing
+  - Labels rendered via Renderer.js loop over `data._symbolInstances`
+- Frame improvements:
+  - Added blue draggable label matching Paper style
+  - `hitTestLabel()` and `screenLabelBounds` for screen-space hit testing
+  - Removed from snap system (like Paper) - `getSnapPOIs()` returns empty, `getGeoSnap()` returns null
+- Unified label drag system in PointerTool:
+  - Consolidated Paper/Symbol/Frame handling into single `labelTarget`/`labelDragStart` state
+  - `getLabelTargetAtScreen()` finds any shape with `hitTestLabel()` method
+  - Works automatically for any geometry that implements the label interface
+- Paste into Frame: Cmd+V with a Frame selected pastes shapes into that frame (converts to local coords, assigns frameId)
 
 ## Future Ideas
 - **Database storage** - Move from JSON files to DB backend (prerequisite for multiplayer)
