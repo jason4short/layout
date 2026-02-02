@@ -1,11 +1,7 @@
 import { Shape, Geometry, SnapType } from './Geometry.js';
 import { Rectangle } from './Rectangle.js';
+import * as LabelUtils from './utils/LabelUtils.js';
 import data from '../data/Data.js';
-
-// Label styling constants (screen pixels)
-const LABEL_HEIGHT = 20;
-const LABEL_PADDING = 6;
-const LABEL_GAP = 4;
 
 /**
  * Symbol Instance - a reference to a source Frame displayed at a different position.
@@ -102,52 +98,40 @@ export class SymbolInstance extends Geometry {
 		this.bounds.height = maxY - minY;
 	}
 
-	// Hit test the label using screen coordinates
-	// Returns true if screen point is inside the label
-	hitTestLabel(screenX, screenY) {
-		if (!this.screenLabelBounds) return false;
-		const b = this.screenLabelBounds;
-		return screenX >= b.x && screenX <= b.x + b.width &&
-		       screenY >= b.y && screenY <= b.y + b.height;
+	/**
+	 * Get the display label for this symbol instance.
+	 * Uses the source frame's label, or 'Instance' if no source frame.
+	 * @returns {string} Label text
+	 */
+	getLabel() {
+		const frame = this.getSourceFrame();
+		return frame ? frame.label : 'Instance';
 	}
 
-	// Draw the symbol label (only when selected)
-	draw(ctx, renderer) {
-		if (!this.selected) return;
+	/**
+	 * SymbolInstance is NOT a container - it references shapes from a source Frame.
+	 * The shapes are rendered at the instance's position but belong to the source Frame.
+	 * @returns {boolean} Always false
+	 */
+	isContainer() {
+		return false;
+	}
 
-		const frame = this.getSourceFrame();
-		const text = frame ? frame.label : 'Instance';
+	// Hit test the label using screen coordinates
+	hitTestLabel(screenX, screenY) {
+		return LabelUtils.hitTestLabel(this.screenLabelBounds, screenX, screenY);
+	}
+
+	// Draw the symbol label (when selected or part of selected group)
+	draw(ctx, renderer) {
+		const isSelected = this.selected || data.isGroupSelected(this.groupId);
+		if (!isSelected) return;
+
+		const text = this.getLabel();
 
 		// Calculate label position at top-right of bounds
 		const topRight = renderer.toScreen(this.bounds.x + this.bounds.width, this.bounds.y);
-
-		ctx.font = '12px sans-serif';
-		const textMetrics = ctx.measureText(text);
-		const textWidth = textMetrics.width;
-
-		const labelWidth = textWidth + LABEL_PADDING * 2;
-		const labelX = topRight.x - labelWidth;  // Align right edge to bounds right
-		const labelY = topRight.y - LABEL_GAP - LABEL_HEIGHT;
-
-		// Store screen-space label bounds for hit testing
-		this.screenLabelBounds = {
-			x: labelX,
-			y: labelY,
-			width: labelWidth,
-			height: LABEL_HEIGHT
-		};
-
-		// Label background
-		ctx.fillStyle = this.selected ? '#2563eb' : '#3b82f6';
-		ctx.beginPath();
-		ctx.roundRect(labelX, labelY, labelWidth, LABEL_HEIGHT, 3);
-		ctx.fill();
-
-		// Label text
-		ctx.fillStyle = '#FFFFFF';
-		ctx.textBaseline = 'middle';
-		ctx.textAlign = 'left';
-		ctx.fillText(text, labelX + LABEL_PADDING, labelY + LABEL_HEIGHT / 2);
+		this.screenLabelBounds = LabelUtils.drawLabel(ctx, text, topRight.x, topRight.y, isSelected, 'right');
 	}
 
 	clone() {

@@ -286,6 +286,41 @@ export class Renderer
 			}
 		}
 
+		// Draw active frame indicator (shows which frame new shapes will be added to)
+		if (data.activeFrameId) {
+			const activeFrame = data.getFrame(data.activeFrameId);
+			if (activeFrame) {
+				const topLeft = this.toScreen(activeFrame.x, activeFrame.y);
+				const width = this.toScreenScale(activeFrame.width);
+				const height = this.toScreenScale(activeFrame.height);
+
+				ctx.strokeStyle = '#10b981';  // Green to indicate "active/ready"
+				ctx.lineWidth = 2;
+				ctx.setLineDash([6, 4]);
+				ctx.strokeRect(topLeft.x, topLeft.y, width, height);
+				ctx.setLineDash([]);
+
+				// Draw "Active" badge at top-right
+				const badgeText = 'Active';
+				ctx.font = '10px sans-serif';
+				const metrics = ctx.measureText(badgeText);
+				const badgeWidth = metrics.width + 8;
+				const badgeHeight = 16;
+				const badgeX = topLeft.x + width - badgeWidth - 4;
+				const badgeY = topLeft.y + 4;
+
+				ctx.fillStyle = '#10b981';
+				ctx.beginPath();
+				ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 3);
+				ctx.fill();
+
+				ctx.fillStyle = '#ffffff';
+				ctx.textBaseline = 'middle';
+				ctx.textAlign = 'center';
+				ctx.fillText(badgeText, badgeX + badgeWidth / 2, badgeY + badgeHeight / 2);
+			}
+		}
+
 /* debugging - disabled for performance
 		// Draw snap point indicators
 		for(const intersection of data.getIntersectionCandidates())
@@ -400,11 +435,25 @@ export class Renderer
 		for(const [shape, indices] of selectedPoints.entries()){
 			const pois = shape.getSnapPOIs();
 
+			// Get frame offset if shape belongs to a frame (POIs are in local coords)
+			let frameOffsetX = 0;
+			let frameOffsetY = 0;
+			if (shape.frameId) {
+				const frame = data.getFrame(shape.frameId);
+				if (frame) {
+					frameOffsetX = frame.x;
+					frameOffsetY = frame.y;
+				}
+			}
+
 			for(const index of indices){
 				const poi = pois[index];
 				if(!poi) continue;
 
-				const pt = this.toScreen(poi.x, poi.y);
+				// Convert from local to world coords, then to screen
+				const worldX = poi.x + frameOffsetX;
+				const worldY = poi.y + frameOffsetY;
+				const pt = this.toScreen(worldX, worldY);
 
 				// Draw filled square for selected control point
 				ctx.fillStyle = '#FF0000';

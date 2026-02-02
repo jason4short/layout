@@ -1214,6 +1214,17 @@ class Data
 		this.activeFrameId = null;
 	}
 
+	// Check if any shape in the given group is selected
+	isGroupSelected(groupId) {
+		if (!groupId) return false;
+		for (const shape of this.shapes) {
+			if (shape.groupId === groupId && shape.selected) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	// Convert world coordinates to frame-local coordinates
 	worldToFrame(frameId, worldX, worldY){
 		const frame = this.getFrame(frameId);

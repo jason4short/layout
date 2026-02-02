@@ -114,6 +114,26 @@ export class Geometry
 	}
 
 	/**
+	 * Returns the display label for this shape (used in UI labels, tooltips).
+	 * Override in subclasses that have labels (Frame, Paper, SymbolInstance).
+	 * @returns {string|null} Label text or null if no label
+	 */
+	getLabel() {
+		return null;
+	}
+
+	/**
+	 * Returns whether this shape is a container that holds other shapes.
+	 * Only Frame returns true - shapes with frameId belong to that Frame.
+	 * Note: Paper is NOT a container (just a print reference area).
+	 * Note: SymbolInstance is NOT a container (references shapes from source frame).
+	 * @returns {boolean} True if this shape contains other shapes
+	 */
+	isContainer() {
+		return false;
+	}
+
+	/**
 	 * Draw this shape to the canvas context.
 	 * Override in subclasses to implement shape-specific rendering.
 	 * @param {CanvasRenderingContext2D} ctx - The canvas context

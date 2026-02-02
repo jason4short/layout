@@ -5,11 +5,7 @@ import * as TransformUtils from './utils/TransformUtils.js';
 import {paperSchema} from './InspectorSchemas.js';
 import {serializePaper, deserializePaper} from './GeometrySerializers.js';
 import units from '../core/Units.js';
-
-// Label styling constants (screen pixels)
-const LABEL_HEIGHT = 20;
-const LABEL_PADDING = 6;
-const LABEL_GAP = 4;
+import * as LabelUtils from './utils/LabelUtils.js';
 
 // Standard paper sizes in mm
 export const PaperSizes = Object.freeze({
@@ -71,13 +67,28 @@ export class Paper extends Geometry
 		return `${w} x ${h} ${unitLabel}`;
 	}
 
+	/**
+	 * Get the display label for this paper.
+	 * Paper displays its dimensions as the label (not editable).
+	 * @returns {string} Formatted dimension string
+	 */
+	getLabel() {
+		return this.getDimensionString();
+	}
+
+	/**
+	 * Paper is NOT a container - it's a print reference area.
+	 * Shapes are not "inside" a Paper; it just defines a printable region.
+	 * Use Frame for containing shapes in a local coordinate system.
+	 * @returns {boolean} Always false
+	 */
+	isContainer() {
+		return false;
+	}
+
 	// Hit test the label using screen coordinates
-	// Returns true if screen point is inside the label
 	hitTestLabel(screenX, screenY) {
-		if (!this.screenLabelBounds) return false;
-		const b = this.screenLabelBounds;
-		return screenX >= b.x && screenX <= b.x + b.width &&
-		       screenY >= b.y && screenY <= b.y + b.height;
+		return LabelUtils.hitTestLabel(this.screenLabelBounds, screenX, screenY);
 	}
 
 	update() {
@@ -185,33 +196,7 @@ export class Paper extends Geometry
 		ctx.strokeRect(topLeft.x, topLeft.y, width, height);
 
 		// Draw label above paper
-		const text = this.getDimensionString();
-		ctx.font = '12px sans-serif';
-		const textMetrics = ctx.measureText(text);
-		const textWidth = textMetrics.width;
-
-		const labelWidth = textWidth + LABEL_PADDING * 2;
-		const labelX = topLeft.x;
-		const labelY = topLeft.y - LABEL_GAP - LABEL_HEIGHT;
-
-		// Store screen-space label bounds for hit testing
-		this.screenLabelBounds = {
-			x: labelX,
-			y: labelY,
-			width: labelWidth,
-			height: LABEL_HEIGHT
-		};
-
-		// Label background
-		ctx.fillStyle = this.selected ? '#2563eb' : '#3b82f6';
-		ctx.beginPath();
-		ctx.roundRect(labelX, labelY, labelWidth, LABEL_HEIGHT, 3);
-		ctx.fill();
-
-		// Label text
-		ctx.fillStyle = '#FFFFFF';
-		ctx.textBaseline = 'middle';
-		ctx.textAlign = 'left';
-		ctx.fillText(text, labelX + LABEL_PADDING, labelY + LABEL_HEIGHT / 2);
+		const text = this.getLabel();
+		this.screenLabelBounds = LabelUtils.drawLabel(ctx, text, topLeft.x, topLeft.y, this.selected);
 	}
 }

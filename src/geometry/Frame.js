@@ -2,6 +2,7 @@ import {Shape, Geometry} from './Geometry.js';
 import {Transform} from './Transform.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
+import * as LabelUtils from './utils/LabelUtils.js';
 import data from '../data/Data.js';
 
 /**
@@ -57,10 +58,7 @@ export class Frame extends Geometry {
 
 	// Hit test the label using screen coordinates
 	hitTestLabel(screenX, screenY) {
-		if (!this.screenLabelBounds) return false;
-		const b = this.screenLabelBounds;
-		return screenX >= b.x && screenX <= b.x + b.width &&
-		       screenY >= b.y && screenY <= b.y + b.height;
+		return LabelUtils.hitTestLabel(this.screenLabelBounds, screenX, screenY);
 	}
 
 	clone() {
@@ -99,6 +97,14 @@ export class Frame extends Geometry {
 	 */
 	getContainedShapes() {
 		return data.getFrameShapes(this.id);
+	}
+
+	/**
+	 * Get the display label for this frame.
+	 * @returns {string} The frame's label
+	 */
+	getLabel() {
+		return this.label || 'Frame';
 	}
 
 	copyFrom(other) {
@@ -269,36 +275,9 @@ export class Frame extends Geometry {
 		ctx.strokeRect(topLeft.x, topLeft.y, width, height);
 
 		// Label at top (styled like Paper for consistent drag behavior)
-		if (this.label) {
-			const LABEL_HEIGHT = 20;
-			const LABEL_PADDING = 6;
-			const LABEL_GAP = 4;
-
-			ctx.font = '12px sans-serif';
-			const metrics = ctx.measureText(this.label);
-			const labelWidth = metrics.width + LABEL_PADDING * 2;
-			const labelX = topLeft.x;
-			const labelY = topLeft.y - LABEL_GAP - LABEL_HEIGHT;
-
-			// Store screen-space label bounds for hit testing
-			this.screenLabelBounds = {
-				x: labelX,
-				y: labelY,
-				width: labelWidth,
-				height: LABEL_HEIGHT
-			};
-
-			// Label background
-			ctx.fillStyle = this.selected ? '#2563eb' : '#3b82f6';
-			ctx.beginPath();
-			ctx.roundRect(labelX, labelY, labelWidth, LABEL_HEIGHT, 3);
-			ctx.fill();
-
-			// Label text
-			ctx.fillStyle = '#ffffff';
-			ctx.textBaseline = 'middle';
-			ctx.textAlign = 'left';
-			ctx.fillText(this.label, labelX + LABEL_PADDING, labelY + LABEL_HEIGHT / 2);
+		const label = this.getLabel();
+		if (label) {
+			this.screenLabelBounds = LabelUtils.drawLabel(ctx, label, topLeft.x, topLeft.y, this.selected);
 		}
 	}
 

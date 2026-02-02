@@ -105,6 +105,24 @@ src/
   - `getLabelTargetAtScreen()` finds any shape with `hitTestLabel()` method
   - Works automatically for any geometry that implements the label interface
 - Paste into Frame: Cmd+V with a Frame selected pastes shapes into that frame (converts to local coords, assigns frameId)
+- Created `LabelUtils.js` for shared label rendering:
+  - Constants: LABEL_HEIGHT, LABEL_PADDING, LABEL_GAP, colors
+  - `hitTestLabel()` - reusable screen-space hit testing
+  - `drawLabel()` - reusable label rendering with left/right alignment
+  - Refactored Paper, Frame, Symbol to use LabelUtils (reduced ~70 lines of duplication)
+- Active frame indicator in Renderer.js:
+  - Green dashed border around active frame
+  - "Active" badge in top-right corner
+  - Shows when `data.activeFrameId` is set (e.g., paste into frame)
+- Symbol label now shows when part of selected group:
+  - Added `data.isGroupSelected(groupId)` helper method
+  - Symbol.draw() checks both direct selection and group selection
+- Standardized container/label interface in Geometry base class:
+  - `getLabel()` - returns display label (null by default)
+  - `isContainer()` - returns whether shape contains other shapes (false by default)
+  - Frame: `getLabel()` returns this.label, `isContainer()` returns true
+  - Paper: `getLabel()` returns dimension string, `isContainer()` returns false (documented: not a container)
+  - Symbol: `getLabel()` returns source frame label, `isContainer()` returns false (documented: references, not contains)
 
 ## Future Ideas
 - **Database storage** - Move from JSON files to DB backend (prerequisite for multiplayer)
