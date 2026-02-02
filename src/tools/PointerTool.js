@@ -1,6 +1,7 @@
 import {Tool} 				from "./Tool.js";
 import {Rectangle} 			from '../geometry/Rectangle.js';
 import {Shape} 				from '../geometry/Geometry.js';
+import {SymbolInstance} 	from '../geometry/Symbol.js';
 
 import { DoubleClick } 		from '../core/DoubleClick.js';
 
@@ -10,7 +11,8 @@ import data 				from '../data/Data.js';
 import undoManager			from '../core/UndoManager.js';
 import draftingAssistant 	from '../geometry/DraftingAssistant.js';
 
-import {AddShapesCommand,
+import {AddShapeCommand,
+		AddShapesCommand,
 		MoveCommand,
 		ResizeAutoLayoutGroupCommand,
 		ApplyLayoutCommand} 	from '../core/Commands.js';
@@ -327,7 +329,28 @@ export class PointerTool extends Tool
 		// Check for label click (Paper, Symbol, etc. - screen-space, not geometry)
 		const labelTarget = this.getLabelTargetAtScreen(e.screenX, e.screenY);
 		if(labelTarget){
-			// Select only the target, deselect everything else
+			// Option+drag on symbol source frame creates an instance
+			if(stage.optionKey && labelTarget.geometry === Shape.FRAME && labelTarget.isSymbolSource){
+				const instance = new SymbolInstance([labelTarget.id, labelTarget.x, labelTarget.y]);
+				data.addShape(instance);
+
+				// Select and drag the new instance
+				data.selectNone();
+				instance.selected = true;
+				this.labelTarget = instance;
+				this.labelDragStart = {
+					screenX: e.screenX,
+					screenY: e.screenY,
+					origX: instance.x,
+					origY: instance.y,
+					isNewInstance: true  // Flag for undo handling
+				};
+				this.dragStart = { screenX: e.screenX, screenY: e.screenY };
+				stage.render();
+				return;
+			}
+
+			// Normal label drag - select and move
 			data.selectNone();
 			labelTarget.selected = true;
 			this.labelTarget = labelTarget;
@@ -818,9 +841,11 @@ export class PointerTool extends Tool
 			const origX = this.labelDragStart.origX;
 			const origY = this.labelDragStart.origY;
 
-			// Only record undo if position changed
-			if(target.x !== origX || target.y !== origY){
-				// Record move for undo using MoveCommand with index -1 (whole shape)
+			if(this.labelDragStart.isNewInstance){
+				// New instance created via option+drag - record AddShapeCommand for undo
+				undoManager.record(new AddShapeCommand(target));
+			} else if(target.x !== origX || target.y !== origY){
+				// Normal move - record MoveCommand for undo
 				const moveData = [{
 					shape: target,
 					index: -1,
