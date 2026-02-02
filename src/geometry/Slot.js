@@ -476,10 +476,18 @@ export class Slot extends Geometry {
 	}
 
 	/**
-	 * Returns edge shapes (lines and arcs) for intersection calculations.
+	 * Returns edge shapes (lines and arcs) plus centerline for intersection calculations.
 	 */
 	getIntersectionPrimitives() {
-		return this.createShapes();
+		const primitives = this.createShapes();
+
+		// Add centerline for intersection snapping
+		const centerline = new Line([this.start.x, this.start.y, this.end.x, this.end.y]);
+		centerline.penStyle = this.penStyle;
+		centerline.colorToken = this.colorToken;
+		primitives.push(centerline);
+
+		return primitives;
 	}
 
 	toJSON() {
