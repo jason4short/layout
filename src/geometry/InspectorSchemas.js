@@ -8,7 +8,7 @@ import { PaperSizes } from './Paper.js';
 import data from '../data/Data.js';
 import stage from '../core/Stage.js';
 import undoManager from '../core/UndoManager.js';
-import { DeleteShapesCommand, AddShapesCommand, ApplyLayoutCommand, BreakApartCommand } from '../core/Commands.js';
+import { DeleteShapesCommand, AddShapesCommand, ApplyLayoutCommand, BreakApartCommand, BreakApartInstanceCommand } from '../core/Commands.js';
 import { AutoLayoutFrame } from './AutoLayoutFrame.js';
 import fontManager from '../core/FontManager.js';
 // Note: Cannot import Inspector here due to circular dependency
@@ -698,8 +698,6 @@ export function symbolSchema(shape) {
 						label: 'Break Apart',
 						type: 'button',
 						action: (instance) => {
-							// Import here to avoid circular dependency
-							const { BreakApartInstanceCommand } = require('../core/Commands.js');
 							undoManager.execute(new BreakApartInstanceCommand(instance));
 							stage.render();
 						}
@@ -780,7 +778,6 @@ export function polygonSchema(shape) {
 						label: 'Break Apart',
 						type: 'button',
 						action: (polygon) => {
-							const { BreakApartCommand } = require('../core/Commands.js');
 							undoManager.execute(new BreakApartCommand(polygon));
 							stage.render();
 						}

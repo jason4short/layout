@@ -5,6 +5,7 @@ import { Frame } from '../geometry/Frame.js';
 import stage from '../core/Stage.js';
 import data from '../data/Data.js';
 import undoManager from '../core/UndoManager.js';
+import toolManager from './ToolManager.js';
 import { AddShapeCommand } from '../core/Commands.js';
 
 /**
@@ -119,15 +120,17 @@ export class FrameTool extends Tool
 		data.clearTempShapes();
 		undoManager.execute(new AddShapeCommand(this.frame));
 
-		// Select the new frame and make it active
+		// Deselect and clear active frame
 		data.selectNone();
-		this.frame.selected = true;
-		data.setActiveFrame(this.frame.id);
+		data.clearActiveFrame();
 
 		this.isDragging = false;
 		this.frame = null;
 		this.startPoint = null;
 
 		stage.render();
+
+		// Switch back to pointer tool
+		toolManager.setTool(toolManager.pointerTool);
 	}
 }

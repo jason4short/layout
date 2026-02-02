@@ -2,6 +2,9 @@ import { Shape, Geometry, SnapType } from './Geometry.js';
 import { Rectangle } from './Rectangle.js';
 import * as LabelUtils from './utils/LabelUtils.js';
 import data from '../data/Data.js';
+import { BreakApartInstanceCommand } from '../core/Commands.js';
+import undoManager from '../core/UndoManager.js';
+import stage from '../core/Stage.js';
 
 /**
  * Symbol Instance - a reference to a source Frame displayed at a different position.
@@ -418,28 +421,30 @@ export class SymbolInstance extends Geometry {
 					]
 				},
 				{
-					title: 'Instance',
+					title: 'Symbol',
 					fields: [
 						{
-							key: 'sourceName',
-							label: 'Source',
-							type: 'readonly',
-							get: () => symbolName
-						},
-						{
-							key: 'sourceFrameId',
-							label: 'Source ID',
-							type: 'readonly',
-							get: () => this.sourceFrameId || '(none)'
-						},
+							key: 'label',
+							label: 'Name',
+							type: 'string',
+							get: () => frame ? frame.label : '',
+							set: (value) => {
+								if (frame) {
+									frame.label = value;
+									stage.render();
+								}
+							}
+						}
+					]
+				},
+				{
+					title: 'Instance',
+					fields: [
 						{
 							key: 'explode',
 							label: 'Break Apart',
 							type: 'button',
 							action: (instance) => {
-								const { BreakApartInstanceCommand } = require('../core/Commands.js');
-								const undoManager = require('../core/UndoManager.js').default;
-								const stage = require('../core/Stage.js').default;
 								undoManager.execute(new BreakApartInstanceCommand(instance));
 								stage.render();
 							}

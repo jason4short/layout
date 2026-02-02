@@ -216,9 +216,13 @@ export class PointerTool extends Tool
 
 		// Clone each shape using its cloneForDrag() method
 		for(const shape of selected){
-			if(shape.frameId) continue;  // Skip shapes that belong to frames
-
 			const clone = shape.cloneForDrag();
+
+			// Preserve frame membership - clones stay in the same frame
+			if(shape.frameId){
+				clone.frameId = shape.frameId;
+			}
+
 			if(data.editingGroupId){
 				// When editing a group, clones stay in that group
 				clone.groupId = data.editingGroupId;

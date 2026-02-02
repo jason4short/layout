@@ -3,6 +3,7 @@ import {Transform} from './Transform.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
 import * as LabelUtils from './utils/LabelUtils.js';
+import { SymbolInstance } from './Symbol.js';
 import data from '../data/Data.js';
 
 /**
@@ -78,8 +79,6 @@ export class Frame extends Geometry {
 	 */
 	cloneForDrag() {
 		if (this.isSymbolSource) {
-			// Lazy import to avoid circular dependency
-			const { SymbolInstance } = require('./Symbol.js');
 			return new SymbolInstance([this.id, this.x, this.y]);
 		}
 		return this.clone();
