@@ -81,6 +81,8 @@ class FileManager
 		data.clearGuides();
 		data.groups.clear();
 		data._nextGroupId = 1;
+		data.exitGroup();
+		data.clearActiveFrame();
 		undoManager.clear();
 
 		// Restore viewport
@@ -196,6 +198,30 @@ class FileManager
 		}
 
 		// Link angle dimensions to their referenced lines
+		// Remap stored line reference IDs from old->new shape IDs before linking.
+		for (const shape of data.shapes) {
+			if (shape.geometry === Shape.ANGLE_DIMENSION) {
+				if (shape._line1Id) {
+					const remapped = idMap.get(shape._line1Id);
+					if (remapped) {
+						shape._line1Id = remapped;
+					} else {
+						console.warn('FileManager: Could not remap angle dimension line1Id', shape._line1Id);
+						shape._line1Id = null;
+					}
+				}
+				if (shape._line2Id) {
+					const remapped = idMap.get(shape._line2Id);
+					if (remapped) {
+						shape._line2Id = remapped;
+					} else {
+						console.warn('FileManager: Could not remap angle dimension line2Id', shape._line2Id);
+						shape._line2Id = null;
+					}
+				}
+			}
+		}
+
 		const shapesById = new Map();
 		for(const shape of data.shapes){
 			if(shape.id) shapesById.set(shape.id, shape);
@@ -280,6 +306,8 @@ class FileManager
 		data.selectedPoints.clear();
 		data.resetSnaps();
 		data.clearGuides();
+		data.exitGroup();
+		data.clearActiveFrame();
 		undoManager.clear();
 
 		stage.panX = 0;

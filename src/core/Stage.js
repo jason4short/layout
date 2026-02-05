@@ -430,6 +430,8 @@ class Stage extends View
 	}
 
 	zoomStage(newZoom, screenX, screenY) {		
+		newZoom = Math.max(this.minZoom, Math.min(this.maxZoom, newZoom));
+
 		// World position under cursor before zoom
 		const worldX = (screenX - this.panX) / this.zoom;
 		const worldY = (screenY - this.panY) / this.zoom;
@@ -580,9 +582,9 @@ class Stage extends View
 		this.mouse = this.normalizeMouseEvent(e);
 
 		// Call coordinate display callback with world coordinates
-// 		if (this.onMouseMoveCallback) {
-// 			this.onMouseMoveCallback(this.mouse.x, this.mouse.y);
-// 		}
+		if (this.onMouseMoveCallback) {
+			this.onMouseMoveCallback(this.mouse.x, this.mouse.y);
+		}
 
 		// right click and drag - pan the view
 		if(e.which == 3){
@@ -632,7 +634,6 @@ class Stage extends View
 const instance = new Stage();
 //Object.freeze(instance); // Optional: Prevent modifications to the instance
 export default instance;
-
 
 
 
