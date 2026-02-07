@@ -934,9 +934,9 @@ export function groupSchema(groupId) {
 						label: 'Align',
 						type: 'button-group',
 						options: [
-							{ value: 'start', label: '⬅' },
-							{ value: 'center', label: '⬌' },
-							{ value: 'end', label: '➡' }
+							{ value: 'start', label: 'Start', icon: 'align-left' },
+							{ value: 'center', label: 'Center', icon: 'align-center' },
+							{ value: 'end', label: 'End', icon: 'align-right' }
 						],
 						get: () => group.layout.alignment,
 						set: (v) => { group.layout.alignment = v; applyLayoutIfActive(); },
@@ -945,12 +945,11 @@ export function groupSchema(groupId) {
 				]
 			},
 			{
-				title: 'Sizing',
+				title: 'Horizontal Sizing',
 				visible: () => group.autoLayout,
 				fields: [
 					{
 						key: 'sizing.widthMode',
-						label: 'Width',
 						type: 'select',
 						options: [
 							{ value: 'hug', label: 'Hug Contents' },
@@ -974,10 +973,15 @@ export function groupSchema(groupId) {
 						set: (v) => { group.sizing.fixedWidth = v; applyLayoutIfActive(); },
 						min: 1,
 						visible: () => group.sizing.widthMode === 'fixed'
-					},
+					}
+				]
+			},
+			{
+				title: 'Vertical Sizing',
+				visible: () => group.autoLayout,
+				fields: [
 					{
 						key: 'sizing.heightMode',
-						label: 'Height',
 						type: 'select',
 						options: [
 							{ value: 'hug', label: 'Hug Contents' },

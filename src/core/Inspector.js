@@ -552,12 +552,12 @@ class Inspector {
 
 		// Align buttons
 		const alignButtons = [
-			{ id: 'align-left', icon: 'align-left', title: 'Align Left' },
-			{ id: 'align-center', icon: 'align-center', title: 'Align Center' },
-			{ id: 'align-right', icon: 'align-right', title: 'Align Right' },
-			{ id: 'align-top', icon: 'align-top', title: 'Align Top' },
-			{ id: 'align-middle', icon: 'align-middle', title: 'Align Middle' },
-			{ id: 'align-bottom', icon: 'align-bottom', title: 'Align Bottom' }
+			{ id: 'align-left', 	icon: 'align-left', 	title: 'Align Left' },
+			{ id: 'align-center', 	icon: 'align-center', 	title: 'Align Center' },
+			{ id: 'align-right', 	icon: 'align-right', 	title: 'Align Right' },
+			{ id: 'align-top', 		icon: 'align-top', 	 	title: 'Align Top' },
+			{ id: 'align-middle', 	icon: 'align-middle', 	title: 'Align Middle' },
+			{ id: 'align-bottom', 	icon: 'align-bottom', 	title: 'Align Bottom' }
 		];
 
 		const distButtons = [
