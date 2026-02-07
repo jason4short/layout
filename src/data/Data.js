@@ -37,9 +37,10 @@ import undoManager				from '../core/UndoManager.js';
 
 import {	AddConstructionCommand,
 			DeleteShapesCommand,
-			DeleteConstructionsCommand, 
+			DeleteConstructionsCommand,
 			AddShapeCommand
 		} from '../core/Commands.js';
+import { calculateLayout } from '../core/LayoutEngine.js';
 
 
 class Data
@@ -429,6 +430,33 @@ class Data
 			shapes[i].selected = false;
 		}
 		this.selectedPoints.clear();
+		this.relayoutAutoGroups();
+	}
+
+	/** Re-apply auto-layout for all groups that have it enabled */
+	relayoutAutoGroups(){
+		for(const [groupId, group] of this.groups){
+			if(!group.autoLayout || group.layout.mode === 'none') continue;
+
+			const items = this.getLayoutItems(groupId);
+			const bounds = this.getAutoLayoutBounds(groupId);
+			if(!bounds || items.length === 0) continue;
+
+			const layoutBounds = bounds.contentArea || bounds;
+			const moves = calculateLayout(items, layoutBounds, group.layout, group.sizing);
+
+			for(const move of moves){
+				if(move.dx === 0 && move.dy === 0) continue;
+				if(move.type === 'shape'){
+					move.item.translate(move.dx, move.dy);
+				} else if(move.type === 'group'){
+					const groupShapes = this.getGroupShapes(move.item);
+					for(const shape of groupShapes){
+						shape.translate(move.dx, move.dy);
+					}
+				}
+			}
+		}
 	}
 
 	// Toggle control point visibility on a shape (Cmd+click)

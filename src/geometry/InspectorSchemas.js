@@ -921,13 +921,74 @@ export function groupSchema(groupId) {
 						visible: () => group.autoLayout
 					},
 					{
+						key: 'sizing.widthMode',
+						label: 'Width',
+						type: 'select',
+						options: [
+							{ value: 'hug', label: 'Hug' },
+							{ value: 'fixed', label: 'Fixed' }
+						],
+						get: () => group.sizing.widthMode,
+						set: (v) => {
+							group.sizing.widthMode = v;
+							if (v === 'fixed' && !group.sizing.fixedWidth) {
+								const bounds = data.getAutoLayoutBounds(groupId);
+								group.sizing.fixedWidth = bounds?.width || 100;
+							}
+							applyLayoutIfActive();
+						},
+						visible: () => group.autoLayout
+					},
+					{
+						key: 'sizing.heightMode',
+						label: 'Height',
+						type: 'select',
+						options: [
+							{ value: 'hug', label: 'Hug' },
+							{ value: 'fixed', label: 'Fixed' }
+						],
+						get: () => group.sizing.heightMode,
+						set: (v) => {
+							group.sizing.heightMode = v;
+							if (v === 'fixed' && !group.sizing.fixedHeight) {
+								const bounds = data.getAutoLayoutBounds(groupId);
+								group.sizing.fixedHeight = bounds?.height || 100;
+							}
+							applyLayoutIfActive();
+						},
+						visible: () => group.autoLayout
+					},
+					{
+						key: 'sizing.fixedWidth',
+						label: 'Width',
+						type: 'length',
+						get: () => group.sizing.fixedWidth || 0,
+						set: (v) => { group.sizing.fixedWidth = v; applyLayoutIfActive(); },
+						min: 1,
+						visible: () => group.autoLayout && group.sizing.widthMode === 'fixed'
+					},
+					{
+						key: 'sizing.fixedHeight',
+						label: 'Height',
+						type: 'length',
+						get: () => group.sizing.fixedHeight || 0,
+						set: (v) => { group.sizing.fixedHeight = v; applyLayoutIfActive(); },
+						min: 1,
+						visible: () => group.autoLayout && group.sizing.heightMode === 'fixed'
+					},
+					{
 						key: 'layout.gap',
 						label: 'Gap',
 						type: 'length',
 						get: () => group.layout.gap,
 						set: (v) => { group.layout.gap = v; applyLayoutIfActive(); },
 						min: 0,
-						visible: () => group.autoLayout
+						visible: () => {
+							if (!group.autoLayout) return false;
+							// Hide gap when primary axis has fixed sizing (gap is auto-calculated)
+							const isRow = group.layout.mode === 'row';
+							return isRow ? group.sizing.widthMode === 'hug' : group.sizing.heightMode === 'hug';
+						}
 					},
 					{
 						key: 'layout.alignment',
@@ -941,70 +1002,6 @@ export function groupSchema(groupId) {
 						get: () => group.layout.alignment,
 						set: (v) => { group.layout.alignment = v; applyLayoutIfActive(); },
 						visible: () => group.autoLayout
-					}
-				]
-			},
-			{
-				title: 'Horizontal Sizing',
-				visible: () => group.autoLayout,
-				fields: [
-					{
-						key: 'sizing.widthMode',
-						type: 'select',
-						options: [
-							{ value: 'hug', label: 'Hug Contents' },
-							{ value: 'fixed', label: 'Fixed' }
-						],
-						get: () => group.sizing.widthMode,
-						set: (v) => {
-							group.sizing.widthMode = v;
-							if (v === 'fixed' && !group.sizing.fixedWidth) {
-								const bounds = data.getAutoLayoutBounds(groupId);
-								group.sizing.fixedWidth = bounds?.width || 100;
-							}
-							applyLayoutIfActive();
-						}
-					},
-					{
-						key: 'sizing.fixedWidth',
-						label: 'Width',
-						type: 'length',
-						get: () => group.sizing.fixedWidth || 0,
-						set: (v) => { group.sizing.fixedWidth = v; applyLayoutIfActive(); },
-						min: 1,
-						visible: () => group.sizing.widthMode === 'fixed'
-					}
-				]
-			},
-			{
-				title: 'Vertical Sizing',
-				visible: () => group.autoLayout,
-				fields: [
-					{
-						key: 'sizing.heightMode',
-						type: 'select',
-						options: [
-							{ value: 'hug', label: 'Hug Contents' },
-							{ value: 'fixed', label: 'Fixed' }
-						],
-						get: () => group.sizing.heightMode,
-						set: (v) => {
-							group.sizing.heightMode = v;
-							if (v === 'fixed' && !group.sizing.fixedHeight) {
-								const bounds = data.getAutoLayoutBounds(groupId);
-								group.sizing.fixedHeight = bounds?.height || 100;
-							}
-							applyLayoutIfActive();
-						}
-					},
-					{
-						key: 'sizing.fixedHeight',
-						label: 'Height',
-						type: 'length',
-						get: () => group.sizing.fixedHeight || 0,
-						set: (v) => { group.sizing.fixedHeight = v; applyLayoutIfActive(); },
-						min: 1,
-						visible: () => group.sizing.heightMode === 'fixed'
 					}
 				]
 			},

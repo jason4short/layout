@@ -8,9 +8,10 @@
  * @param {Array} items - Array of { type, item, bounds } from data.getLayoutItems()
  * @param {Object} groupBounds - { x, y, width, height } - current bounds of the group
  * @param {Object} layoutOptions - { mode, gap, alignment, distribution }
+ * @param {Object} [sizing] - { widthMode, heightMode, fixedWidth, fixedHeight }
  * @returns {Array} - Array of { type, item, dx, dy } - deltas to apply
  */
-export function calculateLayout(items, groupBounds, layoutOptions) {
+export function calculateLayout(items, groupBounds, layoutOptions, sizing) {
 	const { mode, gap, alignment, distribution } = layoutOptions;
 
 	if (mode === 'none' || items.length === 0) {
@@ -25,7 +26,24 @@ export function calculateLayout(items, groupBounds, layoutOptions) {
 	});
 
 	if (mode === 'row' || mode === 'column') {
-		return calculateLinearLayout(sorted, groupBounds, gap, alignment, distribution, mode === 'row');
+		const isRow = mode === 'row';
+
+		// Determine effective gap: if primary axis is fixed, auto-calculate
+		let effectiveGap = gap;
+		if (sizing && items.length > 1) {
+			const primaryFixed = isRow
+				? (sizing.widthMode === 'fixed' && sizing.fixedWidth)
+				: (sizing.heightMode === 'fixed' && sizing.fixedHeight);
+
+			if (primaryFixed) {
+				const axis = isRow ? 'width' : 'height';
+				const totalItemSize = sorted.reduce((sum, item) => sum + item.bounds[axis], 0);
+				effectiveGap = (primaryFixed - totalItemSize) / (items.length - 1);
+				if (effectiveGap < 0) effectiveGap = 0;
+			}
+		}
+
+		return calculateLinearLayout(sorted, groupBounds, effectiveGap, alignment, distribution, isRow);
 	}
 
 	return [];

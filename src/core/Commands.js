@@ -720,7 +720,7 @@ export class ApplyLayoutCommand extends Command {
 		const layoutBounds = bounds.contentArea || bounds;
 
 		// Calculate new positions
-		const moves = calculateLayout(items, layoutBounds, group.layout);
+		const moves = calculateLayout(items, layoutBounds, group.layout, group.sizing);
 
 		// Apply moves
 		for (const move of moves) {

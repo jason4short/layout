@@ -699,48 +699,61 @@ export class PointerTool extends Tool
 		const group = data.groups.get(groupId);
 		if(!group) return;
 
-		// Current world position
-		const currentX = e.x;
-		const currentY = e.y;
+		// Use snap point for cursor position (enables snapping to guides/geometry)
+		const snapPt = draftingAssistant.getCurrentSnapPoint();
+		const currentX = snapPt.x;
+		const currentY = snapPt.y;
+
+		// Original edges
+		const left = originalBounds.x;
+		const right = originalBounds.x + originalBounds.width;
+		const top = originalBounds.y;
+		const bottom = originalBounds.y + originalBounds.height;
 
 		// Calculate new dimensions based on which handle is being dragged
 		let newWidth = originalBounds.width;
 		let newHeight = originalBounds.height;
+		let affectsWidth = false;
+		let affectsHeight = false;
 
 		if(handleType === 'corner'){
-			// Corner handles affect both dimensions
+			affectsWidth = true;
+			affectsHeight = true;
 			switch(corner){
-				case 'br': // bottom-right
-					newWidth = currentX - originalBounds.x;
-					newHeight = currentY - originalBounds.y;
+				case 'br':
+					newWidth = currentX - left;
+					newHeight = currentY - top;
 					break;
-				case 'bl': // bottom-left
-					newWidth = (originalBounds.x + originalBounds.width) - currentX;
-					newHeight = currentY - originalBounds.y;
+				case 'bl':
+					newWidth = right - currentX;
+					newHeight = currentY - top;
 					break;
-				case 'tr': // top-right
-					newWidth = currentX - originalBounds.x;
-					newHeight = (originalBounds.y + originalBounds.height) - currentY;
+				case 'tr':
+					newWidth = currentX - left;
+					newHeight = bottom - currentY;
 					break;
-				case 'tl': // top-left
-					newWidth = (originalBounds.x + originalBounds.width) - currentX;
-					newHeight = (originalBounds.y + originalBounds.height) - currentY;
+				case 'tl':
+					newWidth = right - currentX;
+					newHeight = bottom - currentY;
 					break;
 			}
 		} else if(handleType === 'edge'){
-			// Edge handles affect one dimension
 			switch(edge){
 				case 'right':
-					newWidth = currentX - originalBounds.x;
+					affectsWidth = true;
+					newWidth = currentX - left;
 					break;
 				case 'left':
-					newWidth = (originalBounds.x + originalBounds.width) - currentX;
+					affectsWidth = true;
+					newWidth = right - currentX;
 					break;
 				case 'bottom':
-					newHeight = currentY - originalBounds.y;
+					affectsHeight = true;
+					newHeight = currentY - top;
 					break;
 				case 'top':
-					newHeight = (originalBounds.y + originalBounds.height) - currentY;
+					affectsHeight = true;
+					newHeight = bottom - currentY;
 					break;
 			}
 		}
@@ -749,12 +762,39 @@ export class PointerTool extends Tool
 		newWidth = Math.max(20, newWidth);
 		newHeight = Math.max(20, newHeight);
 
+		// For top/left handles, shift all group shapes so the opposite edge stays anchored
+		const items = data.getLayoutItems(groupId);
+		const needsShiftX = affectsWidth && (corner === 'tl' || corner === 'bl' || edge === 'left');
+		const needsShiftY = affectsHeight && (corner === 'tl' || corner === 'tr' || edge === 'top');
+
+		if(needsShiftX || needsShiftY){
+			const dx = needsShiftX ? (originalBounds.width - newWidth) : 0;
+			const dy = needsShiftY ? (originalBounds.height - newHeight) : 0;
+
+			// Shift relative to original positions to avoid drift
+			const origPositions = this.groupResize.originalShapePositions;
+			if(origPositions && (!this.groupResize._lastShiftDx || this.groupResize._lastShiftDx !== dx || this.groupResize._lastShiftDy !== dy)){
+				for(const pos of origPositions){
+					const shape = pos.shape;
+					const targetX = pos.x + dx;
+					const targetY = pos.y + dy;
+					const sdx = targetX - shape.bounds.x;
+					const sdy = targetY - shape.bounds.y;
+					if(sdx !== 0 || sdy !== 0){
+						shape.translate(sdx, sdy);
+					}
+				}
+				this.groupResize._lastShiftDx = dx;
+				this.groupResize._lastShiftDy = dy;
+			}
+		}
+
 		// Update group sizing - switch to fixed mode on dragged axes
-		if(handleType === 'corner' || edge === 'left' || edge === 'right'){
+		if(affectsWidth){
 			group.sizing.widthMode = 'fixed';
 			group.sizing.fixedWidth = newWidth;
 		}
-		if(handleType === 'corner' || edge === 'top' || edge === 'bottom'){
+		if(affectsHeight){
 			group.sizing.heightMode = 'fixed';
 			group.sizing.fixedHeight = newHeight;
 		}
@@ -778,7 +818,7 @@ export class PointerTool extends Tool
 		// Use content area for layout (respects padding)
 		const layoutBounds = bounds.contentArea || bounds;
 
-		const moves = calculateLayout(items, layoutBounds, group.layout);
+		const moves = calculateLayout(items, layoutBounds, group.layout, group.sizing);
 
 		// Apply moves
 		for(const move of moves){
