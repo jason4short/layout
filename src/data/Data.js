@@ -3,7 +3,7 @@ const MAX_SNAP = 3; // intersections only snap if within 12px on screen
 // Default group properties - centralized for consistency
 export const DEFAULT_LAYOUT = {
 	mode: 'column',
-	gap: 1,
+	gap: 20,
 	alignment: 'start',
 	distribution: 'none'
 };
