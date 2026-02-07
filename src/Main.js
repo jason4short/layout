@@ -24,19 +24,6 @@ toolManager.init();
 inspector.init();
 palettePanel.init();
 
-// Unit selector
-const unitSelector = document.getElementById('unitSelector');
-if (unitSelector) {
-	// Set initial value from saved preference
-	unitSelector.value = units.getUnit();
-
-	unitSelector.addEventListener('change', (e) => {
-		units.setUnit(e.target.value);
-		stage.render();  // Re-render to update dimensions
-		inspector.update();  // Refresh inspector values
-	});
-}
-
 // Coordinate display
 const coordDisplay = document.getElementById('coordDisplay');
 stage.onMouseMoveCallback = (worldX, worldY) => {

@@ -19,28 +19,29 @@ class PalettePanel {
 
 	render() {
 		if (!this.container) return;
+ 		let html = '';
 
-		let html = `
-			<div class="panel-header">
-				<span>Colors</span>
-				<button id="btnAddColor" class="btn-small" title="Add Color">+</button>
-			</div>
-			<div class="palette-swatches">
-		`;
-
-		for (const token of data.colorPalette.tokens) {
-			html += `
-				<div class="palette-swatch" data-id="${token.id}">
-					<input type="color" value="${token.color}"
-					       class="swatch-color" data-id="${token.id}" title="Click to change color">
-					<input type="text" value="${token.name}"
-					       class="swatch-name" data-id="${token.id}" title="Color name">
-					<button class="swatch-delete" data-id="${token.id}" title="Delete color">&times;</button>
-				</div>
-			`;
-		}
-
-		html += '</div>';
+// 		let html = `
+// 			<div class="panel-header">
+// 				<span>Colors</span>
+// 				<button id="btnAddColor" class="btn-small" title="Add Color">+</button>
+// 			</div>
+// 		`;
+// 			<div class="palette-swatches">
+// 
+// 		for (const token of data.colorPalette.tokens) {
+// 			html += `
+// 				<div class="palette-swatch" data-id="${token.id}">
+// 					<input type="color" value="${token.color}"
+// 					       class="swatch-color" data-id="${token.id}" title="Click to change color">
+// 					<input type="text" value="${token.name}"
+// 					       class="swatch-name" data-id="${token.id}" title="Color name">
+// 					<button class="swatch-delete" data-id="${token.id}" title="Delete color">&times;</button>
+// 				</div>
+// 			`;
+// 		}
+// 
+// 		html += '</div>';
 		this.container.innerHTML = html;
 		this.attachListeners();
 	}

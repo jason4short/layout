@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UI Components Test</title>
+  <style>
+    :root {
+      --bg-color: #cccccc;
+      --panel-bg: #ffffff;
+      --border-color: #e0e0e0;
+      --text-color: #333333;
+      --text-muted: #888888;
+      --accent-color: #4a90d9;
+      --input-bg: #f5f5f5;
+      --hover-bg: #f0f0f0;
+      --active-bg: #e8e8e8;
+      --radius: 6px;
+      --radius-sm: 4px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+      background: var(--bg-color);
+      color: var(--text-color);
+      padding: 20px;
+      max-width: 300px;
+      margin: 0 auto;
+    }
+
+    /* ========== Section Label ========== */
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    /* ========== Panel Header ========== */
+    .panel-header {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    /* ========== Segmented Button Group ========== */
+    .segment-group {
+      display: inline-flex;
+      border-radius: var(--radius);
+      overflow: hidden;
+      gap: 2px;
+    }
+
+    .segment-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 32px;
+      background: var(--hover-bg);
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      padding: 0;
+      color: var(--text-color);
+      transition: background 0.15s;
+    }
+
+    .segment-btn:hover {
+      background: var(--hover-bg);
+    }
+
+    .segment-btn.active {
+      background: var(--active-bg);
+    }
+
+    .segment-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+    }
+
+    .segment-btn[style*="--icon"]::before {
+      content: '';
+      width: 16px;
+      height: 16px;
+      background-image: var(--icon);
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+
+    .segment-btn[style*="--icon"] svg {
+      display: none;
+    }
+
+    /* ========== Icon Select (Dropdown) ========== */
+    .icon-select {
+      position: relative;
+      display: flex;
+      align-items: center;
+      height: 32px;
+      background: var(--input-bg);
+      border: none;
+      border-radius: var(--radius);
+      padding: 0 8px;
+      cursor: pointer;
+    }
+
+    .icon-select::before {
+      content: '';
+      width: 16px;
+      height: 16px;
+      margin-right: 8px;
+      flex-shrink: 0;
+      background-image: var(--icon);
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      opacity: 0.5;
+    }
+
+    /* Hide icon if --icon not set */
+    .icon-select:not([style*="--icon"])::before {
+      display: none;
+    }
+
+    .icon-select select {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      color: var(--text-color);
+      cursor: pointer;
+      appearance: none;
+      outline: none;
+      padding-right: 20px;
+    }
+
+    .icon-select .chevron {
+      position: absolute;
+      right: 8px;
+      width: 12px;
+      height: 12px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* ========== Icon Input ========== */
+    .icon-input {
+      display: flex;
+      align-items: center;
+      height: 32px;
+      background: var(--input-bg);
+      border: none;
+      border-radius: var(--radius);
+      padding: 0 8px;
+    }
+
+    .icon-input::before {
+      content: '';
+      width: 16px;
+      height: 16px;
+      margin-right: 6px;
+      flex-shrink: 0;
+      background-image: var(--icon);
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      opacity: 0.5;
+    }
+
+    .icon-input input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      color: var(--text-color);
+      outline: none;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .icon-input input::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* ========== Input Row (two inputs side by side) ========== */
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-row .icon-input {
+      flex: 1;
+    }
+
+    /* ========== Spacing Utilities ========== */
+    .mb-4 { margin-bottom: 4px; }
+    .mb-8 { margin-bottom: 8px; }
+    .mb-12 { margin-bottom: 12px; }
+    .mb-16 { margin-bottom: 16px; }
+    .mb-24 { margin-bottom: 24px; }
+
+    /* ========== Demo Panel ========== */
+    .demo-panel {
+      background: var(--panel-bg);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    /* ========== Plain Select (full width, no icon) ========== */
+    .plain-select {
+      position: relative;
+      display: flex;
+      align-items: center;
+      height: 32px;
+      background: var(--input-bg);
+      border: none;
+      border-radius: var(--radius);
+      padding: 0 8px;
+      cursor: pointer;
+    }
+
+    .plain-select select {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      color: var(--text-color);
+      cursor: pointer;
+      appearance: none;
+      outline: none;
+      padding-right: 20px;
+    }
+
+    .plain-select .chevron {
+      position: absolute;
+      right: 8px;
+      width: 12px;
+      height: 12px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* ========== Color Swatches ========== */
+    .color-swatches {
+      display: flex;
+      gap: 6px;
+    }
+
+    .color-swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .color-swatch:hover {
+      transform: scale(1.1);
+    }
+
+    .color-swatch.active {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+
+    /* ========== Action Button ========== */
+    .action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 36px;
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .action-btn:hover {
+      background: #7c3aed;
+    }
+
+    /* ========== Stats List (read-only label/value pairs) ========== */
+    .stats-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .stat-row .stat-label {
+      color: var(--text-muted);
+    }
+
+    .stat-row .stat-value {
+      color: var(--text-color);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Demo: Document Settings -->
+  <div class="demo-panel">
+    <div class="section-label">Units</div>
+    <div class="plain-select mb-12">
+      <select>
+        <option>mm</option>
+        <option>cm</option>
+        <option>in</option>
+        <option>px</option>
+      </select>
+      <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 6 L8 10 L12 6"/>
+      </svg>
+    </div>
+
+    <div class="section-label">Theme</div>
+    <div class="plain-select mb-12">
+      <select>
+        <option>Light</option>
+        <option>Dark</option>
+        <option>Blueprint</option>
+      </select>
+      <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 6 L8 10 L12 6"/>
+      </svg>
+    </div>
+
+    <div class="color-swatches">
+      <button class="color-swatch active" style="background: #1a1a1a;"></button>
+      <button class="color-swatch" style="background: #8b5cf6;"></button>
+      <button class="color-swatch" style="background: #22c55e;"></button>
+      <button class="color-swatch" style="background: #6b7280;"></button>
+      <button class="color-swatch" style="background: #9ca3af;"></button>
+      <button class="color-swatch" style="background: #1e3a5f;"></button>
+      <button class="color-swatch" style="background: #3b82f6;"></button>
+    </div>
+  </div>
+
+  <!-- Demo: Segmented Buttons -->
+  <div class="demo-panel">
+    <div class="section-label">Align</div>
+    <div class="segment-group mb-12">
+      <button class="segment-btn" style="--icon: url('src/assets/prop_icons/align-left.svg')" title="Align Left"></button>
+      <button class="segment-btn active" style="--icon: url('src/assets/prop_icons/align-center.svg')" title="Align Center"></button>
+      <button class="segment-btn" style="--icon: url('src/assets/prop_icons/align-right.svg')" title="Align Right"></button>
+    </div>
+
+    <div class="section-label">Distribute</div>
+    <div class="segment-group">
+      <button class="segment-btn" style="--icon: url('src/assets/prop_icons/dist-horz.svg')" title="Distribute Horizontally"></button>
+      <button class="segment-btn" style="--icon: url('src/assets/prop_icons/dist-vert.svg')" title="Distribute Vertically"></button>
+    </div>
+  </div>
+
+  <!-- Demo: Shape Properties -->
+  <div class="demo-panel">
+    <div class="panel-header">Line</div>
+
+    <div class="section-label">Appearance</div>
+    <div class="icon-select mb-8">
+      <select>
+        <option>Visible</option>
+        <option>Hidden</option>
+        <option>Construction</option>
+      </select>
+      <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 6 L8 10 L12 6"/>
+      </svg>
+    </div>
+
+    <div class="icon-select mb-16" style="--icon: url('src/assets/prop_icons/angle.svg')">
+      <select>
+        <option>Visible</option>
+        <option>Hidden</option>
+        <option>Construction</option>
+      </select>
+      <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 6 L8 10 L12 6"/>
+      </svg>
+    </div>
+
+    <div class="section-label">Dimensions</div>
+    <div class="input-row mb-16">
+      <div class="icon-input" style="--icon: url('src/assets/prop_icons/width.svg')">
+        <input type="text" value="123">
+      </div>
+      <div class="icon-input" style="--icon: url('src/assets/prop_icons/height.svg')">
+        <input type="text" value="123">
+      </div>
+    </div>
+
+    <div class="section-label">Start</div>
+    <div class="input-row mb-12">
+      <div class="icon-input" style="--icon: url('src/assets/prop_icons/X.svg')">
+        <input type="text" value="123">
+      </div>
+      <div class="icon-input" style="--icon: url('src/assets/prop_icons/Y.svg')">
+        <input type="text" value="123">
+      </div>
+    </div>
+
+    <div class="section-label">End</div>
+    <div class="input-row mb-12">
+      <div class="icon-input" style="--icon: url('src/assets/prop_icons/X.svg')">
+        <input type="text" value="123">
+      </div>
+      <div class="icon-input" style="--icon: url('src/assets/prop_icons/Y.svg')">
+        <input type="text" value="123">
+      </div>
+    </div>
+
+    <div class="section-label">Center</div>
+    <div class="input-row mb-16">
+      <div class="icon-input" style="--icon: url('src/assets/prop_icons/X.svg')">
+        <input type="text" value="123">
+      </div>
+      <div class="icon-input" style="--icon: url('src/assets/prop_icons/Y.svg')">
+        <input type="text" value="123">
+      </div>
+    </div>
+
+    <div class="section-label">Actions</div>
+    <button class="action-btn mb-16">Break Apart</button>
+
+    <div class="section-label">Geometry</div>
+    <div class="stats-list">
+      <div class="stat-row">
+        <span class="stat-label">Perimeter:</span>
+        <span class="stat-value">817.3mm</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Area:</span>
+        <span class="stat-value">817.3mm</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Interior Angle:</span>
+        <span class="stat-value">817.3mm</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Toggle active state on segment buttons
+    document.querySelectorAll('.segment-group').forEach(group => {
+      group.addEventListener('click', (e) => {
+        const btn = e.target.closest('.segment-btn');
+        if (!btn) return;
+
+        // For single-select groups, remove active from siblings
+        group.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    // Toggle active state on color swatches
+    document.querySelectorAll('.color-swatches').forEach(group => {
+      group.addEventListener('click', (e) => {
+        const swatch = e.target.closest('.color-swatch');
+        if (!swatch) return;
+
+        group.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+        swatch.classList.add('active');
+      });
+    });
+  </script>
+
+</body>
+</html>

@@ -1042,3 +1042,37 @@ export class BreakMirrorCommand extends Command {
 		data.rebuildPOIs();
 	}
 }
+
+// Align or distribute shapes (generic command for both operations)
+export class AlignCommand extends Command {
+	constructor(shapes, deltas, description = 'Align') {
+		super(description);
+		this.shapes = shapes;
+		this.deltas = deltas;
+		this.originalPositions = shapes.map(s => ({ x: s.bounds.x, y: s.bounds.y }));
+	}
+
+	execute() {
+		for (const { shape, dx, dy } of this.deltas) {
+			if (dx !== 0 || dy !== 0) {
+				shape.translate(dx, dy);
+			}
+		}
+		data.rebuildPOIs();
+		data.recalculateIntersectionsForShapes(this.shapes);
+	}
+
+	undo() {
+		for (let i = 0; i < this.shapes.length; i++) {
+			const shape = this.shapes[i];
+			const orig = this.originalPositions[i];
+			const dx = orig.x - shape.bounds.x;
+			const dy = orig.y - shape.bounds.y;
+			if (dx !== 0 || dy !== 0) {
+				shape.translate(dx, dy);
+			}
+		}
+		data.rebuildPOIs();
+		data.recalculateIntersectionsForShapes(this.shapes);
+	}
+}

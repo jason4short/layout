@@ -38,25 +38,42 @@ export function lineSchema(shape) {
 				title: 'Dimensions',
 				fields: [
 					{
-						key: 'length',
-						label: 'Length',
+						key: 'width',
+						label: 'Width',
 						type: 'length',
-						get: () => shape.length(),
-						set: (v) => shape.scaleToDim(v),
-						min: 0.1
+						get: () => shape.bounds.width,
+						set: (v) => {
+							const sign = shape.end.x >= shape.start.x ? 1 : -1;
+							shape.end.x = shape.start.x + sign * v;
+						},
+						min: 0
 					},
 					{
-						key: 'angle',
-						label: 'Angle',
-						type: 'readonly',
-						get: () => shape.getAngleDeg(),
-						precision: 1,
-						suffix: '°'
+						key: 'height',
+						label: 'Height',
+						type: 'length',
+						get: () => shape.bounds.height,
+						set: (v) => {
+							const sign = shape.end.y >= shape.start.y ? 1 : -1;
+							shape.end.y = shape.start.y + sign * v;
+						},
+						min: 0
 					}
 				]
 			},
-			pointFields('start', 'Start Point'),
-			pointFields('end', 'End Point')
+			pointFields('start', 'Start'),
+			pointFields('end', 'End'),
+			{
+				title: 'Geometry',
+				fields: [
+					{
+						key: 'perimeter',
+						label: 'Perimeter',
+						type: 'readonly-length',
+						get: () => shape.length()
+					}
+				]
+			}
 		]
 	};
 }
@@ -83,7 +100,16 @@ export function circleSchema(shape) {
 						get: () => shape.radius * 2,
 						set: (v) => { shape.radius = v / 2; },
 						min: 0.1
-					},
+					}
+				]
+			},
+			{
+				title: 'Center',
+				fields: positionFields()
+			},
+			{
+				title: 'Geometry',
+				fields: [
 					{
 						key: 'circumference',
 						label: 'Circumference',
@@ -99,10 +125,6 @@ export function circleSchema(shape) {
 						suffix: ' mm²'
 					}
 				]
-			},
-			{
-				title: 'Center',
-				fields: positionFields()
 			}
 		]
 	};
@@ -122,12 +144,6 @@ export function arcSchema(shape) {
 						get: () => shape.radius,
 						set: (v) => { shape.radius = v; },
 						min: 0.1
-					},
-					{
-						key: 'arcLength',
-						label: 'Arc Length',
-						type: 'readonly-length',
-						get: () => shape.length()
 					}
 				]
 			},
@@ -153,7 +169,16 @@ export function arcSchema(shape) {
 						precision: 1,
 						step: 1,
 						suffix: '°'
-					},
+					}
+				]
+			},
+			{
+				title: 'Center',
+				fields: positionFields()
+			},
+			{
+				title: 'Actions',
+				fields: [
 					{
 						key: 'flipArc',
 						label: 'Flip Arc',
@@ -169,9 +194,16 @@ export function arcSchema(shape) {
 				]
 			},
 			{
-				title: 'Center',
-				fields: positionFields()
-			}
+				title: 'Geometry',
+				fields: [
+					{
+						key: 'arcLength',
+						label: 'Arc Length',
+						type: 'readonly-length',
+						get: () => shape.length()
+					}
+				]
+			},
 		]
 	};
 }
@@ -262,8 +294,12 @@ export function splineSchema(shape) {
 	return {
 		name: 'Spline',
 		sections: [
+			pointFields('p0', 'Start Point (P0)'),
+			pointFields('p1', 'Handle 1 (P1)'),
+			pointFields('p2', 'Handle 2 (P2)'),
+			pointFields('p3', 'End Point (P3)'),
 			{
-				title: 'Dimensions',
+				title: 'Geometry',
 				fields: [
 					{
 						key: 'arcLength',
@@ -273,10 +309,6 @@ export function splineSchema(shape) {
 					}
 				]
 			},
-			pointFields('p0', 'Start Point (P0)'),
-			pointFields('p1', 'Handle 1 (P1)'),
-			pointFields('p2', 'Handle 2 (P2)'),
-			pointFields('p3', 'End Point (P3)')
 		]
 	};
 }
@@ -478,6 +510,24 @@ export function outlineTextSchema(shape) {
 							shape.loadFont();
 						}
 					},
+				]
+			},
+			{
+				title: 'Position',
+				fields: positionFields()
+			},
+			{
+				title: 'Actions',
+				fields: [
+					{
+						key: 'breakApart',
+						label: 'Break Apart',
+						type: 'button',
+						action: (outlineText) => {
+							undoManager.execute(new BreakApartCommand(outlineText));
+							stage.render();
+						}
+					},
 					{
 						key: 'uploadFont',
 						label: 'Upload Font...',
@@ -506,24 +556,7 @@ export function outlineTextSchema(shape) {
 							input.click();
 						}
 					}
-				]
-			},
-			{
-				title: 'Position',
-				fields: positionFields()
-			},
-			{
-				title: 'Actions',
-				fields: [
-					{
-						key: 'breakApart',
-						label: 'Break Apart',
-						type: 'button',
-						action: (outlineText) => {
-							undoManager.execute(new BreakApartCommand(outlineText));
-							stage.render();
-						}
-					}
+					
 				]
 			}
 		]
@@ -717,7 +750,7 @@ export function polygonSchema(shape) {
 				fields: [
 					{
 						key: 'sides',
-						label: 'Sides',
+						label: 'Polygon',
 						type: 'number',
 						get: () => shape.sides,
 						set: (v) => { shape.sides = Math.max(3, Math.round(v)); },
@@ -734,14 +767,37 @@ export function polygonSchema(shape) {
 						set: (v) => { shape.radius = v; },
 						min: 0.1
 					},
+// 					{
+// 						key: 'diameter',
+// 						label: 'Diameter',
+// 						type: 'length',
+// 						get: () => shape.radius * 2,
+// 						set: (v) => { shape.radius = v / 2; },
+// 						min: 0.1
+// 					},
+				]
+			},
+			{
+				title: 'Center',
+				fields: positionFields()
+			},
+			{
+				title: 'Actions',
+				fields: [
 					{
-						key: 'diameter',
-						label: 'Diameter',
-						type: 'length',
-						get: () => shape.radius * 2,
-						set: (v) => { shape.radius = v / 2; },
-						min: 0.1
-					},
+						key: 'breakApart',
+						label: 'Break Apart',
+						type: 'button',
+						action: (polygon) => {
+							undoManager.execute(new BreakApartCommand(polygon));
+							stage.render();
+						}
+					}
+				]
+			},
+			{
+				title: 'Geometry',
+				fields: [
 					{
 						key: 'perimeter',
 						label: 'Perimeter',
@@ -766,24 +822,6 @@ export function polygonSchema(shape) {
 					}
 				]
 			},
-			{
-				title: 'Center',
-				fields: positionFields()
-			},
-			{
-				title: 'Actions',
-				fields: [
-					{
-						key: 'breakApart',
-						label: 'Break Apart',
-						type: 'button',
-						action: (polygon) => {
-							undoManager.execute(new BreakApartCommand(polygon));
-							stage.render();
-						}
-					}
-				]
-			}
 		]
 	};
 }

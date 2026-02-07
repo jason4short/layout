@@ -4,6 +4,42 @@ import { Shape, PenStyle } from '../geometry/Geometry.js';
 import units from './Units.js';
 import { groupSchema } from '../geometry/InspectorSchemas.js';
 import { ThemePresets } from './Renderer.js';
+import AlignManager from './AlignManager.js';
+import undoManager from './UndoManager.js';
+import { AlignCommand } from './Commands.js';
+
+// SVG icons used in inspector
+const CHEVRON_SVG = `<svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6 L8 10 L12 6"/></svg>`;
+
+// Icon paths relative to index.html
+const ICON_PATH = 'src/assets/prop_icons';
+
+// Map field labels to icon names
+const LABEL_ICON_MAP = {
+	'X': 'X',
+	'Y': 'Y',
+	'Width': 'width',
+	'Height': 'height',
+	'Angle': 'angle',
+	'Radius': 'radius',
+	'Radius X': 'width',
+	'Radius Y': 'height',
+	'Diameter': 'diameter',
+	'Polygon': 'polygon',
+	'Length': 'width',
+	'Offset X': 'X',
+	'Offset Y': 'Y',
+	'Gap': 'width',
+	'Top': 'height',
+	'Bottom': 'height',
+	'Left': 'width',
+	'Right': 'width',
+	'Size': 'height',
+	'Start': 'angle',
+	'End': 'angle',
+	'Text Offset': 'width',
+	'Arc Radius': 'width'
+};
 
 class Inspector {
 	constructor() {
@@ -21,6 +57,31 @@ class Inspector {
 
 		Inspector.instance = this;
 		return this;
+	}
+
+	// Helper to generate icon-input HTML
+	iconInput(id, value, icon = null) {
+		const iconStyle = icon ? `style="--icon: url('${ICON_PATH}/${icon}.svg')"` : '';
+		return `<div class="icon-input" ${iconStyle}>
+			<input type="text" id="${id}" value="${value}">
+		</div>`;
+	}
+
+	// Helper to generate plain-select HTML
+	plainSelect(id, optionsHtml) {
+		return `<div class="plain-select">
+			<select id="${id}">${optionsHtml}</select>
+			${CHEVRON_SVG}
+		</div>`;
+	}
+
+	// Helper to generate icon-select HTML
+	iconSelect(id, optionsHtml, icon = null) {
+		const iconStyle = icon ? `style="--icon: url('${ICON_PATH}/${icon}.svg')"` : '';
+		return `<div class="icon-select" ${iconStyle}>
+			<select id="${id}">${optionsHtml}</select>
+			${CHEVRON_SVG}
+		</div>`;
 	}
 
 	init() {
@@ -214,61 +275,75 @@ class Inspector {
 		let html = '<div class="inspector-panel">';
 		html += '<div class="inspector-header">Document</div>';
 
-		// Theme selector
+		// Units selector
+		const unitOptions = [
+			{ value: 'mm', label: 'mm' },
+			{ value: 'cm', label: 'cm' },
+			{ value: 'm', label: 'm' },
+			{ value: 'in', label: 'in' },
+			{ value: 'ft', label: 'ft' },
+			{ value: 'ft-in', label: 'ft-in' }
+		];
+		const currentUnit = units.getUnit();
+		const unitOptionsHtml = unitOptions.map(opt =>
+			`<option value="${opt.value}" ${opt.value === currentUnit ? 'selected' : ''}>${opt.label}</option>`
+		).join('');
+
 		html += `
 			<div class="inspector-section">
-				<div class="inspector-section-title">Theme</div>
-				<div class="inspector-row">
-					<label>Preset</label>
-					<select id="prop-theme">`;
-		for (const [id, theme] of Object.entries(ThemePresets)) {
-			const selected = data.theme === id ? 'selected' : '';
-			html += `<option value="${id}" ${selected}>${theme.name}</option>`;
-		}
-		html += `</select>
-				</div>
-				<div class="inspector-row">
-					<label>Background</label>
-					<input type="color" id="prop-backgroundColor" value="${data.backgroundColor}">
-				</div>
+				<div class="inspector-section-title">Units</div>
+				${this.plainSelect('prop-units', unitOptionsHtml)}
 			</div>
 		`;
 
-		// Pen style colors
+		// Theme selector
+		let themeOptions = '';
+		for (const [id, theme] of Object.entries(ThemePresets)) {
+			const selected = data.theme === id ? 'selected' : '';
+			themeOptions += `<option value="${id}" ${selected}>${theme.name}</option>`;
+		}
+
+		// Build color swatches (background + pen styles)
+		const penStyles = [
+			PenStyle.VISIBLE,
+			PenStyle.CONSTRUCTION,
+			PenStyle.CENTERLINE,
+			PenStyle.HIDDEN,
+			PenStyle.PHANTOM,
+			PenStyle.OUTLINE,
+			PenStyle.DIMENSION
+		];
+		const theme = ThemePresets[data.theme] || ThemePresets.light;
+
+		// Background swatch first
+		let swatchesHtml = `<button class="color-swatch" style="background:${data.backgroundColor}" data-style="background" title="Background"></button>`;
+
+		// Then pen style swatches
+		swatchesHtml += penStyles.map(style => {
+			const color = data.penStyleOverrides[style] || theme.colors[style];
+			return `<button class="color-swatch" style="background:${color}" data-style="${style}" title="${style}"></button>`;
+		}).join('');
+
 		html += `
 			<div class="inspector-section">
-				<div class="inspector-section-title">Pen Style Colors</div>`;
-
-		const penStyleLabels = {
-			[PenStyle.VISIBLE]: 'Visible',
-			[PenStyle.CONSTRUCTION]: 'Construction',
-			[PenStyle.CENTERLINE]: 'Centerline',
-			[PenStyle.HIDDEN]: 'Hidden',
-			[PenStyle.PHANTOM]: 'Phantom',
-			[PenStyle.OUTLINE]: 'Outline',
-			[PenStyle.DIMENSION]: 'Dimension'
-		};
-
-		for (const [style, label] of Object.entries(penStyleLabels)) {
-			const theme = ThemePresets[data.theme] || ThemePresets.light;
-			const themeColor = theme.colors[style];
-			const currentColor = data.penStyleOverrides[style] || themeColor;
-			const isOverridden = data.penStyleOverrides[style] ? true : false;
-
-			html += `
-				<div class="inspector-row">
-					<label>${label}</label>
-					<input type="color" id="prop-penStyle-${style}" value="${currentColor}"
-						data-style="${style}" data-theme-color="${themeColor}">
-					${isOverridden ? `<button class="reset-btn" data-style="${style}" title="Reset to theme">↺</button>` : ''}
-				</div>`;
-		}
-		html += '</div>';
+				<div class="inspector-section-title">Theme</div>
+				${this.plainSelect('prop-theme', themeOptions)}
+				<div class="color-swatches">${swatchesHtml}</div>
+			</div>
+		`;
 
 		html += '</div>';
 		this.container.innerHTML = html;
 
 		// Attach listeners
+		const unitsEl = document.getElementById('prop-units');
+		if (unitsEl) {
+			unitsEl.addEventListener('change', (e) => {
+				units.setUnit(e.target.value);
+				stage.render();
+			});
+		}
+
 		const themeEl = document.getElementById('prop-theme');
 		if (themeEl) {
 			themeEl.addEventListener('change', (e) => {
@@ -278,32 +353,41 @@ class Inspector {
 			});
 		}
 
-		const bgColorEl = document.getElementById('prop-backgroundColor');
-		if (bgColorEl) {
-			bgColorEl.addEventListener('input', (e) => {
-				data.backgroundColor = e.target.value;
-				stage.render();
-			});
-		}
+		// Color swatch click - open color picker
+		this.container.querySelectorAll('.color-swatch').forEach(swatch => {
+			swatch.addEventListener('click', (e) => {
+				const style = e.target.dataset.style;
+				let currentColor;
 
-		// Pen style color pickers
-		for (const style of Object.keys(penStyleLabels)) {
-			const colorEl = document.getElementById(`prop-penStyle-${style}`);
-			if (colorEl) {
-				colorEl.addEventListener('input', (e) => {
-					data.setPenStyleOverride(style, e.target.value);
+				if (style === 'background') {
+					currentColor = data.backgroundColor;
+				} else {
+					currentColor = data.penStyleOverrides[style] || theme.colors[style];
+				}
+
+				// Create a temporary color input
+				const colorInput = document.createElement('input');
+				colorInput.type = 'color';
+				colorInput.value = currentColor;
+				colorInput.style.position = 'absolute';
+				colorInput.style.opacity = '0';
+				document.body.appendChild(colorInput);
+
+				colorInput.addEventListener('input', (ev) => {
+					if (style === 'background') {
+						data.backgroundColor = ev.target.value;
+					} else {
+						data.setPenStyleOverride(style, ev.target.value);
+					}
+					e.target.style.background = ev.target.value;
 					stage.render();
 				});
-			}
-		}
 
-		// Reset buttons
-		this.container.querySelectorAll('.reset-btn').forEach(btn => {
-			btn.addEventListener('click', (e) => {
-				const style = e.target.dataset.style;
-				data.clearPenStyleOverride(style);
-				this.buildDocumentPanel();  // Rebuild to update UI
-				stage.render();
+				colorInput.addEventListener('change', () => {
+					document.body.removeChild(colorInput);
+				});
+
+				colorInput.click();
 			});
 		});
 	}
@@ -340,33 +424,25 @@ class Inspector {
 		const displayValue = this.formatDisplayValue(value, field);
 
 		if (field.type === 'string') {
-			return `<div class="inspector-row">
-				<label>${field.label}</label>
+			const icon = this.getFieldIcon(field);
+			const iconStyle = icon ? `style="--icon: url('${ICON_PATH}/${icon}.svg')"` : '';
+			return `<div class="icon-input" ${iconStyle}>
 				<input type="text" id="prop-${field.key}" value="${displayValue}">
 			</div>`;
 		}
 
 		if (field.type === 'number') {
-			const attrs = [
-				`type="number"`,
-				`id="prop-${field.key}"`,
-				`value="${displayValue}"`,
-				field.min !== undefined ? `min="${field.min}"` : '',
-				field.max !== undefined ? `max="${field.max}"` : ''
-			].filter(Boolean).join(' ');
-
-			return `<div class="inspector-row">
-				<label>${field.label}</label>
-				<input ${attrs}>
+			const icon = this.getFieldIcon(field);
+			const iconStyle = icon ? `style="--icon: url('${ICON_PATH}/${icon}.svg')"` : '';
+			return `<div class="icon-input" ${iconStyle}>
+				<input type="text" id="prop-${field.key}" value="${displayValue}">
 			</div>`;
 		}
 
 		if (field.type === 'select' && field.options) {
 			const optionsHtml = this.buildSelectOptions(field.options, value);
-			return `<div class="inspector-row">
-				<label>${field.label}</label>
-				<select id="prop-${field.key}">${optionsHtml}</select>
-			</div>`;
+			const icon = this.getFieldIcon(field);
+			return this.iconSelect(`prop-${field.key}`, optionsHtml, icon);
 		}
 
 		if (field.type === 'checkbox') {
@@ -380,9 +456,7 @@ class Inspector {
 		}
 
 		if (field.type === 'button') {
-			return `<div class="inspector-row inspector-button-row">
-				<button id="prop-${field.key}" class="inspector-button">${field.label}</button>
-			</div>`;
+			return `<button id="prop-${field.key}" class="action-btn">${field.label}</button>`;
 		}
 
 		return '';
@@ -476,6 +550,39 @@ class Inspector {
 		// Header with count
 		html += `<div class="inspector-header">${selected.length} Objects</div>`;
 
+		// Align buttons
+		const alignButtons = [
+			{ id: 'align-left', icon: 'align-left', title: 'Align Left' },
+			{ id: 'align-center', icon: 'align-center', title: 'Align Center' },
+			{ id: 'align-right', icon: 'align-right', title: 'Align Right' },
+			{ id: 'align-top', icon: 'align-top', title: 'Align Top' },
+			{ id: 'align-middle', icon: 'align-middle', title: 'Align Middle' },
+			{ id: 'align-bottom', icon: 'align-bottom', title: 'Align Bottom' }
+		];
+
+		const distButtons = [
+			{ id: 'dist-horz', icon: 'dist-horz', title: 'Distribute Horizontally' },
+			{ id: 'dist-vert', icon: 'dist-vert', title: 'Distribute Vertically' }
+		];
+
+		const makeButtons = (buttons) => buttons.map(b =>
+			`<button class="segment-btn" id="${b.id}" style="--icon: url('${ICON_PATH}/${b.icon}.svg')" title="${b.title}"></button>`
+		).join('');
+
+		html += `
+			<div class="inspector-section">
+				<div class="inspector-section-title">Align</div>
+				<div class="segment-group">${makeButtons(alignButtons)}</div>
+			</div>
+			<div class="inspector-section">
+				<div class="inspector-section-title">Distribute</div>
+				<div class="input-row">
+					<div class="segment-group">${makeButtons(distButtons)}</div>
+					${this.iconInput('dist-gap', '0', 'gap')}
+				</div>
+			</div>
+		`;
+
 		// Check if all shapes have the same pen style
 		const firstStyle = selected[0].penStyle;
 		const allSamePen = selected.every(s => s.penStyle === firstStyle);
@@ -490,39 +597,44 @@ class Inspector {
 		// Add "Mixed" option if styles differ
 		const mixedPenOption = allSamePen ? '' : '<option value="" selected disabled>Mixed</option>';
 
-		// Check if all shapes have the same color token
-		const firstToken = selected[0].colorToken;
-		const allSameColor = selected.every(s => s.colorToken === firstToken);
-
-		// Build color token dropdown
-		const colorOptions = data.colorPalette.tokens.map(t => {
-			const isSelected = allSameColor && firstToken === t.id ? 'selected' : '';
-			return `<option value="${t.id}" ${isSelected}>${t.name}</option>`;
-		}).join('');
-
-		const mixedColorOption = allSameColor ? '' : '<option value="" selected disabled>Mixed</option>';
-		const defaultColorOption = allSameColor && !firstToken ? 'selected' : '';
-
 		html += `
 			<div class="inspector-section">
 				<div class="inspector-section-title">Appearance</div>
-				<div class="inspector-row">
-					<label>Pen Style</label>
-					<select id="prop-penStyle-multi">${mixedPenOption}${penOptions}</select>
-				</div>
-				<div class="inspector-row">
-					<label>Color</label>
-					<select id="prop-colorToken-multi">
-						${mixedColorOption}
-						<option value="" ${defaultColorOption}>Default</option>
-						${colorOptions}
-					</select>
-				</div>
+				${this.plainSelect('prop-penStyle-multi', `${mixedPenOption}${penOptions}`)}
 			</div>
 		`;
 
 		html += '</div>';
 		this.container.innerHTML = html;
+
+		// Attach align/distribute listeners
+		const getGap = () => {
+			const el = document.getElementById('dist-gap');
+			const v = parseFloat(el?.value);
+			return isNaN(v) ? 0 : Math.max(0, v);
+		};
+
+		const alignActions = {
+			'align-left': () => AlignManager.alignLeft(selected),
+			'align-center': () => AlignManager.alignCenter(selected),
+			'align-right': () => AlignManager.alignRight(selected),
+			'align-top': () => AlignManager.alignTop(selected),
+			'align-middle': () => AlignManager.alignMiddle(selected),
+			'align-bottom': () => AlignManager.alignBottom(selected),
+			'dist-horz': () => AlignManager.distributeHorizontal(selected, getGap()),
+			'dist-vert': () => AlignManager.distributeVertical(selected, getGap())
+		};
+
+		for (const [id, action] of Object.entries(alignActions)) {
+			const el = document.getElementById(id);
+			if (el) {
+				el.addEventListener('click', () => {
+					const deltas = action();
+					undoManager.execute(new AlignCommand(selected, deltas, id.replace('-', ' ')));
+					stage.render();
+				});
+			}
+		}
 
 		// Attach listener for multi-selection pen style change
 		const penEl = document.getElementById('prop-penStyle-multi');
@@ -531,18 +643,6 @@ class Inspector {
 				const newStyle = e.target.value;
 				for (const shape of selected) {
 					shape.penStyle = newStyle;
-				}
-				stage.render();
-			});
-		}
-
-		// Attach listener for multi-selection color token change
-		const colorEl = document.getElementById('prop-colorToken-multi');
-		if (colorEl) {
-			colorEl.addEventListener('change', (e) => {
-				const newToken = e.target.value || null;
-				for (const shape of selected) {
-					shape.colorToken = newToken;
 				}
 				stage.render();
 			});
@@ -574,7 +674,21 @@ class Inspector {
 		this.attachGroupListeners(groupId, schema);
 	}
 
-	// Shared section builder with visibility support
+	// Check if two fields should be paired side-by-side
+	shouldPairFields(field1, field2) {
+		if (!field1 || !field2) return false;
+		// Pair X/Y fields
+		if (field1.label === 'X' && field2.label === 'Y') return true;
+		// Pair Width/Height fields
+		if (field1.label === 'Width' && field2.label === 'Height') return true;
+		// Pair Radius X/Y fields
+		if (field1.label === 'Radius X' && field2.label === 'Radius Y') return true;
+		// Pair Offset X/Y fields
+		if (field1.label === 'Offset X' && field2.label === 'Offset Y') return true;
+		return false;
+	}
+
+	// Shared section builder with visibility support and field pairing
 	buildSectionHtml(section, buildFieldFn) {
 		// Check section visibility
 		if (section.visible && !section.visible()) {
@@ -584,12 +698,26 @@ class Inspector {
 		let html = `<div class="inspector-section">`;
 		html += `<div class="inspector-section-title">${section.title}</div>`;
 
-		for (const field of section.fields) {
-			// Check field visibility
-			if (field.visible && !field.visible()) {
-				continue;
+		// Filter visible fields first
+		const visibleFields = section.fields.filter(f => !f.visible || f.visible());
+
+		// Build fields with pairing logic
+		let i = 0;
+		while (i < visibleFields.length) {
+			const field = visibleFields[i];
+			const nextField = visibleFields[i + 1];
+
+			// Check if this and next field should be paired
+			if (this.shouldPairFields(field, nextField)) {
+				html += `<div class="input-row">`;
+				html += buildFieldFn(field);
+				html += buildFieldFn(nextField);
+				html += `</div>`;
+				i += 2; // Skip both fields
+			} else {
+				html += buildFieldFn(field);
+				i++;
 			}
-			html += buildFieldFn(field);
 		}
 
 		html += `</div>`;
@@ -605,31 +733,28 @@ class Inspector {
 		const displayValue = this.formatDisplayValue(value, field);
 
 		if (field.type === 'readonly') {
-			return `<div class="inspector-row">
-				<label>${field.label}</label>
-				<span class="inspector-value">${displayValue}</span>
+			return `<div class="stat-row">
+				<span class="stat-label">${field.label}</span>
+				<span class="stat-value">${displayValue}</span>
 			</div>`;
 		}
 
 		if (field.type === 'select' && field.options) {
 			const optionsHtml = this.buildSelectOptions(field.options, value);
-			return `<div class="inspector-row">
-				<label>${field.label}</label>
-				<select id="prop-${field.key}">${optionsHtml}</select>
-			</div>`;
+			const icon = this.getFieldIcon(field);
+			return this.iconSelect(`prop-${field.key}`, optionsHtml, icon);
 		}
 
 		if (field.type === 'length') {
-			return `<div class="inspector-row">
-				<label>${field.label}</label>
+			const icon = this.getFieldIcon(field);
+			const iconStyle = icon ? `style="--icon: url('${ICON_PATH}/${icon}.svg')"` : '';
+			return `<div class="icon-input" ${iconStyle}>
 				<input type="text" id="prop-${field.key}" value="${displayValue}">
 			</div>`;
 		}
 
 		if (field.type === 'button') {
-			return `<div class="inspector-row inspector-button-row">
-				<button id="prop-${field.key}" class="inspector-button">${field.label}</button>
-			</div>`;
+			return `<button id="prop-${field.key}" class="action-btn">${field.label}</button>`;
 		}
 
 		if (field.type === 'checkbox') {
@@ -644,10 +769,7 @@ class Inspector {
 
 		if (field.type === 'button-group' && field.options) {
 			const buttons = this.buildButtonGroupOptions(field.options, value);
-			return `<div class="inspector-row">
-				<label>${field.label}</label>
-				<div class="inspector-btn-group" id="prop-${field.key}">${buttons}</div>
-			</div>`;
+			return `<div class="segment-group" id="prop-${field.key}">${buttons}</div>`;
 		}
 
 		return '';
@@ -681,11 +803,11 @@ class Inspector {
 					this.buildGroupPanel(groupId);
 				});
 			} else if (field.type === 'button-group') {
-				const buttons = el.querySelectorAll('.inspector-btn-group-btn');
+				const buttons = el.querySelectorAll('.segment-btn');
 				buttons.forEach(btn => {
 					btn.addEventListener('click', () => {
-						buttons.forEach(b => b.classList.remove('selected'));
-						btn.classList.add('selected');
+						buttons.forEach(b => b.classList.remove('active'));
+						btn.classList.add('active');
 						if (field.set) field.set(btn.dataset.value);
 					});
 				});
@@ -700,26 +822,10 @@ class Inspector {
 			return `<option value="${value}" ${selected}>${label}</option>`;
 		}).join('');
 
-		// Build color token dropdown
-		const colorOptions = data.colorPalette.tokens.map(t => {
-			const selected = shape.colorToken === t.id ? 'selected' : '';
-			return `<option value="${t.id}" ${selected}>${t.name}</option>`;
-		}).join('');
-
 		return `
 			<div class="inspector-section">
 				<div class="inspector-section-title">Appearance</div>
-				<div class="inspector-row">
-					<label>Pen Style</label>
-					<select id="prop-penStyle">${penOptions}</select>
-				</div>
-				<div class="inspector-row">
-					<label>Color</label>
-					<select id="prop-colorToken">
-						<option value="" ${!shape.colorToken ? 'selected' : ''}>Default</option>
-						${colorOptions}
-					</select>
-				</div>
+				${this.plainSelect('prop-penStyle', penOptions)}
 			</div>
 		`;
 	}
@@ -728,66 +834,61 @@ class Inspector {
 		return this.buildSectionHtml(section, field => this.buildField(field, shape));
 	}
 
+	// Get icon for a field (explicit icon property or mapped from label)
+	getFieldIcon(field) {
+		return field.icon || LABEL_ICON_MAP[field.label] || null;
+	}
+
 	buildField(field, shape) {
 		const value = this.getFieldValue(field, shape);
 		const displayValue = this.formatDisplayValue(value, field);
 
 		if (field.type === 'readonly') {
 			const suffix = field.suffix || '';
-			return `<div class="inspector-row">
-				<label>${field.label}</label>
-				<span class="inspector-value" data-field="${field.key}">${displayValue}${suffix}</span>
+			return `<div class="stat-row">
+				<span class="stat-label">${field.label}</span>
+				<span class="stat-value" data-field="${field.key}">${displayValue}${suffix}</span>
 			</div>`;
 		}
 
 		if (field.type === 'readonly-length') {
 			const unitLabel = units.getUnitLabel();
-			return `<div class="inspector-row">
-				<label>${field.label}</label>
-				<span class="inspector-value" data-field="${field.key}">${displayValue} ${unitLabel}</span>
+			return `<div class="stat-row">
+				<span class="stat-label">${field.label}</span>
+				<span class="stat-value" data-field="${field.key}">${displayValue} ${unitLabel}</span>
 			</div>`;
 		}
 
 		if (field.type === 'number') {
-			const attrs = [
-				`type="number"`,
-				`id="prop-${field.key}"`,
-				`value="${displayValue}"`,
-				field.min !== undefined ? `min="${field.min}"` : '',
-				field.max !== undefined ? `max="${field.max}"` : ''
-			].filter(Boolean).join(' ');
-
-			return `<div class="inspector-row">
-				<label>${field.label}</label>
-				<input ${attrs}>
+			const icon = this.getFieldIcon(field);
+			const iconStyle = icon ? `style="--icon: url('${ICON_PATH}/${icon}.svg')"` : '';
+			return `<div class="icon-input" ${iconStyle}>
+				<input type="text" id="prop-${field.key}" value="${displayValue}">
 			</div>`;
 		}
 
 		if (field.type === 'length') {
-			// Text input for length - accepts unit strings like "1in", "25mm"
-			return `<div class="inspector-row">
-				<label>${field.label}</label>
+			const icon = this.getFieldIcon(field);
+			const iconStyle = icon ? `style="--icon: url('${ICON_PATH}/${icon}.svg')"` : '';
+			return `<div class="icon-input" ${iconStyle}>
 				<input type="text" id="prop-${field.key}" value="${displayValue}">
 			</div>`;
 		}
 
 		if (field.type === 'select' && field.options) {
 			const optionsHtml = this.buildSelectOptions(field.options, value);
-			return `<div class="inspector-row">
-				<label>${field.label}</label>
-				<select id="prop-${field.key}">${optionsHtml}</select>
-			</div>`;
+			const icon = this.getFieldIcon(field);
+			return this.iconSelect(`prop-${field.key}`, optionsHtml, icon);
 		}
 
 		if (field.type === 'button') {
-			return `<div class="inspector-row inspector-button-row">
-				<button id="prop-${field.key}" class="inspector-button">${field.label}</button>
-			</div>`;
+			return `<button id="prop-${field.key}" class="action-btn">${field.label}</button>`;
 		}
 
 		if (field.type === 'string') {
-			return `<div class="inspector-row">
-				<label>${field.label}</label>
+			const icon = this.getFieldIcon(field);
+			const iconStyle = icon ? `style="--icon: url('${ICON_PATH}/${icon}.svg')"` : '';
+			return `<div class="icon-input" ${iconStyle}>
 				<input type="text" id="prop-${field.key}" value="${displayValue}">
 			</div>`;
 		}
@@ -843,8 +944,10 @@ class Inspector {
 	// Build buttons HTML for button-group fields
 	buildButtonGroupOptions(options, currentValue) {
 		return options.map(opt => {
-			const selected = currentValue === opt.value ? 'selected' : '';
-			return `<button class="inspector-btn-group-btn ${selected}" data-value="${opt.value}">${opt.label}</button>`;
+			const active = currentValue === opt.value ? 'active' : '';
+			const icon = opt.icon || null;
+			const iconStyle = icon ? `style="--icon: url('${ICON_PATH}/${icon}.svg')"` : '';
+			return `<button class="segment-btn ${active}" data-value="${opt.value}" ${iconStyle} title="${opt.label}"></button>`;
 		}).join('');
 	}
 
@@ -898,15 +1001,6 @@ class Inspector {
 		if (penStyleEl) {
 			penStyleEl.addEventListener('change', (e) => {
 				shape.penStyle = e.target.value;
-				stage.render();
-			});
-		}
-
-		// Color Token (common to all)
-		const colorTokenEl = document.getElementById('prop-colorToken');
-		if (colorTokenEl) {
-			colorTokenEl.addEventListener('change', (e) => {
-				shape.colorToken = e.target.value || null;
 				stage.render();
 			});
 		}
@@ -975,13 +1069,13 @@ class Inspector {
 				const displayValue = this.formatDisplayValue(value, field);
 
 				if (field.type === 'readonly') {
-					const el = this.container.querySelector(`[data-field="${field.key}"]`);
+					const el = this.container.querySelector(`.stat-value[data-field="${field.key}"]`);
 					if (el) {
 						const suffix = field.suffix || '';
 						el.textContent = `${displayValue}${suffix}`;
 					}
 				} else if (field.type === 'readonly-length') {
-					const el = this.container.querySelector(`[data-field="${field.key}"]`);
+					const el = this.container.querySelector(`.stat-value[data-field="${field.key}"]`);
 					if (el) {
 						const unitLabel = units.getUnitLabel();
 						el.textContent = `${displayValue} ${unitLabel}`;
