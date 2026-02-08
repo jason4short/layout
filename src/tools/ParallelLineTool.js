@@ -244,7 +244,7 @@ export class ParallelLineTool extends Tool
 
 		// Show dimension input
 		stage.setInputCallback(this.updateDimension);
-		stage.setDimensionInputValue(Math.abs(this.signedOffset).toFixed(2));
+		stage.setDimensionInputValue(Math.abs(this.signedOffset).toFixed(2), 'Offset distance');
 
 		stage.render();
 	}

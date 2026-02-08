@@ -90,7 +90,7 @@ export class LineTool extends Tool
 			this.line.update();
 			undoManager.execute(new AddShapeCommand(this.line));
 			stage.setInputCallback(this.updateDimension)
-			stage.setDimensionInputValue(this.line.length());
+			stage.setDimensionInputValue(this.line.length(), 'Line length');
 			this.prevLine 	= this.line;
 			this.reset()
 		}

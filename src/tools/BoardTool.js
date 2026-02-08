@@ -33,6 +33,7 @@ export class BoardTool extends Tool {
 		this.onMouseDown = this.onMouseDown.bind(this);
 		this.onMouseMove = this.onMouseMove.bind(this);
 		this.onMouseUp = this.onMouseUp.bind(this);
+		this.updateLength = this.updateLength.bind(this);
 	}
 
 	get currentPreset() {
@@ -118,11 +119,22 @@ export class BoardTool extends Tool {
 
 		undoManager.execute(new AddShapeCommand(this.board));
 
+		this.prevBoard = this.board;
+		stage.setInputCallback(this.updateLength);
+		stage.setDimensionInputValue(this.board.length(), 'Board length');
+
 		this.isDragging = false;
 		this.board = null;
 		this.startPoint = null;
 
 		stage.render();
+	}
+
+	updateLength(newLength) {
+		if (this.prevBoard && Number.isFinite(newLength) && newLength > 0) {
+			this.prevBoard.scaleToDim(newLength);
+			stage.render();
+		}
 	}
 
 	// Cycle through presets with number keys

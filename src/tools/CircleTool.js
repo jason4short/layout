@@ -65,7 +65,7 @@ export class CircleTool extends Tool
 			undoManager.execute(new AddShapeCommand(circle));
 			this.prevCircle = circle;
 			stage.setInputCallback(this.updateDiameter);
-			stage.setDimensionInputValue(this.lastDiameter);
+			stage.setDimensionInputValue(this.lastDiameter, 'Circle radius');
 			stage.render();
 			return;
 		}
@@ -118,7 +118,7 @@ export class CircleTool extends Tool
 
 			// Show diameter in input field
 			stage.setInputCallback(this.updateDiameter);
-			stage.setDimensionInputValue(this.lastDiameter);
+			stage.setDimensionInputValue(this.lastDiameter, 'Circle radius');
 
 			this.circle = false;
 		}

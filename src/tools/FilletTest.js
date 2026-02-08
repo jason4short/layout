@@ -44,7 +44,7 @@ export class FilletTest extends Tool {
 			this.radius = parseFloat(r) || 20;
 			console.log("Fillet radius:", this.radius);
 		});
-		stage.setDimensionInputValue(this.radius);
+		stage.setDimensionInputValue(this.radius, 'Fillet radius');
 	}
 
 	deactivate() {

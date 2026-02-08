@@ -33,6 +33,7 @@ export class SlotTool extends Tool {
 		this.onMouseDown = this.onMouseDown.bind(this);
 		this.onMouseMove = this.onMouseMove.bind(this);
 		this.onMouseUp = this.onMouseUp.bind(this);
+		this.updateLength = this.updateLength.bind(this);
 	}
 
 	begin() {
@@ -114,10 +115,21 @@ export class SlotTool extends Tool {
 		// Remember width for next slot
 		this.defaultWidth = this.slot.width;
 
+		this.prevSlot = this.slot;
+		stage.setInputCallback(this.updateLength);
+		stage.setDimensionInputValue(this.slot.length(), 'Slot length');
+
 		this.isDragging = false;
 		this.slot = null;
 		this.startPoint = null;
 
 		stage.render();
+	}
+
+	updateLength(newLength) {
+		if (this.prevSlot && Number.isFinite(newLength) && newLength > 0) {
+			this.prevSlot.scaleToDim(newLength);
+			stage.render();
+		}
 	}
 }

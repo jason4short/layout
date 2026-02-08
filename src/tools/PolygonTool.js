@@ -70,7 +70,7 @@ export class PolygonTool extends Tool {
 			undoManager.execute(new AddShapeCommand(polygon));
 			this.prevPolygon = polygon;
 			stage.setInputCallback(this.updateRadius);
-			stage.setDimensionInputValue(this.lastRadius * 2);  // Show diameter
+			stage.setDimensionInputValue(this.lastRadius * 2, 'Polygon radius');
 			stage.render();
 			return;
 		}
@@ -126,7 +126,7 @@ export class PolygonTool extends Tool {
 
 			// Show radius in input field (as diameter)
 			stage.setInputCallback(this.updateRadius);
-			stage.setDimensionInputValue(this.lastRadius * 2);
+			stage.setDimensionInputValue(this.lastRadius * 2, 'Polygon radius');
 
 			this.polygon = null;
 		}

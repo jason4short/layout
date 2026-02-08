@@ -6,6 +6,7 @@ import fileManager from './core/FileManager.js';
 import inspector from './core/Inspector.js';
 import palettePanel from './core/PalettePanel.js';
 import units from './core/Units.js';
+import menuBar from './core/MenuBar.js';
 
 import {Shape} from './geometry/Geometry.js';
 import {Intersections} from './data/Intersections.js';
@@ -24,37 +25,26 @@ toolManager.init();
 inspector.init();
 palettePanel.init();
 
-// Coordinate display
-const coordDisplay = document.getElementById('coordDisplay');
-stage.onMouseMoveCallback = (worldX, worldY) => {
-	if (coordDisplay) {
-		const x = units.format(worldX, undefined, false);
-		const y = units.format(worldY, undefined, false);
-		coordDisplay.textContent = `X: ${x}  Y: ${y}`;
-	}
-};
+// Wire up File menu items
+document.getElementById('menuNew').addEventListener('click', () => fileManager.confirmIfDirty(() => fileManager.newDocument()));
+document.getElementById('menuOpen').addEventListener('click', () => fileManager.confirmIfDirty(() => fileManager.open()));
+document.getElementById('menuSave').addEventListener('click', () => fileManager.save());
 
-// Wire up file operation buttons
-document.getElementById('btnNew').addEventListener('click', () => fileManager.confirmIfDirty(() => fileManager.newDocument()));
-document.getElementById('btnOpen').addEventListener('click', () => fileManager.confirmIfDirty(() => fileManager.open()));
-document.getElementById('btnSave').addEventListener('click', () => fileManager.save());
-
-// Import SVG button
-document.getElementById('btnImportSVG').addEventListener('click', () => {
+// Import SVG
+document.getElementById('menuImportSVG').addEventListener('click', () => {
 	openSVGFile((shapes, fileName) => {
 		if (shapes.length === 0) {
 			alert('No shapes found in SVG file');
 			return;
 		}
-		// Add all imported shapes with undo support
 		undoManager.execute(new AddShapesCommand(shapes));
 		stage.render();
 		console.log(`Imported ${shapes.length} shapes from ${fileName}`);
 	});
 });
 
-// Export SVG button
-document.getElementById('btnExportSVG').addEventListener('click', () => {
+// Export SVG
+document.getElementById('menuExportSVG').addEventListener('click', () => {
 	const paper = data.shapes.find(s => s.geometry === Shape.PAPER);
 	if (!paper) {
 		alert('Add a paper first (use the Paper tool to place one)');
@@ -67,8 +57,8 @@ document.getElementById('btnExportSVG').addEventListener('click', () => {
 	downloadSVG(svg, fileName);
 });
 
-// Export Gcode button
-document.getElementById('btnExportGcode').addEventListener('click', () => {
+// Export Gcode
+document.getElementById('menuExportGcode').addEventListener('click', () => {
 	const paper = data.shapes.find(s => s.geometry === Shape.PAPER);
 	if (!paper) {
 		alert('Add a paper first (use the Paper tool to place one)');
@@ -81,8 +71,8 @@ document.getElementById('btnExportGcode').addEventListener('click', () => {
 	downloadGcode(gcode, fileName);
 });
 
-// Export DXF button
-document.getElementById('btnExportDXF').addEventListener('click', () => {
+// Export DXF
+document.getElementById('menuExportDXF').addEventListener('click', () => {
 	const dxf = exportToDXF(data.shapes);
 	const fileName = fileManager.currentFileName
 		? fileManager.currentFileName.replace(/\.[^.]+$/, '.dxf')
@@ -91,7 +81,5 @@ document.getElementById('btnExportDXF').addEventListener('click', () => {
 });
 
 document.addEventListener('contextmenu', (e) => {
-//	if(e.target === canvas){
-		e.preventDefault();
-//	}
-});		
+	e.preventDefault();
+});

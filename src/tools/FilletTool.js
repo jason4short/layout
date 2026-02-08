@@ -665,7 +665,7 @@ export class FilletTool extends Tool
 
 	showRadiusInput() {
 		stage.setInputCallback(this.updateRadius);
-		stage.setDimensionInputValue(this.radius);
+		stage.setDimensionInputValue(this.radius, 'Fillet radius');
 	}
 
 	updateRadius(newRadius) {

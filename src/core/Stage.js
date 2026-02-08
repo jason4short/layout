@@ -620,12 +620,13 @@ class Stage extends View
 	}
 	
 	// UI for input handling
-	setDimensionInputValue(dim){
-		this.inputHandler.setInputValue(dim);
+	setDimensionInputValue(dim, label){
+		this.inputHandler.setInputValue(dim, label);
 	}
 	
 	setInputCallback(callback){
 		this.inputHandler.setCallback(callback);
+		if (!callback) this.inputHandler.clear();
 	}
 	
 	

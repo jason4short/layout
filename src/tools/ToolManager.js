@@ -191,8 +191,9 @@ class ToolManager extends EventDispatcher
 	}
 
 	setTool(tool)
-	{	
+	{
 		this.currentTool.deactivate();
+		stage.setInputCallback(null);
 
 		if(tool == this.strokeTool){
 			this.strokeTool.begin();

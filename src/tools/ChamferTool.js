@@ -276,7 +276,7 @@ export class ChamferTool extends Tool
 
 	showDistanceInput() {
 		stage.setInputCallback(this.updateDistance);
-		stage.setDimensionInputValue(this.distance);
+		stage.setDimensionInputValue(this.distance, 'Chamfer distance');
 	}
 
 	updateDistance(newDistance) {
