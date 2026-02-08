@@ -216,6 +216,15 @@ export class ParallelLineTool extends Tool
 		if (this.state !== STATE.DRAGGING) return;
 		if (!this.previewShape) return;
 
+		// Require minimum drag distance to avoid duplicating on click
+		const currentPt = { x: data.snapPoint.x, y: data.snapPoint.y };
+		const dragDist = VectorUtils.distance(currentPt, this.dragStartPt);
+		if (stage.worldToScreenScale(dragDist) < 5) {
+			this.reset();
+			stage.render();
+			return;
+		}
+
 		// Don't create if radius would be zero or negative for circles/arcs
 		if (this.offsetType !== OFFSET_TYPE.LINE) {
 			const newRadius = this.radiusOrig + this.signedOffset;

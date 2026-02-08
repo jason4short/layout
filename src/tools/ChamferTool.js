@@ -48,6 +48,7 @@ export class ChamferTool extends Tool
 
 	begin() {
 		this.state = STATE.IDLE;
+		this.showDistanceInput();
 	}
 
 	deactivate(){

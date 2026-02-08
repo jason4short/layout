@@ -334,6 +334,11 @@ class Stage extends View
 				document.activeElement.blur();
 				e.preventDefault();
 			}
+			// Allow F-keys to pass through to tool shortcuts
+			if (e.key.startsWith('F') && e.key.length > 1 && !isNaN(e.key.slice(1))) {
+				e.preventDefault();
+				this.dispatchEvent('keyDown', e);
+			}
 			return;
 		}
 
@@ -624,6 +629,10 @@ class Stage extends View
 		this.inputHandler.setInputValue(dim, label);
 	}
 	
+	setDimensionInputValues(label, fields){
+		this.inputHandler.setInputValues(label, fields);
+	}
+
 	setInputCallback(callback){
 		this.inputHandler.setCallback(callback);
 		if (!callback) this.inputHandler.clear();

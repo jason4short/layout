@@ -35,8 +35,7 @@ export class CircleTool extends Tool
 	}
 
 	begin(){
-		//console.log("circle tool begin");
-	
+		this.showDiameterInput();
 	}
 
 	deactivate(){
@@ -64,8 +63,7 @@ export class CircleTool extends Tool
 			const circle = new Circle([snapPt.x, snapPt.y, this.lastDiameter / 2]);
 			undoManager.execute(new AddShapeCommand(circle));
 			this.prevCircle = circle;
-			stage.setInputCallback(this.updateDiameter);
-			stage.setDimensionInputValue(this.lastDiameter, 'Circle radius');
+			this.showDiameterInput();
 			stage.render();
 			return;
 		}
@@ -117,12 +115,16 @@ export class CircleTool extends Tool
 			this.lastDiameter = this.circle.radius * 2;
 
 			// Show diameter in input field
-			stage.setInputCallback(this.updateDiameter);
-			stage.setDimensionInputValue(this.lastDiameter, 'Circle radius');
+			this.showDiameterInput();
 
 			this.circle = false;
 		}
 		stage.render();
+	}
+
+	showDiameterInput() {
+		stage.setInputCallback(this.updateDiameter);
+		stage.setDimensionInputValue(this.lastDiameter, 'Circle radius');
 	}
 
 	updateDiameter(newDiameter)

@@ -34,6 +34,8 @@ export class BoxTool extends Tool
 		this.onMouseDown 	= this.onMouseDown.bind(this);
 		this.onMouseMove 	= this.onMouseMove.bind(this);
 		this.onMouseUp 		= this.onMouseUp.bind(this);
+		this.updateWidth	= this.updateWidth.bind(this);
+		this.updateHeight	= this.updateHeight.bind(this);
 	}
 
 	begin(){
@@ -137,9 +139,25 @@ export class BoxTool extends Tool
 			// Clear temp shapes before adding to data
 			data.clearTempShapes();
 
+			// Store anchor and dimensions for input resizing
+			const lines = [...this.previewLines];
+			this._prevLines = lines;
+			this._prevAnchor = {
+				x: Math.min(this.startPt.x, endPt.x),
+				y: Math.min(this.startPt.y, endPt.y)
+			};
+			this._prevWidth = width;
+			this._prevHeight = height;
+
 			// Add lines via undo command
-			undoManager.execute(new AddShapesCommand([...this.previewLines]));
+			undoManager.execute(new AddShapesCommand(lines));
 			this.previewLines = [];
+
+			// Show width/height input fields
+			stage.setDimensionInputValues('Rectangle', [
+				{ value: width, icon: 'width', callback: this.updateWidth },
+				{ value: height, icon: 'height', callback: this.updateHeight }
+			]);
 		} else {
 			data.clearTempShapes();
 			this.previewLines = [];
@@ -149,6 +167,45 @@ export class BoxTool extends Tool
 		this.startPt = null;
 		this.isDragging = false;
 		this.dragStart = null;
+		stage.render();
+	}
+
+	updateWidth(newWidth) {
+		if (!this._prevLines || !Number.isFinite(newWidth) || newWidth <= 0) return;
+		this._prevWidth = newWidth;
+		this._resizePrevBox();
+	}
+
+	updateHeight(newHeight) {
+		if (!this._prevLines || !Number.isFinite(newHeight) || newHeight <= 0) return;
+		this._prevHeight = newHeight;
+		this._resizePrevBox();
+	}
+
+	_resizePrevBox() {
+		const ax = this._prevAnchor.x;
+		const ay = this._prevAnchor.y;
+		const p1 = { x: ax, y: ay };
+		const p2 = { x: ax + this._prevWidth, y: ay + this._prevHeight };
+
+		const lines = this._prevLines;
+		// Top
+		lines[0].start.x = p1.x; lines[0].start.y = p1.y;
+		lines[0].end.x = p2.x;   lines[0].end.y = p1.y;
+		lines[0].update();
+		// Right
+		lines[1].start.x = p2.x; lines[1].start.y = p1.y;
+		lines[1].end.x = p2.x;   lines[1].end.y = p2.y;
+		lines[1].update();
+		// Bottom
+		lines[2].start.x = p2.x; lines[2].start.y = p2.y;
+		lines[2].end.x = p1.x;   lines[2].end.y = p2.y;
+		lines[2].update();
+		// Left
+		lines[3].start.x = p1.x; lines[3].start.y = p2.y;
+		lines[3].end.x = p1.x;   lines[3].end.y = p1.y;
+		lines[3].update();
+
 		stage.render();
 	}
 
