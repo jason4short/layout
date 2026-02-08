@@ -1,6 +1,7 @@
 import data, { DEFAULT_LAYOUT, DEFAULT_SIZING, DEFAULT_PADDING } from '../data/Data.js';
 import stage from './Stage.js';
 import undoManager from './UndoManager.js';
+import {showConfirmDialog} from './ConfirmDialog.js';
 
 import {Shape} from '../geometry/Geometry.js';
 import {Construction} from '../geometry/Construction.js';
@@ -16,8 +17,38 @@ class FileManager
 
 		this.currentFileName = null;
 		this.fileVersion = '1.1';  // Updated version for new symbol model
+		this._dirty = false;
+		this._baseTitle = document.title;
+
+		// Mark dirty on any undo/redo stack change
+		undoManager.onChange = () => this._setDirty(true);
+
+		// Warn before closing tab with unsaved changes
+		window.addEventListener('beforeunload', (e) => {
+			if (this._dirty) {
+				e.preventDefault();
+				e.returnValue = '';
+			}
+		});
 
 		return FileManager.instance;
+	}
+
+	get dirty() { return this._dirty; }
+
+	_setDirty(value) {
+		if (this._dirty === value) return;
+		this._dirty = value;
+		document.title = value ? `${this._baseTitle} *` : this._baseTitle;
+	}
+
+	// Show confirmation dialog if there are unsaved changes, then run callback
+	confirmIfDirty(callback) {
+		if (!this._dirty) {
+			callback();
+			return;
+		}
+		showConfirmDialog('You have unsaved changes that will be lost. Continue without saving?', callback);
 	}
 
 	// Serialize all document data to JSON
@@ -235,6 +266,7 @@ class FileManager
 		// Rebuild POIs now that all frameId references are valid
 		data.rebuildPOIs();
 
+		this._setDirty(false);
 		stage.render();
 	}
 
@@ -262,6 +294,7 @@ class FileManager
 		URL.revokeObjectURL(url);
 
 		this.currentFileName = fileName;
+		this._setDirty(false);
 		console.log('Saved:', fileName);
 	}
 
@@ -315,6 +348,7 @@ class FileManager
 		stage.zoom = 1;
 
 		this.currentFileName = null;
+		this._setDirty(false);
 		stage.render();
 		console.log('New document created');
 	}

@@ -441,11 +441,11 @@ class ToolManager extends EventDispatcher
 					break;
 	
 				case 'o':
-					fileManager.open();
+					fileManager.confirmIfDirty(() => fileManager.open());
 					break;
-	
+
 				case 'n':
-					fileManager.newDocument();
+					fileManager.confirmIfDirty(() => fileManager.newDocument());
 					break;
 
 				case 'g':

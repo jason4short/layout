@@ -35,8 +35,8 @@ stage.onMouseMoveCallback = (worldX, worldY) => {
 };
 
 // Wire up file operation buttons
-document.getElementById('btnNew').addEventListener('click', () => fileManager.newDocument());
-document.getElementById('btnOpen').addEventListener('click', () => fileManager.open());
+document.getElementById('btnNew').addEventListener('click', () => fileManager.confirmIfDirty(() => fileManager.newDocument()));
+document.getElementById('btnOpen').addEventListener('click', () => fileManager.confirmIfDirty(() => fileManager.open()));
 document.getElementById('btnSave').addEventListener('click', () => fileManager.save());
 
 // Import SVG button

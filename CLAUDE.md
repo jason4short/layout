@@ -2,12 +2,20 @@
 
 ## Overview
 Browser-based 2D CAD application built with vanilla JavaScript (ES6 modules) and HTML5 Canvas.
+I like: 
+- minimal dependancies 
+- simple code, dont get too tricky
+- object oriented code, MVC, etc
+- simple comments
+- plain language variables, think easy to read
+- keep a log of major features
+
 
 ## Tech Stack
 - Vanilla JS (ES6 modules)
 - HTML5 Canvas 2D API
 - No frameworks (pure HTML/CSS/JS)
-- SVG import/export, JSON save format
+- DXF, SVG import/export, JSON save format
 
 ## Directory Structure
 ```

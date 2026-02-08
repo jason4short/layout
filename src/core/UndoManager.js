@@ -10,6 +10,7 @@ class UndoManager {
 		this.undoStack = [];
 		this.redoStack = [];
 		this.maxHistory = 100; // Limit memory usage
+		this.onChange = null; // Callback fired on any stack mutation
 
 		UndoManager.instance = this;
 		return this;
@@ -27,6 +28,8 @@ class UndoManager {
 		if (this.undoStack.length > this.maxHistory) {
 			this.undoStack.shift();
 		}
+
+		if (this.onChange) this.onChange();
 	}
 
 	// Record a command without executing (for actions already performed)
@@ -40,6 +43,8 @@ class UndoManager {
 		if (this.undoStack.length > this.maxHistory) {
 			this.undoStack.shift();
 		}
+
+		if (this.onChange) this.onChange();
 	}
 
 	// Undo the last command
@@ -51,6 +56,7 @@ class UndoManager {
 		const command = this.undoStack.pop();
 		command.undo();
 		this.redoStack.push(command);
+		if (this.onChange) this.onChange();
 		return true;
 	}
 
@@ -63,6 +69,7 @@ class UndoManager {
 		const command = this.redoStack.pop();
 		command.execute();
 		this.undoStack.push(command);
+		if (this.onChange) this.onChange();
 		return true;
 	}
 
