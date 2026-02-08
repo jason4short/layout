@@ -66,6 +66,9 @@ export class AngleDimension extends Geometry
 	updateFromLines() {
 		if (!this.line1 || !this.line2) return;
 
+		// Save the current arc mid-angle so we can preserve which side the arc is on
+		const oldMidAngle = this.startAngle + (this.sweepAngle || 0) / 2;
+
 		// Recalculate vertex from line intersection
 		const newVertex = GeometryUtils.lineIntersection(this.line1, this.line2);
 		if (newVertex) {
@@ -84,14 +87,14 @@ export class AngleDimension extends Geometry
 		);
 
 		// Determine correct direction for each angle (toward click points)
+		// Use normalizeAngleSigned [-PI, PI] so Math.abs() comparison works correctly
 		if (this.click1) {
 			const toClick1 = Math.atan2(
 				this.click1.y - this.vertex.y,
 				this.click1.x - this.vertex.x
 			);
-			// Use tangent1 or tangent1 + PI depending on which is closer to toClick1
-			const diff1 = AngleUtils.normalizeAngle(tangent1 - toClick1);
-			const diff1Opp = AngleUtils.normalizeAngle(tangent1 + Math.PI - toClick1);
+			const diff1 = AngleUtils.normalizeAngleSigned(tangent1 - toClick1);
+			const diff1Opp = AngleUtils.normalizeAngleSigned(tangent1 + Math.PI - toClick1);
 			this.startAngle = Math.abs(diff1) < Math.abs(diff1Opp) ? tangent1 : tangent1 + Math.PI;
 
 			// Project click1 onto line1
@@ -109,8 +112,8 @@ export class AngleDimension extends Geometry
 				this.click2.y - this.vertex.y,
 				this.click2.x - this.vertex.x
 			);
-			const diff2 = AngleUtils.normalizeAngle(tangent2 - toClick2);
-			const diff2Opp = AngleUtils.normalizeAngle(tangent2 + Math.PI - toClick2);
+			const diff2 = AngleUtils.normalizeAngleSigned(tangent2 - toClick2);
+			const diff2Opp = AngleUtils.normalizeAngleSigned(tangent2 + Math.PI - toClick2);
 			this.endAngle = Math.abs(diff2) < Math.abs(diff2Opp) ? tangent2 : tangent2 + Math.PI;
 
 			// Project click2 onto line2
@@ -121,6 +124,20 @@ export class AngleDimension extends Geometry
 			}
 		} else {
 			this.endAngle = tangent2;
+		}
+
+		// Preserve arc side: if the old mid-angle is no longer inside the recalculated arc,
+		// swap to maintain the same visual side (handles flip state preservation)
+		if (!AngleUtils.isAngleInRange(oldMidAngle, this.startAngle, this.endAngle)) {
+			const tmpAngle = this.startAngle;
+			this.startAngle = this.endAngle;
+			this.endAngle = tmpAngle;
+			const tmpClick = this.click1;
+			this.click1 = this.click2;
+			this.click2 = tmpClick;
+			const tmpLine = this.line1;
+			this.line1 = this.line2;
+			this.line2 = tmpLine;
 		}
 
 		this.update();
@@ -383,8 +400,22 @@ export class AngleDimension extends Geometry
 					this.endAngle = Math.atan2(newY - this.vertex.y, newX - this.vertex.x);
 				}
 				break;
-			case 3: // textPosition - change arc radius only (doesn't affect click points)
+			case 3: // textPosition - change arc radius, flip side if dragged across
 				this.arcRadius = Math.max(15, VectorUtils.distance({x: newX, y: newY}, this.vertex) - 15);
+				// Check if drag point is on the opposite side of the current arc
+				const mouseAngle = Math.atan2(newY - this.vertex.y, newX - this.vertex.x);
+				if (!AngleUtils.isAngleInRange(mouseAngle, this.startAngle, this.endAngle)) {
+					// Swap to show the complementary arc
+					const tmpAngle = this.startAngle;
+					this.startAngle = this.endAngle;
+					this.endAngle = tmpAngle;
+					const tmpClick = this.click1;
+					this.click1 = this.click2;
+					this.click2 = tmpClick;
+					const tmpLine = this.line1;
+					this.line1 = this.line2;
+					this.line2 = tmpLine;
+				}
 				break;
 		}
 		this.update();

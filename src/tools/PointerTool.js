@@ -717,6 +717,10 @@ export class PointerTool extends Tool
 				shape.updateControlPoint(original.index, newX, newY);
 			}
 		}
+
+		// Live-update angle dimensions that depend on shapes being moved
+		const movedShapes = this.originalPositions.map(p => p.shape);
+		data.updateDependentDimensions(movedShapes);
 	}
 
 	// Update auto-layout group resize based on current mouse position
