@@ -179,19 +179,24 @@ export function deserializeSpline(data, SplineClass) {
 // ============ Dimension ============
 
 export function serializeDimension(shape) {
-	return {
+	const json = {
 		...serializeBase(shape),
 		start: serializePoint(shape.start),
 		end: serializePoint(shape.end),
 		offset: shape.offset
 	};
+	if (shape.constraint && shape.constraint !== 'none') {
+		json.constraint = shape.constraint;
+	}
+	return json;
 }
 
 export function deserializeDimension(data, DimensionClass) {
 	const dim = new DimensionClass([
 		data.start.x, data.start.y,
 		data.end.x, data.end.y,
-		data.offset
+		data.offset,
+		data.constraint || 'none'
 	]);
 	dim.type = data.type;
 	if (data.penStyle) dim.penStyle = data.penStyle;

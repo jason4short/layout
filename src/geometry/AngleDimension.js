@@ -403,7 +403,7 @@ export class AngleDimension extends Geometry
 	}
 
 	draw(ctx, renderer) {
-		const color = this.selected ? '#FF0000' : '#111111';
+		const color = this.selected ? '#FF0000' : renderer.getPenStyleColor(this.penStyle);
 		const arrowSize = 8;
 
 		// Convert points to screen coordinates

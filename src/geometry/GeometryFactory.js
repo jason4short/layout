@@ -41,6 +41,8 @@ class GeometryFactory {
 		this.register(Shape.SPLINE, 			Spline);
 		this.register(Shape.IMAGE, 				Image);
 		this.register(Shape.DIMENSION, 			Dimension);
+		this.register(Shape.HORIZ_DIMENSION, 	Dimension);
+		this.register(Shape.VERT_DIMENSION, 	Dimension);
 		this.register(Shape.RADIAL_DIMENSION, 	RadialDimension);
 		this.register(Shape.ANGLE_DIMENSION, 	AngleDimension);
 		this.register(Shape.TEXT, 				Text);

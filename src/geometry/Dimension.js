@@ -6,6 +6,7 @@ import {Shape,
 
 import * as VectorUtils 	from './utils/VectorUtils.js';
 import {serializeDimension, deserializeDimension} from './GeometrySerializers.js';
+import { dimensionSchema } from './InspectorSchemas.js';
 import units 				from '../core/Units.js';
 
 export class Dimension extends Geometry
@@ -24,6 +25,9 @@ export class Dimension extends Geometry
 
 		// Perpendicular offset for dimension line (positive = one side, negative = other)
 		this.offset		= params[4] || 0;
+
+		// Constraint: 'none' (free), 'horizontal' (X-axis), 'vertical' (Y-axis)
+		this.constraint	= params[5] || 'none';
 
 		// Computed geometry for rendering
 		this.dimLineStart	= new Point(0, 0);  // Start of dimension line
@@ -46,53 +50,13 @@ export class Dimension extends Geometry
 	}
 
 	update(){
-		// Calculate the measured distance
-		this.value = VectorUtils.distance(this.start, this.end);
-
-		// Calculate direction vector along the measurement
-		const dx = this.end.x - this.start.x;
-		const dy = this.end.y - this.start.y;
-		const len = Math.sqrt(dx * dx + dy * dy);
-
-		if (len > 0) {
-			// Unit vector along measurement direction
-			const unitX = dx / len;
-			const unitY = dy / len;
-
-			// Perpendicular unit vector (rotated 90 degrees)
-			this.perpendicular.x = -unitY;
-			this.perpendicular.y = unitX;
+		if (this.constraint === 'horizontal') {
+			this._updateHorizontal();
+		} else if (this.constraint === 'vertical') {
+			this._updateVertical();
+		} else {
+			this._updateFree();
 		}
-
-		// Calculate dimension line endpoints (offset from start/end)
-		this.dimLineStart.x = this.start.x + this.perpendicular.x * this.offset;
-		this.dimLineStart.y = this.start.y + this.perpendicular.y * this.offset;
-		this.dimLineEnd.x = this.end.x + this.perpendicular.x * this.offset;
-		this.dimLineEnd.y = this.end.y + this.perpendicular.y * this.offset;
-
-		// Text position at midpoint of dimension line
-		this.textPosition.x = (this.dimLineStart.x + this.dimLineEnd.x) / 2;
-		this.textPosition.y = (this.dimLineStart.y + this.dimLineEnd.y) / 2;
-
-		// Extension lines - from measured points toward dimension line
-		// Add small gap at the measured point end, extend slightly past dimension line
-		const gapRatio = 0.1;  // Gap from measured point (as ratio of offset)
-		const overrun = 0.15;  // How far to extend past dimension line (as ratio)
-
-		const offsetSign = this.offset >= 0 ? 1 : -1;
-		const absOffset = Math.abs(this.offset);
-
-		// Extension line 1 (from start)
-		this.extLine1Start.x = this.start.x + this.perpendicular.x * absOffset * gapRatio * offsetSign;
-		this.extLine1Start.y = this.start.y + this.perpendicular.y * absOffset * gapRatio * offsetSign;
-		this.extLine1End.x = this.start.x + this.perpendicular.x * (absOffset * (1 + overrun)) * offsetSign;
-		this.extLine1End.y = this.start.y + this.perpendicular.y * (absOffset * (1 + overrun)) * offsetSign;
-
-		// Extension line 2 (from end)
-		this.extLine2Start.x = this.end.x + this.perpendicular.x * absOffset * gapRatio * offsetSign;
-		this.extLine2Start.y = this.end.y + this.perpendicular.y * absOffset * gapRatio * offsetSign;
-		this.extLine2End.x = this.end.x + this.perpendicular.x * (absOffset * (1 + overrun)) * offsetSign;
-		this.extLine2End.y = this.end.y + this.perpendicular.y * (absOffset * (1 + overrun)) * offsetSign;
 
 		// Update bounding box to include all geometry
 		const allX = [
@@ -112,6 +76,129 @@ export class Dimension extends Geometry
 		this.bounds.y = Math.min(...allY);
 		this.bounds.width = Math.max(...allX) - this.bounds.x;
 		this.bounds.height = Math.max(...allY) - this.bounds.y;
+	}
+
+	_updateFree(){
+		// Calculate the measured distance
+		this.value = VectorUtils.distance(this.start, this.end);
+
+		// Calculate direction vector along the measurement
+		const dx = this.end.x - this.start.x;
+		const dy = this.end.y - this.start.y;
+		const len = Math.sqrt(dx * dx + dy * dy);
+
+		if (len > 0) {
+			const unitX = dx / len;
+			const unitY = dy / len;
+			this.perpendicular.x = -unitY;
+			this.perpendicular.y = unitX;
+		}
+
+		this._calculateGeometry();
+	}
+
+	_updateHorizontal(){
+		// Horizontal dim: measure X distance, extension lines are vertical
+		this.value = Math.abs(this.end.x - this.start.x);
+		this.perpendicular.x = 0;
+		this.perpendicular.y = 1;
+
+		// Dim line runs horizontally at y = start.y + offset
+		const dimY = this.start.y + this.offset;
+		this.dimLineStart.x = this.start.x;
+		this.dimLineStart.y = dimY;
+		this.dimLineEnd.x = this.end.x;
+		this.dimLineEnd.y = dimY;
+
+		// Text position at midpoint
+		this.textPosition.x = (this.start.x + this.end.x) / 2;
+		this.textPosition.y = dimY;
+
+		// Extension lines run vertically from each point to the dim line
+		this._calculateConstrainedExtensionLines();
+	}
+
+	_updateVertical(){
+		// Vertical dim: measure Y distance, extension lines are horizontal
+		this.value = Math.abs(this.end.y - this.start.y);
+		this.perpendicular.x = 1;
+		this.perpendicular.y = 0;
+
+		// Dim line runs vertically at x = start.x + offset
+		const dimX = this.start.x + this.offset;
+		this.dimLineStart.x = dimX;
+		this.dimLineStart.y = this.start.y;
+		this.dimLineEnd.x = dimX;
+		this.dimLineEnd.y = this.end.y;
+
+		// Text position at midpoint
+		this.textPosition.x = dimX;
+		this.textPosition.y = (this.start.y + this.end.y) / 2;
+
+		// Extension lines run horizontally from each point to the dim line
+		this._calculateConstrainedExtensionLines();
+	}
+
+	_calculateConstrainedExtensionLines(){
+		const gap = 6;       // Fixed gap from control point (world units)
+		const overrun = 3;   // Fixed overrun past dim line (world units)
+
+		if (this.constraint === 'horizontal') {
+			const dimY = this.dimLineStart.y;
+			const sign1 = dimY >= this.start.y ? 1 : -1;
+			this.extLine1Start.x = this.start.x;
+			this.extLine1Start.y = this.start.y + sign1 * gap;
+			this.extLine1End.x = this.start.x;
+			this.extLine1End.y = dimY + sign1 * overrun;
+
+			const sign2 = dimY >= this.end.y ? 1 : -1;
+			this.extLine2Start.x = this.end.x;
+			this.extLine2Start.y = this.end.y + sign2 * gap;
+			this.extLine2End.x = this.end.x;
+			this.extLine2End.y = dimY + sign2 * overrun;
+		} else {
+			const dimX = this.dimLineStart.x;
+			const sign1 = dimX >= this.start.x ? 1 : -1;
+			this.extLine1Start.x = this.start.x + sign1 * gap;
+			this.extLine1Start.y = this.start.y;
+			this.extLine1End.x = dimX + sign1 * overrun;
+			this.extLine1End.y = this.start.y;
+
+			const sign2 = dimX >= this.end.x ? 1 : -1;
+			this.extLine2Start.x = this.end.x + sign2 * gap;
+			this.extLine2Start.y = this.end.y;
+			this.extLine2End.x = dimX + sign2 * overrun;
+			this.extLine2End.y = this.end.y;
+		}
+	}
+
+	_calculateGeometry(){
+		// Calculate dimension line endpoints (offset from start/end)
+		this.dimLineStart.x = this.start.x + this.perpendicular.x * this.offset;
+		this.dimLineStart.y = this.start.y + this.perpendicular.y * this.offset;
+		this.dimLineEnd.x = this.end.x + this.perpendicular.x * this.offset;
+		this.dimLineEnd.y = this.end.y + this.perpendicular.y * this.offset;
+
+		// Text position at midpoint of dimension line
+		this.textPosition.x = (this.dimLineStart.x + this.dimLineEnd.x) / 2;
+		this.textPosition.y = (this.dimLineStart.y + this.dimLineEnd.y) / 2;
+
+		// Extension lines - from measured points toward dimension line
+		const gap = 6;       // Fixed gap from control point (world units)
+		const overrun = 3;   // Fixed overrun past dim line (world units)
+
+		const offsetSign = this.offset >= 0 ? 1 : -1;
+		const absOffset = Math.abs(this.offset);
+
+		this.extLine1Start.x = this.start.x + this.perpendicular.x * gap * offsetSign;
+		this.extLine1Start.y = this.start.y + this.perpendicular.y * gap * offsetSign;
+		this.extLine1End.x = this.start.x + this.perpendicular.x * (absOffset + overrun) * offsetSign;
+		this.extLine1End.y = this.start.y + this.perpendicular.y * (absOffset + overrun) * offsetSign;
+
+		this.extLine2Start.x = this.end.x + this.perpendicular.x * gap * offsetSign;
+		this.extLine2Start.y = this.end.y + this.perpendicular.y * gap * offsetSign;
+		this.extLine2End.x = this.end.x + this.perpendicular.x * (absOffset + overrun) * offsetSign;
+		this.extLine2End.y = this.end.y + this.perpendicular.y * (absOffset + overrun) * offsetSign;
 	}
 
 	getSnapPOIs() {
@@ -140,7 +227,8 @@ export class Dimension extends Geometry
 		let d = new Dimension([
 			this.start.x, this.start.y,
 			this.end.x, this.end.y,
-			this.offset
+			this.offset,
+			this.constraint
 		]);
 		d.type 		= this.type;
 		d.geometry	= this.geometry;
@@ -156,6 +244,7 @@ export class Dimension extends Geometry
 		this.end.x = other.end.x;
 		this.end.y = other.end.y;
 		this.offset = other.offset;
+		this.constraint = other.constraint;
 		this.type = other.type;
 		this.geometry = other.geometry;
 		this.penStyle = other.penStyle;
@@ -190,6 +279,10 @@ export class Dimension extends Geometry
 		this.offset = -this.offset;
 	}
 
+	getInspectorSchema() {
+		return dimensionSchema(this);
+	}
+
 	// Update a specific control point by index
 	// POI indices: 0=start, 1=end, 2=textPosition (moves offset)
 	updateControlPoint(index, newX, newY){
@@ -203,9 +296,14 @@ export class Dimension extends Geometry
 				this.end.y = newY;
 				break;
 			case 2: // text position - adjust offset
-				// Calculate new offset based on perpendicular distance from measurement line
-				const toNew = { x: newX - this.start.x, y: newY - this.start.y };
-				this.offset = toNew.x * this.perpendicular.x + toNew.y * this.perpendicular.y;
+				if (this.constraint === 'horizontal') {
+					this.offset = newY - this.start.y;
+				} else if (this.constraint === 'vertical') {
+					this.offset = newX - this.start.x;
+				} else {
+					const toNew = { x: newX - this.start.x, y: newY - this.start.y };
+					this.offset = toNew.x * this.perpendicular.x + toNew.y * this.perpendicular.y;
+				}
 				break;
 		}
 		this.update();

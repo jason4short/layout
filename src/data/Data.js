@@ -764,6 +764,8 @@ class Data
 			case Shape.IMAGE:
 				return [4]; // center only - corners are for resizing
 			case Shape.DIMENSION:
+			case Shape.HORIZ_DIMENSION:
+			case Shape.VERT_DIMENSION:
 				return [0, 1, 2]; // start, end, and offset/text position
 			case Shape.RADIAL_DIMENSION:
 				return [0, 1, 2]; // center, perimeter point, text position

@@ -29,6 +29,8 @@ import { MirrorTool } 					from "./MirrorTool.js";
 import { RotateTool } 					from "./RotateTool.js";
 import { ImageTool } 					from "./ImageTool.js";
 import { DimensionTool } 				from "./DimensionTool.js";
+import { HorizDimensionTool } 			from "./HorizDimensionTool.js";
+import { VertDimensionTool } 			from "./VertDimensionTool.js";
 import { AngleDimensionTool } 			from "./AngleDimensionTool.js";
 import { TextTool } 					from "./TextTool.js";
 import { OutlineTextTool } 				from "./OutlineTextTool.js";
@@ -82,6 +84,8 @@ class ToolManager extends EventDispatcher
 		this.rotateTool					= new RotateTool();
 		this.imageTool					= new ImageTool();
 		this.dimensionTool				= new DimensionTool();
+		this.horizDimensionTool			= new HorizDimensionTool();
+		this.vertDimensionTool			= new VertDimensionTool();
 		this.angleDimensionTool			= new AngleDimensionTool();
 		this.textTool					= new TextTool();
 		this.outlineTextTool			= new OutlineTextTool();
@@ -125,6 +129,8 @@ class ToolManager extends EventDispatcher
 			{ tool: this.rotateTool, 				name: 'Rotate', shortcut: 'R', icon: 'rotate' },
 			{ category: 'Annotate' },
 			{ tool: this.dimensionTool, 			name: 'Dimension', shortcut: 'D', icon: 'dimension' },
+			{ tool: this.horizDimensionTool, 		name: 'Horiz Dim', shortcut: null, icon: 'dimension_horiz' },
+			{ tool: this.vertDimensionTool, 		name: 'Vert Dim', shortcut: null, icon: 'dimension_vert' },
 			{ tool: this.angleDimensionTool, 		name: 'Angle Dim', shortcut: null, icon: 'angle-dimension' },
 			{ tool: this.textTool, 					name: 'Text', shortcut: 'N', icon: 'text' },
 			{ tool: this.outlineTextTool, 			name: 'Outline Text', shortcut: null, icon: 'outline-text' },

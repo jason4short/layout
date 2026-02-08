@@ -273,6 +273,34 @@ export class PointerTool extends Tool
 
 		// Store positions for whole-shape selections
 		for(const shape of data.getSelected()){
+			// Dimensions: don't drag as a whole — instead grab the nearest control point
+			if(shape.geometry === Shape.DIMENSION ||
+			   shape.geometry === Shape.HORIZ_DIMENSION ||
+			   shape.geometry === Shape.VERT_DIMENSION ||
+			   shape.geometry === Shape.RADIAL_DIMENSION ||
+			   shape.geometry === Shape.ANGLE_DIMENSION){
+				const pois = shape.getSnapPOIs();
+				const indices = data.getSelectableIndices(shape);
+				let bestIndex = indices[indices.length - 1]; // default to offset handle
+				let bestDist = Infinity;
+				for(const i of indices){
+					const poi = pois[i];
+					if(!poi) continue;
+					const dx = poi.x - this.dragStart.x;
+					const dy = poi.y - this.dragStart.y;
+					const d = dx*dx + dy*dy;
+					if(d < bestDist){ bestDist = d; bestIndex = i; }
+				}
+				const poi = pois[bestIndex];
+				if(poi){
+					this.originalPositions.push({
+						x: poi.x, y: poi.y,
+						shape, index: bestIndex
+					});
+				}
+				continue;
+			}
+
 			const selectableIndices = data.getSelectableIndices(shape);
 
 			// For shapes with no selectable indices (like symbol instances),

@@ -564,8 +564,9 @@ export function outlineTextSchema(shape) {
 }
 
 export function dimensionSchema(shape) {
+	const names = { horizontal: 'Horizontal Dimension', vertical: 'Vertical Dimension' };
 	return {
-		name: 'Dimension',
+		name: names[shape.constraint] || 'Dimension',
 		sections: [
 			{
 				title: 'Value',
