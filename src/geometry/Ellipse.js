@@ -33,13 +33,49 @@ export class Ellipse extends Geometry
 		this.updateBoundingBox();
 	}
 
+	// Rotate a point around the ellipse center by this.rotation
+	_rotatePoint(px, py) {
+		if (this.rotation === 0) return { x: px, y: py };
+		const cos = Math.cos(this.rotation);
+		const sin = Math.sin(this.rotation);
+		const dx = px - this.x;
+		const dy = py - this.y;
+		return {
+			x: this.x + dx * cos - dy * sin,
+			y: this.y + dx * sin + dy * cos
+		};
+	}
+
+	// Un-rotate a world point into ellipse-local space
+	_unrotatePoint(px, py) {
+		if (this.rotation === 0) return { x: px, y: py };
+		const cos = Math.cos(-this.rotation);
+		const sin = Math.sin(-this.rotation);
+		const dx = px - this.x;
+		const dy = py - this.y;
+		return {
+			x: this.x + dx * cos - dy * sin,
+			y: this.y + dx * sin + dy * cos
+		};
+	}
+
 	updateBoundingBox()
 	{
-		// For axis-aligned ellipse (rotation = 0)
-		this.bounds.x 		= this.x - this.radiusX;
-		this.bounds.y 		= this.y - this.radiusY;
-		this.bounds.width 	= this.radiusX * 2;
-		this.bounds.height 	= this.radiusY * 2;
+		if (this.rotation === 0) {
+			this.bounds.x 		= this.x - this.radiusX;
+			this.bounds.y 		= this.y - this.radiusY;
+			this.bounds.width 	= this.radiusX * 2;
+			this.bounds.height 	= this.radiusY * 2;
+		} else {
+			const cos = Math.cos(this.rotation);
+			const sin = Math.sin(this.rotation);
+			const halfW = Math.sqrt(this.radiusX * this.radiusX * cos * cos + this.radiusY * this.radiusY * sin * sin);
+			const halfH = Math.sqrt(this.radiusX * this.radiusX * sin * sin + this.radiusY * this.radiusY * cos * cos);
+			this.bounds.x 		= this.x - halfW;
+			this.bounds.y 		= this.y - halfH;
+			this.bounds.width 	= halfW * 2;
+			this.bounds.height 	= halfH * 2;
+		}
 	}
 
 	getSnapPOIs() {
@@ -50,29 +86,31 @@ export class Ellipse extends Geometry
 
 		const signX = Math.sign(Math.cos(this.cornerAngle)) || 1;
 		const signY = Math.sign(Math.sin(this.cornerAngle)) || 1;
-		const corner1X = this.x + signX * this.radiusX;
-		const corner1Y = this.y + signY * this.radiusY;
-		const corner2X = this.x - signX * this.radiusX;
-		const corner2Y = this.y - signY * this.radiusY;
+		const c1 = this._rotatePoint(this.x + signX * this.radiusX, this.y + signY * this.radiusY);
+		const c2 = this._rotatePoint(this.x - signX * this.radiusX, this.y - signY * this.radiusY);
+		const qR = this._rotatePoint(this.x + this.radiusX, this.y);
+		const qL = this._rotatePoint(this.x - this.radiusX, this.y);
+		const qB = this._rotatePoint(this.x, this.y + this.radiusY);
+		const qT = this._rotatePoint(this.x, this.y - this.radiusY);
 
 		if (this.controlMode === 'corners') {
 			return [
-				{ x: corner1X, y: corner1Y, type: SnapType.ENDPOINT },
-				{ x: corner2X, y: corner2Y, type: SnapType.ENDPOINT },
-				{ x: this.x + this.radiusX, y: this.y, type: SnapType.QUADRANT },
-				{ x: this.x - this.radiusX, y: this.y, type: SnapType.QUADRANT },
-				{ x: this.x, y: this.y + this.radiusY, type: SnapType.QUADRANT },
-				{ x: this.x, y: this.y - this.radiusY, type: SnapType.QUADRANT }
+				{ x: c1.x, y: c1.y, type: SnapType.ENDPOINT },
+				{ x: c2.x, y: c2.y, type: SnapType.ENDPOINT },
+				{ x: qR.x, y: qR.y, type: SnapType.QUADRANT },
+				{ x: qL.x, y: qL.y, type: SnapType.QUADRANT },
+				{ x: qB.x, y: qB.y, type: SnapType.QUADRANT },
+				{ x: qT.x, y: qT.y, type: SnapType.QUADRANT }
 			];
 		} else {
 			// 'center' mode (default)
 			return [
 				{ x: this.x, y: this.y, type: SnapType.CENTER },
-				{ x: corner1X, y: corner1Y, type: SnapType.ENDPOINT },
-				{ x: this.x + this.radiusX, y: this.y, type: SnapType.QUADRANT },
-				{ x: this.x - this.radiusX, y: this.y, type: SnapType.QUADRANT },
-				{ x: this.x, y: this.y + this.radiusY, type: SnapType.QUADRANT },
-				{ x: this.x, y: this.y - this.radiusY, type: SnapType.QUADRANT }
+				{ x: c1.x, y: c1.y, type: SnapType.ENDPOINT },
+				{ x: qR.x, y: qR.y, type: SnapType.QUADRANT },
+				{ x: qL.x, y: qL.y, type: SnapType.QUADRANT },
+				{ x: qB.x, y: qB.y, type: SnapType.QUADRANT },
+				{ x: qT.x, y: qT.y, type: SnapType.QUADRANT }
 			];
 		}
 	}
@@ -102,10 +140,11 @@ export class Ellipse extends Geometry
 			return null;
 		}
 
-		// For axis-aligned ellipse, find closest point on perimeter
-		// Transform mouse to unit circle space, find closest, transform back
-		const dx = mouse.x - this.x;
-		const dy = mouse.y - this.y;
+		// Un-rotate mouse into ellipse-local space
+		const local = this._unrotatePoint(mouse.x, mouse.y);
+
+		const dx = local.x - this.x;
+		const dy = local.y - this.y;
 
 		// Normalize to unit circle
 		const nx = dx / this.radiusX;
@@ -121,11 +160,12 @@ export class Ellipse extends Geometry
 		const ux = nx / dist;
 		const uy = ny / dist;
 
-		// Transform back to ellipse
-		const px = this.x + ux * this.radiusX;
-		const py = this.y + uy * this.radiusY;
+		// Transform back to ellipse (local space), then rotate to world
+		const localPx = this.x + ux * this.radiusX;
+		const localPy = this.y + uy * this.radiusY;
+		const world = this._rotatePoint(localPx, localPy);
 
-		const point = new Point(px, py);
+		const point = new Point(world.x, world.y);
 		point.distance = VectorUtils.distance(mouse, point);
 
 		if(point.distance > pixelTolerance){
@@ -145,8 +185,9 @@ export class Ellipse extends Geometry
 
 	// Check if a point is inside the ellipse
 	containsPoint(px, py) {
-		const dx = px - this.x;
-		const dy = py - this.y;
+		const local = this._unrotatePoint(px, py);
+		const dx = local.x - this.x;
+		const dy = local.y - this.y;
 		return (dx * dx) / (this.radiusX * this.radiusX) +
 		       (dy * dy) / (this.radiusY * this.radiusY) <= 1;
 	}
@@ -162,25 +203,23 @@ export class Ellipse extends Geometry
 
 	// Get tangent angle (in degrees) at a point on the ellipse
 	getTangentAngle(point) {
-		const dx = point.x - this.x;
-		const dy = point.y - this.y;
+		// Work in ellipse-local (un-rotated) space
+		const local = this._unrotatePoint(point.x, point.y);
+		const dx = local.x - this.x;
+		const dy = local.y - this.y;
 
-		// For axis-aligned ellipse, tangent slope = -b²x / (a²y)
-		// where a = radiusX, b = radiusY
 		const a2 = this.radiusX * this.radiusX;
 		const b2 = this.radiusY * this.radiusY;
 
 		// Avoid division by zero
 		if (Math.abs(dy) < 0.0001) {
-			// At top/bottom of ellipse, tangent is horizontal
-			return 0;
+			return this.rotation * (180 / Math.PI);
 		}
 
 		const slope = -(b2 * dx) / (a2 * dy);
-		// atan gives angle, convert to degrees
-		// Note: using atan2 for proper quadrant handling
-		const tangentAngle = Math.atan2(-slope, 1); // negative because canvas Y is flipped
-		return tangentAngle * (180 / Math.PI);
+		const tangentAngle = Math.atan2(-slope, 1);
+		// Add ellipse rotation to the local tangent angle
+		return (tangentAngle + this.rotation) * (180 / Math.PI);
 	}
 
 	// Translate the ellipse by offset
@@ -234,46 +273,46 @@ export class Ellipse extends Geometry
 	// 'corners' mode: 0=corner1, 1=corner2, 2-5=axis points
 	updateControlPoint(index, newX, newY){
 		if (this.controlMode === 'corners') {
-			// In corners mode, dragging one corner keeps the opposite fixed
+			// Un-rotate the dragged point into ellipse-local space
+			const local = this._unrotatePoint(newX, newY);
 			const signX = Math.sign(Math.cos(this.cornerAngle)) || 1;
 			const signY = Math.sign(Math.sin(this.cornerAngle)) || 1;
 
 			if (index === 0) {
-				// Dragging corner1 - corner2 (opposite) stays fixed
+				// Dragging corner1 - corner2 (opposite) stays fixed (in local space)
 				const corner2X = this.x - signX * this.radiusX;
 				const corner2Y = this.y - signY * this.radiusY;
-				// New center is midpoint between new corner1 and fixed corner2
-				this.x = (newX + corner2X) / 2;
-				this.y = (newY + corner2Y) / 2;
-				this.radiusX = Math.abs(newX - corner2X) / 2;
-				this.radiusY = Math.abs(newY - corner2Y) / 2;
-				this.cornerAngle = Math.atan2(newY - this.y, newX - this.x);
+				this.x = (local.x + corner2X) / 2;
+				this.y = (local.y + corner2Y) / 2;
+				this.radiusX = Math.abs(local.x - corner2X) / 2;
+				this.radiusY = Math.abs(local.y - corner2Y) / 2;
+				this.cornerAngle = Math.atan2(local.y - this.y, local.x - this.x);
 			} else if (index === 1) {
 				// Dragging corner2 - corner1 stays fixed
 				const corner1X = this.x + signX * this.radiusX;
 				const corner1Y = this.y + signY * this.radiusY;
-				// New center is midpoint between fixed corner1 and new corner2
-				this.x = (corner1X + newX) / 2;
-				this.y = (corner1Y + newY) / 2;
-				this.radiusX = Math.abs(corner1X - newX) / 2;
-				this.radiusY = Math.abs(corner1Y - newY) / 2;
+				this.x = (corner1X + local.x) / 2;
+				this.y = (corner1Y + local.y) / 2;
+				this.radiusX = Math.abs(corner1X - local.x) / 2;
+				this.radiusY = Math.abs(corner1Y - local.y) / 2;
 				this.cornerAngle = Math.atan2(corner1Y - this.y, corner1X - this.x);
 			} else {
-				// Axis points (2-5) behave the same as center mode
 				this.updateAxisPoint(index, newX, newY);
 			}
 		} else {
 			// 'center' mode (default)
 			switch(index){
-				case 0: // center - move the ellipse
+				case 0: // center - move the ellipse (world coords)
 					this.x = newX;
 					this.y = newY;
 					break;
-				case 1: // corner - adjust both radii and remember the angle
-					this.radiusX = Math.abs(newX - this.x);
-					this.radiusY = Math.abs(newY - this.y);
-					this.cornerAngle = Math.atan2(newY - this.y, newX - this.x);
+				case 1: { // corner - un-rotate to get local radii
+					const local = this._unrotatePoint(newX, newY);
+					this.radiusX = Math.abs(local.x - this.x);
+					this.radiusY = Math.abs(local.y - this.y);
+					this.cornerAngle = Math.atan2(local.y - this.y, local.x - this.x);
 					break;
+				}
 				default:
 					this.updateAxisPoint(index, newX, newY);
 					break;
@@ -284,16 +323,15 @@ export class Ellipse extends Geometry
 
 	// Helper to update axis control points (indices 2-5)
 	updateAxisPoint(index, newX, newY) {
+		const local = this._unrotatePoint(newX, newY);
 		switch(index){
 			case 2: // right
 			case 3: // left
-				// Change radiusX based on horizontal distance from center
-				this.radiusX = Math.abs(newX - this.x);
+				this.radiusX = Math.abs(local.x - this.x);
 				break;
 			case 4: // bottom
 			case 5: // top
-				// Change radiusY based on vertical distance from center
-				this.radiusY = Math.abs(newY - this.y);
+				this.radiusY = Math.abs(local.y - this.y);
 				break;
 		}
 	}
