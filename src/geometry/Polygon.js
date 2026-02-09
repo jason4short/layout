@@ -5,6 +5,7 @@ import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
 import { polygonSchema } from './InspectorSchemas.js';
 import { serializePolygon, deserializePolygon } from './GeometrySerializers.js';
+import { generateHatchLines, clipLineToPolygon } from './utils/HatchUtils.js';
 
 /**
  * Polygon - Regular n-sided polygon defined by center, radius, and number of sides.
@@ -35,6 +36,7 @@ export class Polygon extends Geometry {
 		this.bounds.y = this.y - this.radius;
 		this.bounds.width = this.radius * 2;
 		this.bounds.height = this.radius * 2;
+		this._hatchCache = null;
 	}
 
 	clone() {
@@ -43,6 +45,9 @@ export class Polygon extends Geometry {
 		p.groupId = this.groupId;
 		p.penStyle = this.penStyle;
 		p.colorToken = this.colorToken;
+		p.hatchType = this.hatchType;
+		p.hatchAngle = this.hatchAngle;
+		p.hatchSpacing = this.hatchSpacing;
 		return p;
 	}
 
@@ -55,6 +60,9 @@ export class Polygon extends Geometry {
 		this.type = other.type;
 		this.geometry = other.geometry;
 		this.penStyle = other.penStyle;
+		this.hatchType = other.hatchType;
+		this.hatchAngle = other.hatchAngle;
+		this.hatchSpacing = other.hatchSpacing;
 		this.update();
 	}
 
@@ -246,6 +254,39 @@ export class Polygon extends Geometry {
 	// For BreakApartCommand
 	breakApart() {
 		return this.createLines();
+	}
+
+	getHatchSegments() {
+		if (this.hatchType === 'none') return [];
+		if (this._hatchCache) return this._hatchCache;
+
+		const vertices = this.getVertices();
+		const lines = generateHatchLines(this.bounds, this.hatchAngle, this.hatchSpacing);
+		const segments = [];
+
+		for (const line of lines) {
+			const clipped = clipLineToPolygon(
+				{ x: line.x1, y: line.y1 },
+				{ x: line.x2, y: line.y2 },
+				vertices
+			);
+			segments.push(...clipped);
+		}
+
+		if (this.hatchType === 'cross') {
+			const crossLines = generateHatchLines(this.bounds, this.hatchAngle + 90, this.hatchSpacing);
+			for (const line of crossLines) {
+				const clipped = clipLineToPolygon(
+					{ x: line.x1, y: line.y1 },
+					{ x: line.x2, y: line.y2 },
+					vertices
+				);
+				segments.push(...clipped);
+			}
+		}
+
+		this._hatchCache = segments;
+		return segments;
 	}
 
 	/**

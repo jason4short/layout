@@ -90,6 +90,26 @@ export class Geometry
 		this.groupId 			= null;  // ID of group this shape belongs to (null = ungrouped)
 		this.frameId 			= null;  // ID of frame this shape belongs to (null = world coords)
 		this.colorToken 		= null;  // Reference to color palette token ID
+
+		// Hatch fill properties
+		this.hatchType 			= 'none';  // 'none' | 'lines' | 'cross'
+		this.hatchAngle 		= 45;      // degrees
+		this.hatchSpacing 		= 5;       // world units (mm)
+		this._hatchCache 		= null;    // cached hatch segments
+	}
+
+	/**
+	 * Returns computed hatch line segments for this shape.
+	 * Override in closed shapes (Polygon, Circle, Ellipse, Board).
+	 * @returns {Array} Array of {x1, y1, x2, y2} segments
+	 */
+	getHatchSegments() {
+		return [];
+	}
+
+	// Invalidate hatch cache (call when shape geometry or hatch props change)
+	invalidateHatch() {
+		this._hatchCache = null;
 	}
 
 	/**

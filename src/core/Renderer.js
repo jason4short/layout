@@ -169,6 +169,38 @@ export class Renderer
 		ctx.setLineDash([]);
 	}
 
+	// Draw hatch fill for a shape
+	drawHatch(ctx, shape) {
+		const segments = shape.getHatchSegments();
+		if (segments.length === 0) return;
+
+		// Use shape's stroke color for hatch lines
+		const penStyle = shape.penStyle || PenStyle.VISIBLE;
+		const style = this.getPenStyle(penStyle);
+
+		if (shape.selected) {
+			ctx.strokeStyle = '#FF0000';
+		} else if (shape.colorToken) {
+			const token = data.getColorToken(shape.colorToken);
+			ctx.strokeStyle = token ? token.color : style.color;
+		} else {
+			ctx.strokeStyle = style.color;
+		}
+
+		ctx.lineWidth = style.width;
+		ctx.setLineDash([]);
+
+		// Draw each hatch segment
+		for (const seg of segments) {
+			const p1 = this.toScreen(seg.x1, seg.y1);
+			const p2 = this.toScreen(seg.x2, seg.y2);
+			ctx.beginPath();
+			ctx.moveTo(p1.x, p1.y);
+			ctx.lineTo(p2.x, p2.y);
+			ctx.stroke();
+		}
+	}
+
 	/**
 	 * Get the visible viewport in world coordinates.
 	 * Used for frustum culling - skip drawing shapes outside viewport.
@@ -313,8 +345,6 @@ export class Renderer
 
 		// Render all other shapes on top of walls
 		for (const shape of otherShapes) {
-			ctx.beginPath();
-			this.applyPenStyle(ctx, shape);
 
 			// If shape belongs to a frame, apply frame transform
 			if (shape.frameId) {
@@ -327,6 +357,13 @@ export class Renderer
 				}
 			}
 
+			// Draw hatch fill underneath outline
+			if (shape.hatchType && shape.hatchType !== 'none') {
+				this.drawHatch(ctx, shape);
+			}
+
+			ctx.beginPath();
+			this.applyPenStyle(ctx, shape);
 			shape.draw(ctx, this);
 			shape.drawHandles(ctx, this);
 

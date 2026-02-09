@@ -4,6 +4,7 @@ import { Line } from './Line.js';
 import * as VectorUtils from './utils/VectorUtils.js';
 import { boardSchema } from './InspectorSchemas.js';
 import { serializeBoard, deserializeBoard } from './GeometrySerializers.js';
+import { generateHatchLines, clipLineToPolygon } from './utils/HatchUtils.js';
 
 /**
  * Board - A parametric lumber/sheet good representation.
@@ -79,6 +80,7 @@ export class Board extends Geometry {
 		this.bounds.y = minY;
 		this.bounds.width = maxX - minX;
 		this.bounds.height = maxY - minY;
+		this._hatchCache = null;
 	}
 
 	// Get length of the centerline
@@ -164,6 +166,9 @@ export class Board extends Geometry {
 		b.groupId = this.groupId;
 		b.penStyle = this.penStyle;
 		b.colorToken = this.colorToken;
+		b.hatchType = this.hatchType;
+		b.hatchAngle = this.hatchAngle;
+		b.hatchSpacing = this.hatchSpacing;
 		return b;
 	}
 
@@ -178,6 +183,9 @@ export class Board extends Geometry {
 		this.type = other.type;
 		this.geometry = other.geometry;
 		this.penStyle = other.penStyle;
+		this.hatchType = other.hatchType;
+		this.hatchAngle = other.hatchAngle;
+		this.hatchSpacing = other.hatchSpacing;
 		this.update();
 	}
 
@@ -373,6 +381,39 @@ export class Board extends Geometry {
 	// For BreakApartCommand
 	breakApart() {
 		return this.createLines();
+	}
+
+	getHatchSegments() {
+		if (this.hatchType === 'none') return [];
+		if (this._hatchCache) return this._hatchCache;
+
+		const corners = this.getCorners();
+		const lines = generateHatchLines(this.bounds, this.hatchAngle, this.hatchSpacing);
+		const segments = [];
+
+		for (const line of lines) {
+			const clipped = clipLineToPolygon(
+				{ x: line.x1, y: line.y1 },
+				{ x: line.x2, y: line.y2 },
+				corners
+			);
+			segments.push(...clipped);
+		}
+
+		if (this.hatchType === 'cross') {
+			const crossLines = generateHatchLines(this.bounds, this.hatchAngle + 90, this.hatchSpacing);
+			for (const line of crossLines) {
+				const clipped = clipLineToPolygon(
+					{ x: line.x1, y: line.y1 },
+					{ x: line.x2, y: line.y2 },
+					corners
+				);
+				segments.push(...clipped);
+			}
+		}
+
+		this._hatchCache = segments;
+		return segments;
 	}
 
 	toJSON() {

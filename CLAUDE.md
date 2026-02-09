@@ -132,9 +132,20 @@ src/
   - Paper: `getLabel()` returns dimension string, `isContainer()` returns false (documented: not a container)
   - Symbol: `getLabel()` returns source frame label, `isContainer()` returns false (documented: references, not contains)
 
+### Feb 9, 2026
+- Added crosshatching/fill system for closed shapes:
+  - `HatchUtils.js` - pure functions: `generateHatchLines()`, `clipLineToPolygon()`, `clipLineToCircle()`, `clipLineToEllipse()`
+  - Scanline approach: parallel lines clipped to shape boundary, produces real line segments
+  - Supported shapes: Polygon, Circle, Ellipse, Board
+  - Properties: `hatchType` (none/lines/cross), `hatchAngle` (degrees), `hatchSpacing` (mm)
+  - Fill section in Inspector with conditional angle/spacing fields
+  - Hatch segments cached per shape, invalidated on geometry or property change
+  - Serialized in JSON via `serializeBase()` (only when hatch is active)
+  - Rendered underneath shape outline in Renderer.js
+
 ## Future Ideas
 - **Database storage** - Move from JSON files to DB backend (prerequisite for multiplayer)
 - **Multiplayer** - Real-time collaboration (CRDTs, presence, sync)
 
 ---
-*Last updated: Feb 1, 2026*
+*Last updated: Feb 9, 2026*

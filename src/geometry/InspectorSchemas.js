@@ -28,6 +28,55 @@ const pointFields = (prefix, label) => ({
 	]
 });
 
+// Reusable fill/hatch section for closed shapes
+export function fillSection(shape) {
+	return {
+		title: 'Fill',
+		fields: [
+			{
+				key: 'hatchType',
+				label: 'Pattern',
+				type: 'select',
+				options: [
+					{ value: 'none', label: 'None' },
+					{ value: 'lines', label: 'Lines' },
+					{ value: 'cross', label: 'Crosshatch' }
+				],
+				get: () => shape.hatchType || 'none',
+				set: async (v) => {
+					shape.hatchType = v;
+					shape._hatchCache = null;
+					shape.update();
+					stage.render();
+					// Rebuild inspector to show/hide angle and spacing fields
+					const { default: inspector } = await import('../core/Inspector.js');
+					inspector.update();
+				}
+			},
+			{
+				key: 'hatchAngle',
+				label: 'Angle',
+				type: 'number',
+				get: () => shape.hatchAngle,
+				set: (v) => { shape.hatchAngle = v; shape._hatchCache = null; },
+				precision: 0,
+				step: 15,
+				suffix: '°',
+				visible: () => shape.hatchType && shape.hatchType !== 'none'
+			},
+			{
+				key: 'hatchSpacing',
+				label: 'Spacing',
+				type: 'length',
+				get: () => shape.hatchSpacing,
+				set: (v) => { shape.hatchSpacing = Math.max(0.5, v); shape._hatchCache = null; },
+				min: 0.5,
+				visible: () => shape.hatchType && shape.hatchType !== 'none'
+			}
+		]
+	};
+}
+
 // Schema builders by geometry type
 
 export function lineSchema(shape) {
@@ -107,6 +156,7 @@ export function circleSchema(shape) {
 				title: 'Center',
 				fields: positionFields()
 			},
+			fillSection(shape),
 			{
 				title: 'Geometry',
 				fields: [
@@ -271,6 +321,7 @@ export function ellipseSchema(shape) {
 				title: 'Center',
 				fields: positionFields()
 			},
+			fillSection(shape),
 			{
 				title: 'Rotation',
 				fields: [
@@ -768,20 +819,13 @@ export function polygonSchema(shape) {
 						set: (v) => { shape.radius = v; },
 						min: 0.1
 					},
-// 					{
-// 						key: 'diameter',
-// 						label: 'Diameter',
-// 						type: 'length',
-// 						get: () => shape.radius * 2,
-// 						set: (v) => { shape.radius = v / 2; },
-// 						min: 0.1
-// 					},
 				]
 			},
 			{
 				title: 'Center',
 				fields: positionFields()
 			},
+			fillSection(shape),
 			{
 				title: 'Actions',
 				fields: [
@@ -879,6 +923,7 @@ export function boardSchema(shape, presets, edgeLabels = { top: 'Top', center: '
 					}
 				]
 			},
+			fillSection(shape),
 			{
 				title: 'Start Point',
 				fields: [

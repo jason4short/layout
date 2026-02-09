@@ -5,6 +5,7 @@ import * as TransformUtils from './utils/TransformUtils.js';
 import * as CircleUtils from './utils/CircleUtils.js';
 import {circleSchema} from './InspectorSchemas.js';
 import {serializeCircle, deserializeCircle} from './GeometrySerializers.js';
+import {generateHatchLines, clipLineToCircle} from './utils/HatchUtils.js';
 
 export class Circle extends Geometry
 {
@@ -22,12 +23,13 @@ export class Circle extends Geometry
 	}
 
 	update(){
-	
+
 		// bounding box
 		this.bounds.x 		= this.x - this.radius;
 		this.bounds.y 		= this.y - this.radius;
 		this.bounds.width 	= this.radius * 2;
 		this.bounds.height 	= this.radius * 2;
+		this._hatchCache = null;
 	}
 
 	clone(){
@@ -36,6 +38,9 @@ export class Circle extends Geometry
 		c.groupId	= this.groupId;
 		c.penStyle	= this.penStyle;
 		c.colorToken= this.colorToken;
+		c.hatchType = this.hatchType;
+		c.hatchAngle = this.hatchAngle;
+		c.hatchSpacing = this.hatchSpacing;
 		return c;
 	}
 
@@ -47,6 +52,9 @@ export class Circle extends Geometry
 		this.type = other.type;
 		this.geometry = other.geometry;
 		this.penStyle = other.penStyle;
+		this.hatchType = other.hatchType;
+		this.hatchAngle = other.hatchAngle;
+		this.hatchSpacing = other.hatchSpacing;
 		this.update();
 	}
 
@@ -178,6 +186,38 @@ export class Circle extends Geometry
 				break;
 		}
 		this.update();
+	}
+
+	getHatchSegments() {
+		if (this.hatchType === 'none') return [];
+		if (this._hatchCache) return this._hatchCache;
+
+		const lines = generateHatchLines(this.bounds, this.hatchAngle, this.hatchSpacing);
+		const segments = [];
+
+		for (const line of lines) {
+			const clipped = clipLineToCircle(
+				{ x: line.x1, y: line.y1 },
+				{ x: line.x2, y: line.y2 },
+				this.x, this.y, this.radius
+			);
+			segments.push(...clipped);
+		}
+
+		if (this.hatchType === 'cross') {
+			const crossLines = generateHatchLines(this.bounds, this.hatchAngle + 90, this.hatchSpacing);
+			for (const line of crossLines) {
+				const clipped = clipLineToCircle(
+					{ x: line.x1, y: line.y1 },
+					{ x: line.x2, y: line.y2 },
+					this.x, this.y, this.radius
+				);
+				segments.push(...clipped);
+			}
+		}
+
+		this._hatchCache = segments;
+		return segments;
 	}
 
 	toJSON() {

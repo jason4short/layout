@@ -4,6 +4,7 @@ import * as VectorUtils from './utils/VectorUtils.js';
 import * as TransformUtils from './utils/TransformUtils.js';
 import {ellipseSchema} from './InspectorSchemas.js';
 import {serializeEllipse, deserializeEllipse} from './GeometrySerializers.js';
+import {generateHatchLines, clipLineToEllipse} from './utils/HatchUtils.js';
 
 export class Ellipse extends Geometry
 {
@@ -31,6 +32,7 @@ export class Ellipse extends Geometry
 
 	update(){
 		this.updateBoundingBox();
+		this._hatchCache = null;
 	}
 
 	// Rotate a point around the ellipse center by this.rotation
@@ -198,6 +200,9 @@ export class Ellipse extends Geometry
 		e.groupId = this.groupId;
 		e.penStyle = this.penStyle;
 		e.colorToken = this.colorToken;
+		e.hatchType = this.hatchType;
+		e.hatchAngle = this.hatchAngle;
+		e.hatchSpacing = this.hatchSpacing;
 		return e;
 	}
 
@@ -334,6 +339,38 @@ export class Ellipse extends Geometry
 				this.radiusY = Math.abs(local.y - this.y);
 				break;
 		}
+	}
+
+	getHatchSegments() {
+		if (this.hatchType === 'none') return [];
+		if (this._hatchCache) return this._hatchCache;
+
+		const lines = generateHatchLines(this.bounds, this.hatchAngle, this.hatchSpacing);
+		const segments = [];
+
+		for (const line of lines) {
+			const clipped = clipLineToEllipse(
+				{ x: line.x1, y: line.y1 },
+				{ x: line.x2, y: line.y2 },
+				this.x, this.y, this.radiusX, this.radiusY, this.rotation
+			);
+			segments.push(...clipped);
+		}
+
+		if (this.hatchType === 'cross') {
+			const crossLines = generateHatchLines(this.bounds, this.hatchAngle + 90, this.hatchSpacing);
+			for (const line of crossLines) {
+				const clipped = clipLineToEllipse(
+					{ x: line.x1, y: line.y1 },
+					{ x: line.x2, y: line.y2 },
+					this.x, this.y, this.radiusX, this.radiusY, this.rotation
+				);
+				segments.push(...clipped);
+			}
+		}
+
+		this._hatchCache = segments;
+		return segments;
 	}
 
 	toJSON() {

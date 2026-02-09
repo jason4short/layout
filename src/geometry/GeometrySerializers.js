@@ -10,12 +10,25 @@ function serializePoint(point) {
 }
 
 function serializeBase(shape) {
-	return {
+	const base = {
 		geometry: shape.geometry,
 		type: shape.type,
 		penStyle: shape.penStyle,
 		colorToken: shape.colorToken
 	};
+	// Only include hatch props when set (keeps files clean)
+	if (shape.hatchType && shape.hatchType !== 'none') {
+		base.hatchType = shape.hatchType;
+		base.hatchAngle = shape.hatchAngle;
+		base.hatchSpacing = shape.hatchSpacing;
+	}
+	return base;
+}
+
+function deserializeHatch(data, shape) {
+	if (data.hatchType) shape.hatchType = data.hatchType;
+	if (data.hatchAngle !== undefined) shape.hatchAngle = data.hatchAngle;
+	if (data.hatchSpacing !== undefined) shape.hatchSpacing = data.hatchSpacing;
 }
 
 // ============ Line ============
@@ -53,6 +66,7 @@ export function deserializeCircle(data, CircleClass) {
 	circle.type = data.type;
 	if (data.penStyle) circle.penStyle = data.penStyle;
 	if (data.colorToken) circle.colorToken = data.colorToken;
+	deserializeHatch(data, circle);
 	return circle;
 }
 
@@ -120,6 +134,7 @@ export function deserializeEllipse(data, EllipseClass) {
 	ellipse.type = data.type;
 	if (data.penStyle) ellipse.penStyle = data.penStyle;
 	if (data.colorToken) ellipse.colorToken = data.colorToken;
+	deserializeHatch(data, ellipse);
 	return ellipse;
 }
 
@@ -438,6 +453,7 @@ export function deserializePolygon(data, PolygonClass) {
 	polygon.type = data.type;
 	if (data.penStyle) polygon.penStyle = data.penStyle;
 	if (data.colorToken) polygon.colorToken = data.colorToken;
+	deserializeHatch(data, polygon);
 	return polygon;
 }
 
@@ -469,5 +485,6 @@ export function deserializeBoard(data, BoardClass, defaultAlignment = 'top') {
 	board.type = data.type;
 	if (data.penStyle) board.penStyle = data.penStyle;
 	if (data.colorToken) board.colorToken = data.colorToken;
+	deserializeHatch(data, board);
 	return board;
 }
