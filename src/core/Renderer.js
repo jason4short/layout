@@ -245,52 +245,25 @@ export class Renderer
 		// Clear frame transform cache
 		frameTransformCache.clear();
 
-		// Collect walls by frameId for boolean merge rendering
+		// Two-pass: collect walls first, render them underneath, then render other shapes on top
 		const wallsByFrame = new Map(); // frameId (or null) -> Wall[]
+		const otherShapes = [];
 
 		for(const shape of data.getShapesToRender())
 		{
 			// Frustum culling - skip shapes entirely outside viewport
 			if (!this.isInViewport(shape, viewport)) continue;
 
-			// Collect walls for batch boolean rendering (skip individual draw)
 			if (shape.geometry === Shape.WALL) {
 				const key = shape.frameId || '__world__';
 				if (!wallsByFrame.has(key)) wallsByFrame.set(key, []);
 				wallsByFrame.get(key).push(shape);
-				continue;
-			}
-
-			ctx.beginPath();
-			this.applyPenStyle(ctx, shape);
-
-			// If shape belongs to a frame, apply frame transform
-			// Shapes inside frames store LOCAL coordinates
-			if (shape.frameId) {
-				const frame = this.getFrameTransform(shape.frameId);
-				if (frame) {
-					ctx.save();
-					// Apply frame transform: translate by frame position
-					const screenOffset = stage.worldToScreen(frame.x, frame.y);
-					const screenOrigin = stage.worldToScreen(0, 0);
-					ctx.translate(screenOffset.x - screenOrigin.x, screenOffset.y - screenOrigin.y);
-				}
-			}
-
-			// Each shape knows how to draw itself
-			shape.draw(ctx, this);
-			shape.drawHandles(ctx, this);
-
-			// Restore if we applied a frame transform
-			if (shape.frameId) {
-				const frame = this.getFrameTransform(shape.frameId);
-				if (frame) {
-					ctx.restore();
-				}
+			} else {
+				otherShapes.push(shape);
 			}
 		}
 
-		// Render walls with boolean merge (group by frame)
+		// Render walls first (underneath other geometry)
 		for (const [frameKey, walls] of wallsByFrame) {
 			const frameId = frameKey === '__world__' ? null : frameKey;
 
@@ -304,7 +277,6 @@ export class Renderer
 				}
 			}
 
-			// Determine colors from theme
 			const theme = ThemePresets[data.theme] || ThemePresets.light;
 			const strokeColor = this.getPenStyleColor(PenStyle.VISIBLE);
 			const fillColor = theme.background === '#E5E5E5' ? '#D0D0D0'
@@ -312,37 +284,57 @@ export class Renderer
 				: theme.background === '#0A2463' ? '#1A3473'
 				: '#CCCCCC';
 
-			// Split into selected and unselected for proper rendering
-			const unselected = walls.filter(w => !w.selected);
-			const selected = walls.filter(w => w.selected);
-
-			// Render all walls merged (unselected use theme color, selected render on top)
 			renderWallBoolean(ctx, this, walls, fillColor, strokeColor, 1);
 
 			// Draw selected walls with selection highlight on top
-			for (const wall of selected) {
-				const corners = wall.getCorners();
-				const screen = corners.map(c => this.toScreen(c.x, c.y));
-				ctx.beginPath();
-				ctx.moveTo(screen[0].x, screen[0].y);
-				for (let i = 1; i < 4; i++) {
-					ctx.lineTo(screen[i].x, screen[i].y);
-				}
-				ctx.closePath();
-				ctx.strokeStyle = '#FF0000';
-				ctx.lineWidth = 1;
-				ctx.setLineDash([]);
-				ctx.stroke();
-			}
-
-			// Draw handles for all walls
 			for (const wall of walls) {
+				if (wall.selected) {
+					const corners = wall.getCorners();
+					const screen = corners.map(c => this.toScreen(c.x, c.y));
+					ctx.beginPath();
+					ctx.moveTo(screen[0].x, screen[0].y);
+					for (let i = 1; i < 4; i++) {
+						ctx.lineTo(screen[i].x, screen[i].y);
+					}
+					ctx.closePath();
+					ctx.strokeStyle = '#FF0000';
+					ctx.lineWidth = 1;
+					ctx.setLineDash([]);
+					ctx.stroke();
+				}
 				wall.drawHandles(ctx, this);
 			}
 
 			if (frameId) {
 				const frame = this.getFrameTransform(frameId);
 				if (frame) ctx.restore();
+			}
+		}
+
+		// Render all other shapes on top of walls
+		for (const shape of otherShapes) {
+			ctx.beginPath();
+			this.applyPenStyle(ctx, shape);
+
+			// If shape belongs to a frame, apply frame transform
+			if (shape.frameId) {
+				const frame = this.getFrameTransform(shape.frameId);
+				if (frame) {
+					ctx.save();
+					const screenOffset = stage.worldToScreen(frame.x, frame.y);
+					const screenOrigin = stage.worldToScreen(0, 0);
+					ctx.translate(screenOffset.x - screenOrigin.x, screenOffset.y - screenOrigin.y);
+				}
+			}
+
+			shape.draw(ctx, this);
+			shape.drawHandles(ctx, this);
+
+			if (shape.frameId) {
+				const frame = this.getFrameTransform(shape.frameId);
+				if (frame) {
+					ctx.restore();
+				}
 			}
 		}
 
