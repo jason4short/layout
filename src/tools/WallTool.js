@@ -1,5 +1,4 @@
 import { Tool } from './Tool.js';
-import { Shape } from '../geometry/Geometry.js';
 import { Wall, WALL_PRESETS } from '../geometry/Wall.js';
 
 import stage from '../core/Stage.js';
@@ -11,25 +10,21 @@ import { AddShapeCommand } from '../core/Commands.js';
 /**
  * WallTool - Create wall shapes for floor plans.
  *
- * Click to place one end, drag to set length and angle.
- * Thickness comes from selected wall preset.
+ * Click to set start, click again or drag-release to set end.
+ * Hold Option to flip wall direction while drawing.
  * Walls auto-merge visually when they overlap.
  */
 export class WallTool extends Tool {
 	constructor() {
 		super();
 		this.name = "Wall";
-		this.usage = "Click to place start, drag to set length. Walls auto-merge at junctions.";
+		this.usage = "Click to place start, drag or click again to set end. Hold Option to flip side.";
 
 		this.generateGuides = true;
 
-		// Current preset index
 		this.presetIndex = 0;
-
-		// Drag state
-		this.isDragging = false;
 		this.wall = null;
-		this.startPoint = null;
+		this.prevWall = null;
 
 		this.onMouseDown = this.onMouseDown.bind(this);
 		this.onMouseMove = this.onMouseMove.bind(this);
@@ -65,9 +60,7 @@ export class WallTool extends Tool {
 	}
 
 	reset() {
-		this.isDragging = false;
 		this.wall = null;
-		this.startPoint = null;
 		data.resetSnaps();
 		data.clearGuides();
 		data.clearTempShapes();
@@ -77,67 +70,51 @@ export class WallTool extends Tool {
 	onMouseDown(e) {
 		data.resetSnaps();
 
-		this.startPoint = { x: data.snapPoint.x, y: data.snapPoint.y };
-
-		// Set up drafting assistant from start point
-		draftingAssistant.setCurrentSnapPoint(data.snapPoint, true);
-
-		const preset = this.currentPreset;
-
-		// Create wall with start point, end point starts at same location
-		// params: [startX, startY, endX, endY, thickness, presetName, alignment]
-		this.wall = new Wall([
-			this.startPoint.x,
-			this.startPoint.y,
-			this.startPoint.x,
-			this.startPoint.y,
-			preset.thickness,
-			preset.name,
-			'bottom'
-		]);
-
-		data.addTempShape(this.wall);
-
-		this.isDragging = true;
-		stage.render();
+		if (!this.wall) {
+			// First click — set start point
+			const preset = this.currentPreset;
+			this.wall = new Wall([
+				data.snapPoint.x, data.snapPoint.y,
+				data.snapPoint.x, data.snapPoint.y,
+				preset.thickness,
+				preset.name,
+				'bottom'
+			]);
+			data.addTempShape(this.wall);
+			draftingAssistant.setCurrentSnapPoint(data.snapPoint, true);
+		}
+		// If wall already exists, we're in click-click mode — mouseUp will commit
 	}
 
 	onMouseMove(e) {
-		if (!this.isDragging || !this.wall) return;
+		if (!this.wall) return;
 
 		this.wall.end.x = data.snapPoint.x;
 		this.wall.end.y = data.snapPoint.y;
-
-		// Option/Alt flips wall direction
 		this.wall.alignment = stage.optionKey ? 'top' : 'bottom';
 		this.wall.update();
-
 		stage.render();
 	}
 
 	onMouseUp(e) {
-		if (!this.isDragging || !this.wall) return;
+		if (!this.wall) return;
 
 		data.resetSnaps();
+
+		// Only commit if dragged far enough (otherwise stay in click-click mode)
+		const screenLength = stage.worldToScreenScale(this.wall.length());
+		if (screenLength < 5) return;
+
+		// Commit the wall
 		data.clearTempShapes();
-
-		// Minimum length check
-		if (this.wall.length() < 10) {
-			this.wall.end.x = this.wall.start.x + 304.8;  // Default 12" horizontal
-			this.wall.end.y = this.wall.start.y;
-			this.wall.update();
-		}
-
+		this.wall.update();
 		undoManager.execute(new AddShapeCommand(this.wall));
 
 		this.prevWall = this.wall;
 		stage.setInputCallback(this.updateLength);
 		stage.setDimensionInputValue(this.wall.length(), 'Wall length');
 
-		this.isDragging = false;
 		this.wall = null;
-		this.startPoint = null;
-
 		stage.render();
 	}
 
@@ -149,7 +126,7 @@ export class WallTool extends Tool {
 	}
 
 	_onKeyChange(e) {
-		if (!this.isDragging || !this.wall) return;
+		if (!this.wall) return;
 		this.wall.alignment = stage.optionKey ? 'top' : 'bottom';
 		this.wall.update();
 		stage.render();

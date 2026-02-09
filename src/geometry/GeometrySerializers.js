@@ -440,3 +440,34 @@ export function deserializePolygon(data, PolygonClass) {
 	if (data.colorToken) polygon.colorToken = data.colorToken;
 	return polygon;
 }
+
+// ============ Board ============
+
+export function serializeBoard(shape) {
+	return {
+		...serializeBase(shape),
+		startX: shape.start.x,
+		startY: shape.start.y,
+		endX: shape.end.x,
+		endY: shape.end.y,
+		thickness: shape.thickness,
+		presetName: shape.presetName,
+		alignment: shape.alignment
+	};
+}
+
+export function deserializeBoard(data, BoardClass, defaultAlignment = 'top') {
+	const board = new BoardClass([
+		data.startX,
+		data.startY,
+		data.endX,
+		data.endY,
+		data.thickness,
+		data.presetName,
+		data.alignment || defaultAlignment
+	]);
+	board.type = data.type;
+	if (data.penStyle) board.penStyle = data.penStyle;
+	if (data.colorToken) board.colorToken = data.colorToken;
+	return board;
+}

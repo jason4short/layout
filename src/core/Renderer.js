@@ -13,6 +13,7 @@ export const ThemePresets = {
 		name: 'Light',
 		background: '#E5E5E5',
 		foreground: '#333333',
+		wallFill: '#D0D0D0',
 		colors: {
 			[PenStyle.VISIBLE]:      '#111111',
 			[PenStyle.CONSTRUCTION]: '#B400F5',
@@ -27,6 +28,7 @@ export const ThemePresets = {
 		name: 'Dark',
 		background: '#1E1E1E',
 		foreground: '#EEEEEE',
+		wallFill: '#3A3A3A',
 		colors: {
 			[PenStyle.VISIBLE]:      '#DDDDDD',
 			[PenStyle.CONSTRUCTION]: '#E066FF',
@@ -41,6 +43,7 @@ export const ThemePresets = {
 		name: 'Blueprint',
 		background: '#0A2463',
 		foreground: '#FFFFFF',
+		wallFill: '#1A3473',
 		colors: {
 			[PenStyle.VISIBLE]:      '#FFFFFF',
 			[PenStyle.CONSTRUCTION]: '#87CEEB',
@@ -279,10 +282,7 @@ export class Renderer
 
 			const theme = ThemePresets[data.theme] || ThemePresets.light;
 			const strokeColor = this.getPenStyleColor(PenStyle.VISIBLE);
-			const fillColor = theme.background === '#E5E5E5' ? '#D0D0D0'
-				: theme.background === '#1E1E1E' ? '#3A3A3A'
-				: theme.background === '#0A2463' ? '#1A3473'
-				: '#CCCCCC';
+			const fillColor = theme.wallFill || '#CCCCCC';
 
 			renderWallBoolean(ctx, this, walls, fillColor, strokeColor, 1);
 

@@ -9,7 +9,9 @@
  * Uses Cyrus-Beck parametric clipping against convex polygons.
  */
 
-const EPSILON = 0.05; // ~0.05mm inset so coincident boundary edges count as exterior
+// Small inward inset used for half-plane tests so boundary-coincident edges
+// are treated as exterior (not clipped) unless there is real overlap.
+const EPSILON = 0.05;
 
 /**
  * Clip a segment against a convex polygon using Cyrus-Beck algorithm.
@@ -38,30 +40,25 @@ export function clipSegmentAgainstConvexPoly(segStart, segEnd, polyCorners) {
 		const ey = c2.y - c1.y;
 
 		// Inward-pointing normal (perpendicular to edge, pointing into polygon)
-		// For a CW polygon this is (ey, -ex); for CCW it's (-ey, ex)
-		// We determine direction by checking against polygon interior
-		// Use the convention: normal = (-ey, ex) and test sign below
 		let nx = -ey;
 		let ny = ex;
 
 		// Check that the normal points inward by testing against another vertex
-		// Use the vertex two ahead as reference
 		const ref = polyCorners[(i + 2) % n];
 		const toRef = { x: ref.x - c1.x, y: ref.y - c1.y };
 		if (nx * toRef.x + ny * toRef.y < 0) {
-			// Normal was outward, flip it
 			nx = -nx;
 			ny = -ny;
 		}
 
-		// Apply epsilon inset: shift the edge plane inward slightly
-		// so segments exactly on the boundary are treated as exterior
+		// Apply epsilon inset to the clipping plane so pure boundary contact
+		// (especially parallel/coincident edges) does not count as interior.
 		const nLen = Math.sqrt(nx * nx + ny * ny);
 		if (nLen === 0) continue;
 		const insetX = (nx / nLen) * EPSILON;
 		const insetY = (ny / nLen) * EPSILON;
 
-		// Vector from edge start (inset) to segment start
+		// Vector from inset edge point to segment start
 		const wx = segStart.x - (c1.x + insetX);
 		const wy = segStart.y - (c1.y + insetY);
 
@@ -71,10 +68,8 @@ export function clipSegmentAgainstConvexPoly(segStart, segEnd, polyCorners) {
 		if (Math.abs(denom) < 1e-10) {
 			// Segment is parallel to this edge
 			if (numer < 0) {
-				// Segment is outside this half-plane
 				return null;
 			}
-			// Segment is inside this half-plane, continue
 			continue;
 		}
 
@@ -193,9 +188,6 @@ export function renderWallBoolean(ctx, renderer, walls, fillColor, strokeColor, 
 			const exteriorSegments = getExteriorSegments(edgeStart, edgeEnd, otherCorners);
 
 			for (const [tStart, tEnd] of exteriorSegments) {
-				// Skip very tiny segments
-				if (tEnd - tStart < 0.001) continue;
-
 				const x1 = edgeStart.x + tStart * (edgeEnd.x - edgeStart.x);
 				const y1 = edgeStart.y + tStart * (edgeEnd.y - edgeStart.y);
 				const x2 = edgeStart.x + tEnd * (edgeEnd.x - edgeStart.x);
@@ -203,6 +195,11 @@ export function renderWallBoolean(ctx, renderer, walls, fillColor, strokeColor, 
 
 				const s1 = renderer.toScreen(x1, y1);
 				const s2 = renderer.toScreen(x2, y2);
+
+				// Skip segments shorter than 2px on screen
+				const sdx = s2.x - s1.x;
+				const sdy = s2.y - s1.y;
+				if (sdx * sdx + sdy * sdy < 4) continue;
 
 				ctx.beginPath();
 				ctx.moveTo(s1.x, s1.y);

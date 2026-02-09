@@ -2,8 +2,8 @@ import { Shape, Geometry, SnapType } from './Geometry.js';
 import { Point } from './Point.js';
 import { Line } from './Line.js';
 import * as VectorUtils from './utils/VectorUtils.js';
-import undoManager from '../core/UndoManager.js';
-import { BreakApartCommand } from '../core/Commands.js';
+import { boardSchema } from './InspectorSchemas.js';
+import { serializeBoard, deserializeBoard } from './GeometrySerializers.js';
 
 /**
  * Board - A parametric lumber/sheet good representation.
@@ -343,118 +343,7 @@ export class Board extends Geometry {
 	}
 
 	getInspectorSchema() {
-		return {
-			name: 'Board',
-			sections: [
-				{
-					title: 'Preset',
-					fields: [
-						{
-							key: 'preset',
-							label: 'Type',
-							type: 'select',
-							options: BOARD_PRESETS.map(p => ({ value: p.name, label: p.name })),
-							get: () => this.presetName,
-							set: (v) => {
-								const preset = BOARD_PRESETS.find(p => p.name === v);
-								if (preset) {
-									this.presetName = v;
-									this.thickness = preset.thickness;
-									this.update();
-								}
-							}
-						}
-					]
-				},
-				{
-					title: 'Dimensions',
-					fields: [
-						{ key: 'thickness', label: 'Thickness', type: 'length', precision: 3, step: 1, min: 0.1 },
-						{
-							key: 'length',
-							label: 'Length',
-							type: 'length',
-							precision: 2,
-							step: 10,
-							min: 1,
-							get: () => this.length(),
-							set: (v) => { this.scaleToDim(v); }
-						},
-						{
-							key: 'alignment',
-							label: 'Edge',
-							type: 'select',
-							options: [
-								{ value: 'top', label: 'Top' },
-								{ value: 'center', label: 'Center' },
-								{ value: 'bottom', label: 'Bottom' }
-							],
-							get: () => this.alignment,
-							set: (v) => { this.alignment = v; this.update(); }
-						}
-					]
-				},
-				{
-					title: 'Start Point',
-					fields: [
-						{
-							key: 'startX',
-							label: 'X',
-							type: 'length',
-							precision: 2,
-							step: 1,
-							get: () => this.start.x,
-							set: (v) => { this.start.x = v; this.update(); }
-						},
-						{
-							key: 'startY',
-							label: 'Y',
-							type: 'length',
-							precision: 2,
-							step: 1,
-							get: () => this.start.y,
-							set: (v) => { this.start.y = v; this.update(); }
-						}
-					]
-				},
-				{
-					title: 'End Point',
-					fields: [
-						{
-							key: 'endX',
-							label: 'X',
-							type: 'length',
-							precision: 2,
-							step: 1,
-							get: () => this.end.x,
-							set: (v) => { this.end.x = v; this.update(); }
-						},
-						{
-							key: 'endY',
-							label: 'Y',
-							type: 'length',
-							precision: 2,
-							step: 1,
-							get: () => this.end.y,
-							set: (v) => { this.end.y = v; this.update(); }
-						}
-					]
-				},
-				{
-					title: 'Actions',
-					fields: [
-						{
-							key: 'breakApart',
-							label: 'Break Apart',
-							type: 'button',
-							action: () => {
-								undoManager.execute(new BreakApartCommand(this));
-							}
-						}
-					]
-				}
-			]
-		};
+		return boardSchema(this, BOARD_PRESETS);
 	}
 
 	// Create 4 lines from the board edges
@@ -487,35 +376,11 @@ export class Board extends Geometry {
 	}
 
 	toJSON() {
-		return {
-			geometry: this.geometry,
-			type: this.type,
-			startX: this.start.x,
-			startY: this.start.y,
-			endX: this.end.x,
-			endY: this.end.y,
-			thickness: this.thickness,
-			presetName: this.presetName,
-			alignment: this.alignment,
-			penStyle: this.penStyle,
-			colorToken: this.colorToken
-		};
+		return serializeBoard(this);
 	}
 
 	static fromJSON(data) {
-		const board = new Board([
-			data.startX,
-			data.startY,
-			data.endX,
-			data.endY,
-			data.thickness,
-			data.presetName,
-			data.alignment || 'top'
-		]);
-		board.type = data.type;
-		if (data.penStyle) board.penStyle = data.penStyle;
-		if (data.colorToken) board.colorToken = data.colorToken;
-		return board;
+		return deserializeBoard(data, Board, 'top');
 	}
 
 	draw(ctx, renderer) {

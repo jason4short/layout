@@ -827,6 +827,111 @@ export function polygonSchema(shape) {
 	};
 }
 
+export function boardSchema(shape, presets, edgeLabels = { top: 'Top', center: 'Center', bottom: 'Bottom' }) {
+	return {
+		name: 'Board',
+		sections: [
+			{
+				title: 'Preset',
+				fields: [
+					{
+						key: 'preset',
+						label: 'Type',
+						type: 'select',
+						options: presets.map(p => ({ value: p.name, label: p.name })),
+						get: () => shape.presetName,
+						set: (v) => {
+							const preset = presets.find(p => p.name === v);
+							if (preset) {
+								shape.presetName = v;
+								shape.thickness = preset.thickness;
+								shape.update();
+							}
+						}
+					}
+				]
+			},
+			{
+				title: 'Dimensions',
+				fields: [
+					{ key: 'thickness', label: 'Thickness', type: 'length', precision: 3, step: 1, min: 0.1 },
+					{
+						key: 'length',
+						label: 'Length',
+						type: 'length',
+						precision: 2,
+						step: 10,
+						min: 1,
+						get: () => shape.length(),
+						set: (v) => { shape.scaleToDim(v); }
+					},
+					{
+						key: 'alignment',
+						label: 'Edge',
+						type: 'select',
+						options: [
+							{ value: 'top', label: edgeLabels.top },
+							{ value: 'center', label: edgeLabels.center },
+							{ value: 'bottom', label: edgeLabels.bottom }
+						],
+						get: () => shape.alignment,
+						set: (v) => { shape.alignment = v; shape.update(); }
+					}
+				]
+			},
+			{
+				title: 'Start Point',
+				fields: [
+					{
+						key: 'startX', label: 'X', type: 'length', precision: 2, step: 1,
+						get: () => shape.start.x,
+						set: (v) => { shape.start.x = v; shape.update(); }
+					},
+					{
+						key: 'startY', label: 'Y', type: 'length', precision: 2, step: 1,
+						get: () => shape.start.y,
+						set: (v) => { shape.start.y = v; shape.update(); }
+					}
+				]
+			},
+			{
+				title: 'End Point',
+				fields: [
+					{
+						key: 'endX', label: 'X', type: 'length', precision: 2, step: 1,
+						get: () => shape.end.x,
+						set: (v) => { shape.end.x = v; shape.update(); }
+					},
+					{
+						key: 'endY', label: 'Y', type: 'length', precision: 2, step: 1,
+						get: () => shape.end.y,
+						set: (v) => { shape.end.y = v; shape.update(); }
+					}
+				]
+			},
+			{
+				title: 'Actions',
+				fields: [
+					{
+						key: 'breakApart',
+						label: 'Break Apart',
+						type: 'button',
+						action: () => {
+							undoManager.execute(new BreakApartCommand(shape));
+						}
+					}
+				]
+			}
+		]
+	};
+}
+
+export function wallSchema(shape, presets) {
+	const schema = boardSchema(shape, presets, { top: 'Left', center: 'Center', bottom: 'Right' });
+	schema.name = 'Wall';
+	return schema;
+}
+
 export function groupSchema(groupId) {
 	const group = data.groups.get(groupId);
 	if (!group) return null;
