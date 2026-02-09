@@ -50,7 +50,7 @@ document.getElementById('menuExportSVG').addEventListener('click', () => {
 		alert('Add a paper first (use the Paper tool to place one)');
 		return;
 	}
-	const svg = exportToSVG(data.shapes, paper);
+	const svg = exportToSVG([...data.shapes, ...data.getExportHatchLines()], paper);
 	const fileName = fileManager.currentFileName
 		? fileManager.currentFileName.replace(/\.[^.]+$/, '.svg')
 		: 'drawing.svg';
@@ -64,7 +64,7 @@ document.getElementById('menuExportGcode').addEventListener('click', () => {
 		alert('Add a paper first (use the Paper tool to place one)');
 		return;
 	}
-	const gcode = exportToGcode(data.shapes, paper);
+	const gcode = exportToGcode([...data.shapes, ...data.getExportHatchLines()], paper);
 	const fileName = fileManager.currentFileName
 		? fileManager.currentFileName.replace(/\.[^.]+$/, '.gcode')
 		: 'drawing.gcode';
@@ -73,7 +73,7 @@ document.getElementById('menuExportGcode').addEventListener('click', () => {
 
 // Export DXF
 document.getElementById('menuExportDXF').addEventListener('click', () => {
-	const dxf = exportToDXF(data.shapes);
+	const dxf = exportToDXF([...data.shapes, ...data.getExportHatchLines()]);
 	const fileName = fileManager.currentFileName
 		? fileManager.currentFileName.replace(/\.[^.]+$/, '.dxf')
 		: 'drawing.dxf';

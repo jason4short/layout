@@ -674,6 +674,54 @@ class Data
 		}
 	}
 
+	// Get all hatch segments as exportable Line-like objects
+	getExportHatchLines() {
+		const lines = [];
+
+		// Shape-level hatches
+		for (const shape of this.shapes) {
+			if (!shape.hatchType || shape.hatchType === 'none') continue;
+			const segments = shape.getHatchSegments();
+			for (const seg of segments) {
+				lines.push({
+					geometry: Shape.LINE,
+					start: { x: seg.x1, y: seg.y1 },
+					end: { x: seg.x2, y: seg.y2 },
+					penStyle: shape.penStyle,
+					colorToken: shape.colorToken,
+					bounds: {
+						x: Math.min(seg.x1, seg.x2),
+						y: Math.min(seg.y1, seg.y2),
+						width: Math.abs(seg.x2 - seg.x1),
+						height: Math.abs(seg.y2 - seg.y1)
+					}
+				});
+			}
+		}
+
+		// Group-level hatches
+		for (const [groupId] of this.groups) {
+			const segments = this.getGroupHatchSegments(groupId);
+			for (const seg of segments) {
+				lines.push({
+					geometry: Shape.LINE,
+					start: { x: seg.x1, y: seg.y1 },
+					end: { x: seg.x2, y: seg.y2 },
+					penStyle: 'visible',
+					colorToken: null,
+					bounds: {
+						x: Math.min(seg.x1, seg.x2),
+						y: Math.min(seg.y1, seg.y2),
+						width: Math.abs(seg.x2 - seg.x1),
+						height: Math.abs(seg.y2 - seg.y1)
+					}
+				});
+			}
+		}
+
+		return lines;
+	}
+
 	// Get bounds for auto-layout group (includes padding and fixed sizing)
 	getAutoLayoutBounds(groupId){
 		const group = this.groups.get(groupId);
