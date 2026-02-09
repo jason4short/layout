@@ -1212,6 +1212,7 @@ export function groupSchema(groupId) {
 						get: () => group.hatchType || 'none',
 						set: (v) => {
 							group.hatchType = v;
+							group._hatchCache = null;
 							stage.render();
 						}
 					},
@@ -1220,7 +1221,7 @@ export function groupSchema(groupId) {
 						label: 'Angle',
 						type: 'number',
 						get: () => group.hatchAngle || 45,
-						set: (v) => { group.hatchAngle = v; stage.render(); },
+						set: (v) => { group.hatchAngle = v; group._hatchCache = null; stage.render(); },
 						precision: 0,
 						step: 15,
 						suffix: '°',
@@ -1231,7 +1232,7 @@ export function groupSchema(groupId) {
 						label: 'Spacing',
 						type: 'length',
 						get: () => group.hatchSpacing || 5,
-						set: (v) => { group.hatchSpacing = Math.max(0.5, v); stage.render(); },
+						set: (v) => { group.hatchSpacing = Math.max(0.5, v); group._hatchCache = null; stage.render(); },
 						min: 0.5,
 						visible: () => group.hatchType && group.hatchType !== 'none'
 					}

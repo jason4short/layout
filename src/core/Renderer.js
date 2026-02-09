@@ -169,12 +169,29 @@ export class Renderer
 		ctx.setLineDash([]);
 	}
 
+	// Check if user is actively moving/dragging shapes
+	isInteracting() {
+		const tool = toolManager.currentTool;
+		return tool && (tool.isMoving || tool.isDragging);
+	}
+
+	// Draw hatch segments with batched stroke
+	drawHatchSegments(ctx, segments) {
+		ctx.beginPath();
+		for (const seg of segments) {
+			const p1 = this.toScreen(seg.x1, seg.y1);
+			const p2 = this.toScreen(seg.x2, seg.y2);
+			ctx.moveTo(p1.x, p1.y);
+			ctx.lineTo(p2.x, p2.y);
+		}
+		ctx.stroke();
+	}
+
 	// Draw hatch fill for a shape
 	drawHatch(ctx, shape) {
 		const segments = shape.getHatchSegments();
 		if (segments.length === 0) return;
 
-		// Use shape's stroke color for hatch lines
 		const penStyle = shape.penStyle || PenStyle.VISIBLE;
 		const style = this.getPenStyle(penStyle);
 
@@ -189,16 +206,7 @@ export class Renderer
 
 		ctx.lineWidth = style.width;
 		ctx.setLineDash([]);
-
-		// Draw each hatch segment
-		for (const seg of segments) {
-			const p1 = this.toScreen(seg.x1, seg.y1);
-			const p2 = this.toScreen(seg.x2, seg.y2);
-			ctx.beginPath();
-			ctx.moveTo(p1.x, p1.y);
-			ctx.lineTo(p2.x, p2.y);
-			ctx.stroke();
-		}
+		this.drawHatchSegments(ctx, segments);
 	}
 
 	// Draw hatch fill for a group of shapes
@@ -213,15 +221,7 @@ export class Renderer
 		ctx.strokeStyle = anySelected ? '#FF0000' : style.color;
 		ctx.lineWidth = style.width;
 		ctx.setLineDash([]);
-
-		for (const seg of segments) {
-			const p1 = this.toScreen(seg.x1, seg.y1);
-			const p2 = this.toScreen(seg.x2, seg.y2);
-			ctx.beginPath();
-			ctx.moveTo(p1.x, p1.y);
-			ctx.lineTo(p2.x, p2.y);
-			ctx.stroke();
-		}
+		this.drawHatchSegments(ctx, segments);
 	}
 
 	/**
@@ -300,6 +300,17 @@ export class Renderer
 		// Calculate viewport once for frustum culling
 		const viewport = this.getViewport();
 
+		// Track interaction state for hatch optimization
+		const interacting = this.isInteracting();
+		if (!interacting && this._wasInteracting) {
+			// Just finished dragging — invalidate all hatch caches
+			data.invalidateAllGroupHatch();
+			for (const shape of data.shapes) {
+				shape._hatchCache = null;
+			}
+		}
+		this._wasInteracting = interacting;
+
 		// Clear frame transform cache
 		frameTransformCache.clear();
 
@@ -366,10 +377,12 @@ export class Renderer
 			}
 		}
 
-		// Render group hatch fills (underneath shapes)
-		for (const [groupId, group] of data.groups) {
-			if (group.hatchType && group.hatchType !== 'none') {
-				this.drawGroupHatch(ctx, groupId);
+		// Render group hatch fills (underneath shapes) — skip during drags
+		if (!interacting) {
+			for (const [groupId, group] of data.groups) {
+				if (group.hatchType && group.hatchType !== 'none') {
+					this.drawGroupHatch(ctx, groupId);
+				}
 			}
 		}
 
@@ -387,8 +400,8 @@ export class Renderer
 				}
 			}
 
-			// Draw hatch fill underneath outline
-			if (shape.hatchType && shape.hatchType !== 'none') {
+			// Draw hatch fill underneath outline — skip during drags
+			if (!interacting && shape.hatchType && shape.hatchType !== 'none') {
 				this.drawHatch(ctx, shape);
 			}
 

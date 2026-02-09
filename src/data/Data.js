@@ -631,16 +631,47 @@ class Data
 		return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 	}
 
-	// Compute hatch segments for a group
+	// Compute hatch segments for a group (cached)
 	getGroupHatchSegments(groupId) {
 		const group = this.groups.get(groupId);
 		if (!group || !group.hatchType || group.hatchType === 'none') return [];
+		if (group._hatchCache) return group._hatchCache;
 
 		const shapes = this.getGroupShapes(groupId);
 		const bounds = this.getGroupBounds(groupId);
 		if (!bounds) return [];
 
-		return computeGroupHatch(shapes, bounds, group.hatchType, group.hatchAngle, group.hatchSpacing);
+		group._hatchCache = computeGroupHatch(shapes, bounds, group.hatchType, group.hatchAngle, group.hatchSpacing);
+		return group._hatchCache;
+	}
+
+	// Invalidate hatch cache for all groups containing a shape
+	invalidateGroupHatch(shape) {
+		if (!shape || !shape.groupId) return;
+		const group = this.groups.get(shape.groupId);
+		if (group) group._hatchCache = null;
+		// Walk up parent chain
+		let parentId = group?.parentId;
+		while (parentId) {
+			const parent = this.groups.get(parentId);
+			if (parent) {
+				parent._hatchCache = null;
+				parentId = parent.parentId;
+			} else break;
+		}
+	}
+
+	// Invalidate hatch cache for a specific group
+	invalidateGroupHatchById(groupId) {
+		const group = this.groups.get(groupId);
+		if (group) group._hatchCache = null;
+	}
+
+	// Invalidate all group hatch caches
+	invalidateAllGroupHatch() {
+		for (const [, group] of this.groups) {
+			group._hatchCache = null;
+		}
 	}
 
 	// Get bounds for auto-layout group (includes padding and fixed sizing)
