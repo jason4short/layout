@@ -1,6 +1,4 @@
-import {Shape, Geometry, SnapType} from './Geometry.js';
-import {Point} from './Point.js';
-import * as VectorUtils from './utils/VectorUtils.js';
+import {Shape, Geometry} from './Geometry.js';
 import * as TransformUtils from './utils/TransformUtils.js';
 import {paperSchema} from './InspectorSchemas.js';
 import {serializePaper, deserializePaper} from './GeometrySerializers.js';
@@ -189,6 +187,10 @@ export class Paper extends Geometry
 		const topLeft = renderer.toScreen(this.x, this.y);
 		const width = renderer.toScreenScale(displayWidth);
 		const height = renderer.toScreenScale(displayHeight);
+
+		// Paper fill (subtle light background)
+		ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+		ctx.fillRect(topLeft.x, topLeft.y, width, height);
 
 		// Paper border (always light gray, not selectable)
 		ctx.strokeStyle = '#CCCCCC';
