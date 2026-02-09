@@ -984,6 +984,9 @@ export function groupSchema(groupId) {
 	// Ensure defaults exist
 	if (!group.sizing) group.sizing = { widthMode: 'hug', heightMode: 'hug', fixedWidth: null, fixedHeight: null };
 	if (!group.padding) group.padding = { top: 0, right: 0, bottom: 0, left: 0 };
+	if (!group.hatchType) group.hatchType = 'none';
+	if (group.hatchAngle === undefined) group.hatchAngle = 45;
+	if (group.hatchSpacing === undefined) group.hatchSpacing = 5;
 
 	// Count items in group
 	const directShapes = data.getDirectGroupShapes(groupId);
@@ -1191,6 +1194,46 @@ export function groupSchema(groupId) {
 						get: () => group.padding.left,
 						set: (v) => { group.padding.left = v; applyLayoutIfActive(); },
 						min: 0
+					}
+				]
+			},
+			{
+				title: 'Fill',
+				fields: [
+					{
+						key: 'hatchType',
+						label: 'Pattern',
+						type: 'select',
+						options: [
+							{ value: 'none', label: 'None' },
+							{ value: 'lines', label: 'Lines' },
+							{ value: 'cross', label: 'Crosshatch' }
+						],
+						get: () => group.hatchType || 'none',
+						set: (v) => {
+							group.hatchType = v;
+							stage.render();
+						}
+					},
+					{
+						key: 'hatchAngle',
+						label: 'Angle',
+						type: 'number',
+						get: () => group.hatchAngle || 45,
+						set: (v) => { group.hatchAngle = v; stage.render(); },
+						precision: 0,
+						step: 15,
+						suffix: '°',
+						visible: () => group.hatchType && group.hatchType !== 'none'
+					},
+					{
+						key: 'hatchSpacing',
+						label: 'Spacing',
+						type: 'length',
+						get: () => group.hatchSpacing || 5,
+						set: (v) => { group.hatchSpacing = Math.max(0.5, v); stage.render(); },
+						min: 0.5,
+						visible: () => group.hatchType && group.hatchType !== 'none'
 					}
 				]
 			}

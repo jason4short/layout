@@ -753,6 +753,15 @@ class Inspector {
 			</div>`;
 		}
 
+		if (field.type === 'number') {
+			const icon = this.getFieldIcon(field);
+			const iconStyle = icon ? `style="--icon: url('${ICON_PATH}/${icon}.svg')"` : '';
+			const suffix = field.suffix || '';
+			return `<div class="icon-input" ${iconStyle}>
+				<input type="text" id="prop-${field.key}" value="${displayValue}${suffix}">
+			</div>`;
+		}
+
 		if (field.type === 'button') {
 			return `<button id="prop-${field.key}" class="action-btn">${field.label}</button>`;
 		}
@@ -795,6 +804,37 @@ class Inspector {
 					const numValue = units.parse(e.target.value);
 					if (numValue !== null && field.set) {
 						field.set(numValue);
+					}
+				});
+				el.addEventListener('keydown', (e) => {
+					if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+						e.preventDefault();
+						const currentValue = parseFloat(el.value) || 0;
+						const step = field.step || 1;
+						let newValue = currentValue + (e.key === 'ArrowUp' ? step : -step);
+						if (field.min !== undefined && newValue < field.min) newValue = field.min;
+						el.value = newValue;
+						if (field.set) field.set(newValue);
+					}
+				});
+			} else if (field.type === 'number') {
+				el.addEventListener('change', (e) => {
+					const numValue = parseFloat(e.target.value);
+					if (!isNaN(numValue) && field.set) {
+						field.set(numValue);
+					}
+				});
+				el.addEventListener('keydown', (e) => {
+					if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+						e.preventDefault();
+						const currentValue = parseFloat(el.value) || 0;
+						const step = field.step || 1;
+						let newValue = currentValue + (e.key === 'ArrowUp' ? step : -step);
+						if (field.min !== undefined && newValue < field.min) newValue = field.min;
+						if (field.max !== undefined && newValue > field.max) newValue = field.max;
+						const suffix = field.suffix || '';
+						el.value = (field.precision !== undefined ? newValue.toFixed(field.precision) : newValue) + suffix;
+						if (field.set) field.set(newValue);
 					}
 				});
 			} else if (field.type === 'checkbox') {
@@ -1022,15 +1062,16 @@ class Inspector {
 				this.updateFieldValues(shape);
 			});
 
-			// Handle arrow keys manually for number fields
-			if (field.type === 'number' && field.step !== undefined) {
+			// Handle arrow keys for number and length fields
+			if (field.type === 'number' || field.type === 'length') {
 				el.addEventListener('keydown', (e) => {
 					if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
 						e.preventDefault();
 						e.stopPropagation();
 
 						const currentValue = parseFloat(el.value) || 0;
-						const delta = e.key === 'ArrowUp' ? field.step : -field.step;
+						const step = field.step || 1;
+						const delta = e.key === 'ArrowUp' ? step : -step;
 						let newValue = currentValue + delta;
 
 						if (field.min !== undefined && newValue < field.min) newValue = field.min;

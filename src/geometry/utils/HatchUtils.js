@@ -142,6 +142,58 @@ export function clipLineToPolygon(start, end, vertices) {
 }
 
 /**
+ * Clip a line against a set of arbitrary line segments (not necessarily connected).
+ * Uses even-odd rule: sort intersections, pair enter/exit.
+ * Returns array of {x1, y1, x2, y2} segments inside the boundary.
+ */
+export function clipLineToSegments(start, end, segments) {
+	if (segments.length < 2) return [];
+
+	const dx = end.x - start.x;
+	const dy = end.y - start.y;
+
+	const intersections = [];
+
+	for (const seg of segments) {
+		const hit = segmentIntersection(
+			start.x, start.y, end.x, end.y,
+			seg.x1, seg.y1, seg.x2, seg.y2
+		);
+		if (hit) {
+			intersections.push(hit.t);
+		}
+	}
+
+	if (intersections.length < 2) return [];
+
+	// Sort by parameter along hatch line
+	intersections.sort((a, b) => a - b);
+
+	// Remove duplicates (lines sharing an endpoint)
+	const unique = [intersections[0]];
+	for (let i = 1; i < intersections.length; i++) {
+		if (Math.abs(intersections[i] - unique[unique.length - 1]) > EPSILON) {
+			unique.push(intersections[i]);
+		}
+	}
+
+	// Take pairs: enter/exit, enter/exit...
+	const result = [];
+	for (let i = 0; i + 1 < unique.length; i += 2) {
+		const t1 = unique[i];
+		const t2 = unique[i + 1];
+		result.push({
+			x1: start.x + t1 * dx,
+			y1: start.y + t1 * dy,
+			x2: start.x + t2 * dx,
+			y2: start.y + t2 * dy
+		});
+	}
+
+	return result;
+}
+
+/**
  * Clip a line against a circle.
  * Returns array of {x1, y1, x2, y2} segments inside the circle (0 or 1).
  */

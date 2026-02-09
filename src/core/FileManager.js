@@ -77,6 +77,12 @@ class FileManager
 				groupData.isSymbolSource = true;
 				groupData.symbolName = group.symbolName || 'Symbol';
 			}
+			// Save hatch properties if present
+			if(group.hatchType && group.hatchType !== 'none'){
+				groupData.hatchType = group.hatchType;
+				groupData.hatchAngle = group.hatchAngle;
+				groupData.hatchSpacing = group.hatchSpacing;
+			}
 			groups.push(groupData);
 		}
 
@@ -136,6 +142,12 @@ class FileManager
 				if(groupData.isSymbolSource){
 					group.isSymbolSource = true;
 					group.symbolName = groupData.symbolName || 'Symbol';
+				}
+				// Restore hatch properties if present
+				if(groupData.hatchType){
+					group.hatchType = groupData.hatchType;
+					group.hatchAngle = groupData.hatchAngle;
+					group.hatchSpacing = groupData.hatchSpacing;
 				}
 				data.groups.set(groupData.id, group);
 				// Track highest group ID number for _nextGroupId

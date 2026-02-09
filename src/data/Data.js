@@ -511,7 +511,10 @@ class Data
 			autoLayout: false,
 			layout: { ...DEFAULT_LAYOUT },
 			sizing: { ...DEFAULT_SIZING },
-			padding: { ...DEFAULT_PADDING }
+			padding: { ...DEFAULT_PADDING },
+			hatchType: 'none',
+			hatchAngle: 45,
+			hatchSpacing: 5
 		});
 
 		// If there are child groups, update their parentId
@@ -954,7 +957,10 @@ class Data
 				autoLayout: oldGroup?.autoLayout || false,
 				layout: oldGroup?.layout ? { ...oldGroup.layout } : { ...DEFAULT_LAYOUT },
 				sizing: oldGroup?.sizing ? { ...oldGroup.sizing } : { ...DEFAULT_SIZING },
-				padding: oldGroup?.padding ? { ...oldGroup.padding } : { ...DEFAULT_PADDING }
+				padding: oldGroup?.padding ? { ...oldGroup.padding } : { ...DEFAULT_PADDING },
+				hatchType: oldGroup?.hatchType || 'none',
+				hatchAngle: oldGroup?.hatchAngle ?? 45,
+				hatchSpacing: oldGroup?.hatchSpacing ?? 5
 			});
 		}
 

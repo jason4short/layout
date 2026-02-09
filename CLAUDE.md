@@ -142,6 +142,13 @@ src/
   - Hatch segments cached per shape, invalidated on geometry or property change
   - Serialized in JSON via `serializeBase()` (only when hatch is active)
   - Rendered underneath shape outline in Renderer.js
+- Extended crosshatching to groups:
+  - `clipLineToSegments()` in HatchUtils.js for clipping against arbitrary line segments
+  - Group hatch properties (`hatchType`, `hatchAngle`, `hatchSpacing`) stored on group data
+  - `shapeToSegments()` in Renderer.js tessellates any shape type (Line, Arc, Circle, Ellipse, Spline, Polygon) to line segments
+  - `drawGroupHatch()` collects segments from all group shapes, generates hatch lines across group bounds, clips with even-odd rule
+  - Fill section added to group inspector schema
+  - Persisted in FileManager.js, preserved across Group/Ungroup commands
 
 ## Future Ideas
 - **Database storage** - Move from JSON files to DB backend (prerequisite for multiplayer)

@@ -557,7 +557,10 @@ export class GroupCommand extends Command {
 			autoLayout: false,
 			layout: { ...DEFAULT_LAYOUT },
 			sizing: { ...DEFAULT_SIZING },
-			padding: { ...DEFAULT_PADDING }
+			padding: { ...DEFAULT_PADDING },
+			hatchType: 'none',
+			hatchAngle: 45,
+			hatchSpacing: 5
 		});
 		console.log('GroupCommand: created new group', this.groupId);
 
@@ -625,6 +628,9 @@ export class UngroupCommand extends Command {
 				sizing: group.sizing ? { ...group.sizing } : null,
 				padding: group.padding ? { ...group.padding } : null,
 				frameShapeId: group.frameShapeId || null,
+				hatchType: group.hatchType || 'none',
+				hatchAngle: group.hatchAngle || 45,
+				hatchSpacing: group.hatchSpacing || 5,
 				shapes: [],
 				childGroups: []
 			};
@@ -670,7 +676,10 @@ export class UngroupCommand extends Command {
 				layout: groupInfo.layout || { ...DEFAULT_LAYOUT },
 				sizing: groupInfo.sizing || { ...DEFAULT_SIZING },
 				padding: groupInfo.padding || { ...DEFAULT_PADDING },
-				frameShapeId: groupInfo.frameShapeId || null
+				frameShapeId: groupInfo.frameShapeId || null,
+				hatchType: groupInfo.hatchType || 'none',
+				hatchAngle: groupInfo.hatchAngle || 45,
+				hatchSpacing: groupInfo.hatchSpacing || 5
 			});
 
 			// Restore the AutoLayoutFrame if it existed
