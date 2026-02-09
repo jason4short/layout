@@ -3,7 +3,6 @@ import data from '../data/Data.js';
 import {Shape, PenStyle} from '../geometry/Geometry.js';
 import toolManager from '../tools/ToolManager.js';
 import { renderWallBoolean } from '../geometry/utils/WallBooleanUtils.js';
-import { generateHatchLines, clipLineToSegments } from '../geometry/utils/HatchUtils.js';
 
 // Cache for frame transforms during render
 let frameTransformCache = new Map();
@@ -202,146 +201,20 @@ export class Renderer
 		}
 	}
 
-	// Convert a shape into line segments {x1,y1,x2,y2} for group hatch clipping
-	shapeToSegments(shape) {
-		const segs = [];
-		const geo = shape.geometry;
-
-		if (geo === Shape.LINE) {
-			segs.push({ x1: shape.start.x, y1: shape.start.y, x2: shape.end.x, y2: shape.end.y });
-		} else if (geo === Shape.ARC || geo === Shape.TANGENT_ARC) {
-			// Tessellate arc into chord segments
-			const steps = Math.max(8, Math.ceil(Math.abs(shape.endAngle - shape.startAngle) / (Math.PI / 16)));
-			const dAngle = (shape.endAngle - shape.startAngle) / steps;
-			for (let i = 0; i < steps; i++) {
-				const a1 = shape.startAngle + i * dAngle;
-				const a2 = shape.startAngle + (i + 1) * dAngle;
-				segs.push({
-					x1: shape.x + shape.radius * Math.cos(a1),
-					y1: shape.y + shape.radius * Math.sin(a1),
-					x2: shape.x + shape.radius * Math.cos(a2),
-					y2: shape.y + shape.radius * Math.sin(a2)
-				});
-			}
-		} else if (geo === Shape.CIRCLE) {
-			const steps = 32;
-			const dAngle = (Math.PI * 2) / steps;
-			for (let i = 0; i < steps; i++) {
-				const a1 = i * dAngle;
-				const a2 = (i + 1) * dAngle;
-				segs.push({
-					x1: shape.x + shape.radius * Math.cos(a1),
-					y1: shape.y + shape.radius * Math.sin(a1),
-					x2: shape.x + shape.radius * Math.cos(a2),
-					y2: shape.y + shape.radius * Math.sin(a2)
-				});
-			}
-		} else if (geo === Shape.ELLIPSE) {
-			const steps = 32;
-			const dAngle = (Math.PI * 2) / steps;
-			const cosR = Math.cos(shape.rotation || 0);
-			const sinR = Math.sin(shape.rotation || 0);
-			for (let i = 0; i < steps; i++) {
-				const a1 = i * dAngle;
-				const a2 = (i + 1) * dAngle;
-				const lx1 = shape.radiusX * Math.cos(a1), ly1 = shape.radiusY * Math.sin(a1);
-				const lx2 = shape.radiusX * Math.cos(a2), ly2 = shape.radiusY * Math.sin(a2);
-				segs.push({
-					x1: shape.x + lx1 * cosR - ly1 * sinR,
-					y1: shape.y + lx1 * sinR + ly1 * cosR,
-					x2: shape.x + lx2 * cosR - ly2 * sinR,
-					y2: shape.y + lx2 * sinR + ly2 * cosR
-				});
-			}
-		} else if (geo === Shape.SPLINE) {
-			// Tessellate cubic bezier
-			const steps = 20;
-			for (let i = 0; i < steps; i++) {
-				const t1 = i / steps;
-				const t2 = (i + 1) / steps;
-				segs.push({
-					x1: this._bezierPt(t1, shape.p0.x, shape.p1.x, shape.p2.x, shape.p3.x),
-					y1: this._bezierPt(t1, shape.p0.y, shape.p1.y, shape.p2.y, shape.p3.y),
-					x2: this._bezierPt(t2, shape.p0.x, shape.p1.x, shape.p2.x, shape.p3.x),
-					y2: this._bezierPt(t2, shape.p0.y, shape.p1.y, shape.p2.y, shape.p3.y)
-				});
-			}
-		} else if (geo === Shape.POLYGON) {
-			const verts = shape.getVertices();
-			for (let i = 0; i < verts.length; i++) {
-				const v1 = verts[i];
-				const v2 = verts[(i + 1) % verts.length];
-				segs.push({ x1: v1.x, y1: v1.y, x2: v2.x, y2: v2.y });
-			}
-		}
-		return segs;
-	}
-
-	// Cubic bezier evaluation
-	_bezierPt(t, p0, p1, p2, p3) {
-		const mt = 1 - t;
-		return mt * mt * mt * p0 + 3 * mt * mt * t * p1 + 3 * mt * t * t * p2 + t * t * t * p3;
-	}
-
 	// Draw hatch fill for a group of shapes
 	drawGroupHatch(ctx, groupId) {
-		const group = data.groups.get(groupId);
-		if (!group || !group.hatchType || group.hatchType === 'none') return;
+		const segments = data.getGroupHatchSegments(groupId);
+		if (segments.length === 0) return;
 
-		// Collect all line segments from group shapes
-		const shapes = data.getGroupShapes(groupId);
-		const allSegments = [];
-		for (const shape of shapes) {
-			allSegments.push(...this.shapeToSegments(shape));
-		}
-		if (allSegments.length < 2) return;
-
-		// Get group bounds for hatch line generation
-		const bounds = data.getGroupBounds(groupId);
-		if (!bounds) return;
-
-		// Generate hatch lines
-		const hatchLines = generateHatchLines(bounds, group.hatchAngle, group.hatchSpacing);
-		const hatchSegments = [];
-		for (const line of hatchLines) {
-			const clipped = clipLineToSegments(
-				{ x: line.x1, y: line.y1 },
-				{ x: line.x2, y: line.y2 },
-				allSegments
-			);
-			hatchSegments.push(...clipped);
-		}
-
-		// Cross hatch: repeat at angle + 90
-		if (group.hatchType === 'cross') {
-			const crossLines = generateHatchLines(bounds, group.hatchAngle + 90, group.hatchSpacing);
-			for (const line of crossLines) {
-				const clipped = clipLineToSegments(
-					{ x: line.x1, y: line.y1 },
-					{ x: line.x2, y: line.y2 },
-					allSegments
-				);
-				hatchSegments.push(...clipped);
-			}
-		}
-
-		if (hatchSegments.length === 0) return;
-
-		// Use default visible pen style color
 		const style = this.getPenStyle(PenStyle.VISIBLE);
-
-		// Check if any shape in group is selected
+		const shapes = data.getGroupShapes(groupId);
 		const anySelected = shapes.some(s => s.selected);
-		if (anySelected) {
-			ctx.strokeStyle = '#FF0000';
-		} else {
-			ctx.strokeStyle = style.color;
-		}
 
+		ctx.strokeStyle = anySelected ? '#FF0000' : style.color;
 		ctx.lineWidth = style.width;
 		ctx.setLineDash([]);
 
-		for (const seg of hatchSegments) {
+		for (const seg of segments) {
 			const p1 = this.toScreen(seg.x1, seg.y1);
 			const p2 = this.toScreen(seg.x2, seg.y2);
 			ctx.beginPath();

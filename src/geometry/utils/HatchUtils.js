@@ -3,7 +3,128 @@
  * Uses scanline approach: generate parallel lines, clip to shape boundary.
  */
 
+import { Shape } from '../Geometry.js';
+
 const EPSILON = 1e-10;
+
+// Cubic bezier evaluation
+function bezierPoint(t, p0, p1, p2, p3) {
+	const mt = 1 - t;
+	return mt * mt * mt * p0 + 3 * mt * mt * t * p1 + 3 * mt * t * t * p2 + t * t * t * p3;
+}
+
+/**
+ * Convert a shape into line segments {x1,y1,x2,y2} for hatch clipping.
+ * Tessellates curves into short chord segments.
+ */
+export function shapeToSegments(shape) {
+	const segs = [];
+	const geo = shape.geometry;
+
+	if (geo === Shape.LINE) {
+		segs.push({ x1: shape.start.x, y1: shape.start.y, x2: shape.end.x, y2: shape.end.y });
+	} else if (geo === Shape.ARC || geo === Shape.TANGENT_ARC) {
+		const steps = Math.max(8, Math.ceil(Math.abs(shape.endAngle - shape.startAngle) / (Math.PI / 16)));
+		const dAngle = (shape.endAngle - shape.startAngle) / steps;
+		for (let i = 0; i < steps; i++) {
+			const a1 = shape.startAngle + i * dAngle;
+			const a2 = shape.startAngle + (i + 1) * dAngle;
+			segs.push({
+				x1: shape.x + shape.radius * Math.cos(a1),
+				y1: shape.y + shape.radius * Math.sin(a1),
+				x2: shape.x + shape.radius * Math.cos(a2),
+				y2: shape.y + shape.radius * Math.sin(a2)
+			});
+		}
+	} else if (geo === Shape.CIRCLE) {
+		const steps = 32;
+		const dAngle = (Math.PI * 2) / steps;
+		for (let i = 0; i < steps; i++) {
+			const a1 = i * dAngle;
+			const a2 = (i + 1) * dAngle;
+			segs.push({
+				x1: shape.x + shape.radius * Math.cos(a1),
+				y1: shape.y + shape.radius * Math.sin(a1),
+				x2: shape.x + shape.radius * Math.cos(a2),
+				y2: shape.y + shape.radius * Math.sin(a2)
+			});
+		}
+	} else if (geo === Shape.ELLIPSE) {
+		const steps = 32;
+		const dAngle = (Math.PI * 2) / steps;
+		const cosR = Math.cos(shape.rotation || 0);
+		const sinR = Math.sin(shape.rotation || 0);
+		for (let i = 0; i < steps; i++) {
+			const a1 = i * dAngle;
+			const a2 = (i + 1) * dAngle;
+			const lx1 = shape.radiusX * Math.cos(a1), ly1 = shape.radiusY * Math.sin(a1);
+			const lx2 = shape.radiusX * Math.cos(a2), ly2 = shape.radiusY * Math.sin(a2);
+			segs.push({
+				x1: shape.x + lx1 * cosR - ly1 * sinR,
+				y1: shape.y + lx1 * sinR + ly1 * cosR,
+				x2: shape.x + lx2 * cosR - ly2 * sinR,
+				y2: shape.y + lx2 * sinR + ly2 * cosR
+			});
+		}
+	} else if (geo === Shape.SPLINE) {
+		const steps = 20;
+		for (let i = 0; i < steps; i++) {
+			const t1 = i / steps;
+			const t2 = (i + 1) / steps;
+			segs.push({
+				x1: bezierPoint(t1, shape.p0.x, shape.p1.x, shape.p2.x, shape.p3.x),
+				y1: bezierPoint(t1, shape.p0.y, shape.p1.y, shape.p2.y, shape.p3.y),
+				x2: bezierPoint(t2, shape.p0.x, shape.p1.x, shape.p2.x, shape.p3.x),
+				y2: bezierPoint(t2, shape.p0.y, shape.p1.y, shape.p2.y, shape.p3.y)
+			});
+		}
+	} else if (geo === Shape.POLYGON) {
+		const verts = shape.getVertices();
+		for (let i = 0; i < verts.length; i++) {
+			const v1 = verts[i];
+			const v2 = verts[(i + 1) % verts.length];
+			segs.push({ x1: v1.x, y1: v1.y, x2: v2.x, y2: v2.y });
+		}
+	}
+	return segs;
+}
+
+/**
+ * Compute hatch segments for a group of shapes.
+ * Collects boundary segments from all shapes, generates hatch lines, clips with even-odd rule.
+ */
+export function computeGroupHatch(shapes, bounds, hatchType, hatchAngle, hatchSpacing) {
+	const allSegments = [];
+	for (const shape of shapes) {
+		allSegments.push(...shapeToSegments(shape));
+	}
+	if (allSegments.length < 2) return [];
+
+	const hatchLines = generateHatchLines(bounds, hatchAngle, hatchSpacing);
+	const result = [];
+	for (const line of hatchLines) {
+		const clipped = clipLineToSegments(
+			{ x: line.x1, y: line.y1 },
+			{ x: line.x2, y: line.y2 },
+			allSegments
+		);
+		result.push(...clipped);
+	}
+
+	if (hatchType === 'cross') {
+		const crossLines = generateHatchLines(bounds, hatchAngle + 90, hatchSpacing);
+		for (const line of crossLines) {
+			const clipped = clipLineToSegments(
+				{ x: line.x1, y: line.y1 },
+				{ x: line.x2, y: line.y2 },
+				allSegments
+			);
+			result.push(...clipped);
+		}
+	}
+
+	return result;
+}
 
 // Rotate a point around the origin
 function rotatePoint(x, y, angle) {

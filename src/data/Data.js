@@ -41,6 +41,7 @@ import {	AddConstructionCommand,
 			AddShapeCommand
 		} from '../core/Commands.js';
 import { calculateLayout } from '../core/LayoutEngine.js';
+import { computeGroupHatch } from '../geometry/utils/HatchUtils.js';
 
 
 class Data
@@ -628,6 +629,18 @@ class Data
 		}
 
 		return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+	}
+
+	// Compute hatch segments for a group
+	getGroupHatchSegments(groupId) {
+		const group = this.groups.get(groupId);
+		if (!group || !group.hatchType || group.hatchType === 'none') return [];
+
+		const shapes = this.getGroupShapes(groupId);
+		const bounds = this.getGroupBounds(groupId);
+		if (!bounds) return [];
+
+		return computeGroupHatch(shapes, bounds, group.hatchType, group.hatchAngle, group.hatchSpacing);
 	}
 
 	// Get bounds for auto-layout group (includes padding and fixed sizing)
