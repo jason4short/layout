@@ -13,6 +13,42 @@
 // are treated as exterior (not clipped) unless there is real overlap.
 const EPSILON = 0.05;
 
+function getBoundsFromCorners(corners) {
+	let minX = Infinity;
+	let minY = Infinity;
+	let maxX = -Infinity;
+	let maxY = -Infinity;
+	for (const c of corners) {
+		if (c.x < minX) minX = c.x;
+		if (c.y < minY) minY = c.y;
+		if (c.x > maxX) maxX = c.x;
+		if (c.y > maxY) maxY = c.y;
+	}
+	return { minX, minY, maxX, maxY };
+}
+
+function boundsOverlap(a, b) {
+	return !(
+		a.maxX < b.minX ||
+		a.minX > b.maxX ||
+		a.maxY < b.minY ||
+		a.minY > b.maxY
+	);
+}
+
+function segmentMayTouchBounds(segStart, segEnd, bounds) {
+	const segMinX = Math.min(segStart.x, segEnd.x);
+	const segMaxX = Math.max(segStart.x, segEnd.x);
+	const segMinY = Math.min(segStart.y, segEnd.y);
+	const segMaxY = Math.max(segStart.y, segEnd.y);
+	return !(
+		segMaxX < bounds.minX ||
+		segMinX > bounds.maxX ||
+		segMaxY < bounds.minY ||
+		segMinY > bounds.maxY
+	);
+}
+
 /**
  * Clip a segment against a convex polygon using Cyrus-Beck algorithm.
  * Returns the parametric interval [tEnter, tExit] where the segment
@@ -150,6 +186,7 @@ export function renderWallBoolean(ctx, renderer, walls, fillColor, strokeColor, 
 
 	// Get corners for all walls (world coords)
 	const allCorners = walls.map(w => w.getCorners());
+	const allBounds = allCorners.map(getBoundsFromCorners);
 
 	// ---- Fill pass: union of all wall rectangles ----
 	ctx.beginPath();
@@ -172,20 +209,46 @@ export function renderWallBoolean(ctx, renderer, walls, fillColor, strokeColor, 
 
 	for (let wi = 0; wi < walls.length; wi++) {
 		const corners = allCorners[wi];
+		const wallBounds = allBounds[wi];
 
-		// Other walls' corners for clipping
-		const otherCorners = [];
+		// Broadphase: only walls with overlapping AABBs can clip this wall.
+		const overlapCandidates = [];
 		for (let oi = 0; oi < walls.length; oi++) {
 			if (oi === wi) continue;
-			otherCorners.push(allCorners[oi]);
+			if (!boundsOverlap(wallBounds, allBounds[oi])) continue;
+			overlapCandidates.push(oi);
+		}
+
+		if (overlapCandidates.length === 0) {
+			// Fast path: no possible overlap, all 4 edges are fully exterior.
+			for (let ei = 0; ei < 4; ei++) {
+				const edgeStart = corners[ei];
+				const edgeEnd = corners[(ei + 1) % 4];
+				const s1 = renderer.toScreen(edgeStart.x, edgeStart.y);
+				const s2 = renderer.toScreen(edgeEnd.x, edgeEnd.y);
+				const sdx = s2.x - s1.x;
+				const sdy = s2.y - s1.y;
+				if (sdx * sdx + sdy * sdy < 4) continue;
+				ctx.beginPath();
+				ctx.moveTo(s1.x, s1.y);
+				ctx.lineTo(s2.x, s2.y);
+				ctx.stroke();
+			}
+			continue;
 		}
 
 		// Check each of the 4 edges
 		for (let ei = 0; ei < 4; ei++) {
 			const edgeStart = corners[ei];
 			const edgeEnd = corners[(ei + 1) % 4];
+			const edgeCandidates = [];
+			for (const ci of overlapCandidates) {
+				if (segmentMayTouchBounds(edgeStart, edgeEnd, allBounds[ci])) {
+					edgeCandidates.push(allCorners[ci]);
+				}
+			}
 
-			const exteriorSegments = getExteriorSegments(edgeStart, edgeEnd, otherCorners);
+			const exteriorSegments = getExteriorSegments(edgeStart, edgeEnd, edgeCandidates);
 
 			for (const [tStart, tEnd] of exteriorSegments) {
 				const x1 = edgeStart.x + tStart * (edgeEnd.x - edgeStart.x);

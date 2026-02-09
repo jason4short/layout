@@ -386,37 +386,46 @@ export class Renderer
 			}
 		}
 
-		// Render all other shapes on top of walls
-		for (const shape of otherShapes) {
+			// Render all other shapes on top of walls.
+			// Keep frame transforms active across contiguous shapes in the same frame
+			// to avoid per-shape save/restore churn.
+			let activeFrameId = null;
+			let hasActiveFrameTransform = false;
+			for (const shape of otherShapes) {
+				const shapeFrameId = shape.frameId || null;
 
-			// If shape belongs to a frame, apply frame transform
-			if (shape.frameId) {
-				const frame = this.getFrameTransform(shape.frameId);
-				if (frame) {
-					ctx.save();
-					const screenOffset = stage.worldToScreen(frame.x, frame.y);
-					const screenOrigin = stage.worldToScreen(0, 0);
-					ctx.translate(screenOffset.x - screenOrigin.x, screenOffset.y - screenOrigin.y);
+				if (shapeFrameId !== activeFrameId) {
+					if (hasActiveFrameTransform) {
+						ctx.restore();
+						hasActiveFrameTransform = false;
+					}
+
+					activeFrameId = shapeFrameId;
+					if (activeFrameId) {
+						const frame = this.getFrameTransform(activeFrameId);
+						if (frame) {
+							ctx.save();
+							const screenOffset = stage.worldToScreen(frame.x, frame.y);
+							const screenOrigin = stage.worldToScreen(0, 0);
+							ctx.translate(screenOffset.x - screenOrigin.x, screenOffset.y - screenOrigin.y);
+							hasActiveFrameTransform = true;
+						}
+					}
 				}
-			}
 
-			// Draw hatch fill underneath outline — skip during drags
-			if (!interacting && shape.hatchType && shape.hatchType !== 'none') {
-				this.drawHatch(ctx, shape);
-			}
-
-			ctx.beginPath();
-			this.applyPenStyle(ctx, shape);
-			shape.draw(ctx, this);
-			shape.drawHandles(ctx, this);
-
-			if (shape.frameId) {
-				const frame = this.getFrameTransform(shape.frameId);
-				if (frame) {
-					ctx.restore();
+				// Draw hatch fill underneath outline — skip during drags
+				if (!interacting && shape.hatchType && shape.hatchType !== 'none') {
+					this.drawHatch(ctx, shape);
 				}
+
+				ctx.beginPath();
+				this.applyPenStyle(ctx, shape);
+				shape.draw(ctx, this);
+				shape.drawHandles(ctx, this);
 			}
-		}
+			if (hasActiveFrameTransform) {
+				ctx.restore();
+			}
 
 		// Draw symbol instance labels (for selection/dragging)
 		// Instances are expanded in getShapesToRender() but we need to draw their labels
@@ -922,4 +931,3 @@ export class Renderer
 	}
 
 }
-
