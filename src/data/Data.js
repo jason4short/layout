@@ -780,6 +780,7 @@ class Data
 			case Shape.FRAME:
 				return []; // No control points - frames drag as a whole unit
 			case Shape.BOARD:
+			case Shape.WALL:
 				return [0, 1]; // start, end control points only
 			case Shape.SLOT:
 				return [0, 1]; // start, end control points only

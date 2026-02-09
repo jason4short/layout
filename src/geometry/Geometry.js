@@ -25,6 +25,7 @@ export const Shape = Object.freeze({
 	FRAME: "frame",
 	SYMBOL: "symbol",
 	BOARD: "board",
+	WALL: "wall",
 	SLOT: "slot",
 	POLYGON: "polygon",
 	AUTO_LAYOUT_FRAME: "auto_layout_frame",
