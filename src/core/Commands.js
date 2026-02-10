@@ -547,8 +547,6 @@ export class GroupCommand extends Command {
 				childGroupIds.add(shape.groupId);
 			}
 		}
-		console.log('GroupCommand: shapes with existing groupIds:', [...childGroupIds]);
-
 		// Create new group with layout properties
 		this.groupId = `group_${data._nextGroupId++}`;
 		data.groups.set(this.groupId, {
@@ -562,12 +560,10 @@ export class GroupCommand extends Command {
 			hatchAngle: 45,
 			hatchSpacing: 5
 		});
-		console.log('GroupCommand: created new group', this.groupId);
 
 		// Reparent child groups
 		for(const childId of childGroupIds){
 			const childGroup = data.groups.get(childId);
-			console.log('GroupCommand: reparenting', childId, '- found:', !!childGroup);
 			if(childGroup){
 				this.reparentedGroups.push({ id: childId, oldParentId: childGroup.parentId });
 				childGroup.parentId = this.groupId;
@@ -575,15 +571,11 @@ export class GroupCommand extends Command {
 		}
 
 		// Assign ungrouped shapes to new group
-		let ungroupedCount = 0;
 		for(const shape of this.shapes){
 			if(!shape.groupId){
 				shape.groupId = this.groupId;
-				ungroupedCount++;
 			}
 		}
-		console.log('GroupCommand: assigned', ungroupedCount, 'ungrouped shapes to new group');
-		console.log('GroupCommand: groups Map now has', data.groups.size, 'groups');
 	}
 
 	undo() {

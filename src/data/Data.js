@@ -115,6 +115,7 @@ class Data
 		this.backgroundColor = '#E5E5E5';  // Canvas background color
 		this.theme = 'light';              // Current theme preset
 		this.penStyleOverrides = {};       // Per-style color overrides
+		this.hatchDirty = false;           // Flag for hatch cache invalidation
 
 		// This is a singleton class
         return Data.instance;

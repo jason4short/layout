@@ -513,12 +513,13 @@ export class Renderer
 
 		// Track interaction state for hatch optimization
 		const interacting = this.isInteracting();
-		if (!interacting && this._wasInteracting) {
-			// Just finished dragging — invalidate all hatch caches
+		if ((!interacting && this._wasInteracting) || data.hatchDirty) {
+			// Finished dragging or undo/redo — invalidate all hatch caches
 			data.invalidateAllGroupHatch();
 			for (const shape of data.shapes) {
 				shape._hatchCache = null;
 			}
+			data.hatchDirty = false;
 		}
 		this._wasInteracting = interacting;
 

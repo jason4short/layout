@@ -20,13 +20,10 @@ class FileManager
 		this._dirty = false;
 		this._baseTitle = document.title;
 
-		// Mark dirty on any undo/redo stack change, and invalidate hatch caches
+		// Mark dirty on any undo/redo stack change
 		undoManager.onChange = () => {
 			this._setDirty(true);
-			for (const shape of data.shapes) {
-				shape._hatchCache = null;
-			}
-			data.invalidateAllGroupHatch();
+			data.hatchDirty = true;
 		};
 
 		// Warn before closing tab with unsaved changes
