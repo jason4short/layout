@@ -296,6 +296,20 @@ export class Renderer
 		return frame;
 	}
 
+	beginFrameTransform(ctx, frameId, screenOrigin) {
+		if (!frameId) return false;
+		const frame = this.getFrameTransform(frameId);
+		if (!frame) return false;
+		ctx.save();
+		const screenOffset = stage.worldToScreen(frame.x, frame.y);
+		ctx.translate(screenOffset.x - screenOrigin.x, screenOffset.y - screenOrigin.y);
+		return true;
+	}
+
+	endFrameTransform(ctx, didTransform) {
+		if (didTransform) ctx.restore();
+	}
+
 	draw()
 	{
 		const totalStart = this.debugRenderTiming ? performance.now() : 0;
@@ -341,17 +355,10 @@ export class Renderer
 
 		// Render walls first (underneath other geometry)
 		const wallsStart = this.debugRenderTiming ? performance.now() : 0;
-		for (const [frameKey, walls] of wallsByFrame) {
-			const frameId = frameKey === '__world__' ? null : frameKey;
+			for (const [frameKey, walls] of wallsByFrame) {
+				const frameId = frameKey === '__world__' ? null : frameKey;
 
-			if (frameId) {
-				const frame = this.getFrameTransform(frameId);
-				if (frame) {
-					ctx.save();
-					const screenOffset = stage.worldToScreen(frame.x, frame.y);
-					ctx.translate(screenOffset.x - screenOrigin.x, screenOffset.y - screenOrigin.y);
-				}
-			}
+				const didFrameTransform = this.beginFrameTransform(ctx, frameId, screenOrigin);
 
 			const theme = ThemePresets[data.theme] || ThemePresets.light;
 			const strokeColor = this.getPenStyleColor(PenStyle.VISIBLE);
@@ -378,11 +385,8 @@ export class Renderer
 				wall.drawHandles(ctx, this);
 			}
 
-			if (frameId) {
-				const frame = this.getFrameTransform(frameId);
-				if (frame) ctx.restore();
+				this.endFrameTransform(ctx, didFrameTransform);
 			}
-		}
 		if (this.debugRenderTiming) {
 			this._timingTotals.walls += (performance.now() - wallsStart);
 		}
@@ -415,17 +419,11 @@ export class Renderer
 					hasActiveFrameTransform = false;
 				}
 
-				activeFrameId = shapeFrameId;
-				if (activeFrameId) {
-					const frame = this.getFrameTransform(activeFrameId);
-					if (frame) {
-						ctx.save();
-						const screenOffset = stage.worldToScreen(frame.x, frame.y);
-						ctx.translate(screenOffset.x - screenOrigin.x, screenOffset.y - screenOrigin.y);
-						hasActiveFrameTransform = true;
+					activeFrameId = shapeFrameId;
+					if (activeFrameId) {
+						hasActiveFrameTransform = this.beginFrameTransform(ctx, activeFrameId, screenOrigin);
 					}
 				}
-			}
 
 			// Draw hatch fill underneath outline — skip during drags
 			if (!interacting && shape.hatchType && shape.hatchType !== 'none') {
@@ -437,9 +435,9 @@ export class Renderer
 			shape.draw(ctx, this);
 			shape.drawHandles(ctx, this);
 		}
-		if (hasActiveFrameTransform) {
-			ctx.restore();
-		}
+			if (hasActiveFrameTransform) {
+				this.endFrameTransform(ctx, hasActiveFrameTransform);
+			}
 		if (this.debugRenderTiming) {
 			this._timingTotals.shapes += (performance.now() - shapesStart);
 		}

@@ -86,6 +86,25 @@ class Stage extends View
 
         return Stage.instance;
 	}
+
+	_safeDrawAndUpdateInspector() {
+		try {
+			const startTime = performance.now();
+			this.renderer.draw();
+			const frameTime = performance.now() - startTime;
+
+			if (this._perfMonitorEnabled) {
+				this._updatePerfMonitor(frameTime);
+			}
+
+			// Update inspector panel
+			const insp = getInspector();
+			if (insp) insp.update();
+		} catch (err) {
+			console.error('[Stage] render failed', err);
+			throw err;
+		}
+	}
 	
     init(){
 		this.canvas 	= document.getElementById('stage');
@@ -134,18 +153,7 @@ class Stage extends View
 
 		if (this._isDirty) {
 			this._isDirty = false;
-
-			const startTime = performance.now();
-			this.renderer.draw();
-			const frameTime = performance.now() - startTime;
-
-			if (this._perfMonitorEnabled) {
-				this._updatePerfMonitor(frameTime);
-			}
-
-			// Update inspector panel
-			const insp = getInspector();
-			if (insp) insp.update();
+			this._safeDrawAndUpdateInspector();
 		}
 	}
 	
@@ -161,18 +169,7 @@ class Stage extends View
 			this._rafId = null;
 		}
 		this._isDirty = false;
-
-		const startTime = performance.now();
-		this.renderer.draw();
-		const frameTime = performance.now() - startTime;
-
-		if (this._perfMonitorEnabled) {
-			this._updatePerfMonitor(frameTime);
-		}
-
-		// Update inspector panel
-		const insp = getInspector();
-		if (insp) insp.update();
+		this._safeDrawAndUpdateInspector();
 	}
 
 	/**
@@ -644,7 +641,6 @@ class Stage extends View
 const instance = new Stage();
 //Object.freeze(instance); // Optional: Prevent modifications to the instance
 export default instance;
-
 
 
 
