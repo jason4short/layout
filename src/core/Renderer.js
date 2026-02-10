@@ -310,37 +310,11 @@ export class Renderer
 		if (didTransform) ctx.restore();
 	}
 
-	draw()
-	{
-		const totalStart = this.debugRenderTiming ? performance.now() : 0;
-		let ctx = stage.ctx;
-		ctx.fillStyle = data.backgroundColor;
-		ctx.fillRect(0, 0, stage.canvas.width, stage.canvas.height);
-
-		// Calculate viewport once for frustum culling
-		const viewport = this.getViewport();
-		const screenOrigin = stage.worldToScreen(0, 0);
-
-		// Track interaction state for hatch optimization
-		const interacting = this.isInteracting();
-		if (!interacting && this._wasInteracting) {
-			// Just finished dragging — invalidate all hatch caches
-			data.invalidateAllGroupHatch();
-			for (const shape of data.shapes) {
-				shape._hatchCache = null;
-			}
-		}
-		this._wasInteracting = interacting;
-
-		// Clear frame transform cache
-		frameTransformCache.clear();
-
-		// Two-pass: collect walls first, render them underneath, then render other shapes on top
+	buildRenderQueues(viewport) {
 		const wallsByFrame = new Map(); // frameId (or null) -> Wall[]
 		const otherShapes = [];
 
-		for(const shape of data.getShapesToRender())
-		{
+		for (const shape of data.getShapesToRender()) {
 			// Frustum culling - skip shapes entirely outside viewport
 			if (!this.isInViewport(shape, viewport)) continue;
 
@@ -353,12 +327,13 @@ export class Renderer
 			}
 		}
 
-		// Render walls first (underneath other geometry)
-		const wallsStart = this.debugRenderTiming ? performance.now() : 0;
-			for (const [frameKey, walls] of wallsByFrame) {
-				const frameId = frameKey === '__world__' ? null : frameKey;
+		return { wallsByFrame, otherShapes };
+	}
 
-				const didFrameTransform = this.beginFrameTransform(ctx, frameId, screenOrigin);
+	drawWallsPass(ctx, wallsByFrame, screenOrigin) {
+		for (const [frameKey, walls] of wallsByFrame) {
+			const frameId = frameKey === '__world__' ? null : frameKey;
+			const didFrameTransform = this.beginFrameTransform(ctx, frameId, screenOrigin);
 
 			const theme = ThemePresets[data.theme] || ThemePresets.light;
 			const strokeColor = this.getPenStyleColor(PenStyle.VISIBLE);
@@ -385,31 +360,25 @@ export class Renderer
 				wall.drawHandles(ctx, this);
 			}
 
-				this.endFrameTransform(ctx, didFrameTransform);
-			}
-		if (this.debugRenderTiming) {
-			this._timingTotals.walls += (performance.now() - wallsStart);
+			this.endFrameTransform(ctx, didFrameTransform);
 		}
+	}
 
-		// Render group hatch fills (underneath shapes) — skip during drags
-		const hatchStart = this.debugRenderTiming ? performance.now() : 0;
-		if (!interacting) {
-			for (const [groupId, group] of data.groups) {
-				if (group.hatchType && group.hatchType !== 'none') {
-					this.drawGroupHatch(ctx, groupId);
-				}
+	drawGroupHatchPass(ctx, interacting) {
+		if (interacting) return;
+		for (const [groupId, group] of data.groups) {
+			if (group.hatchType && group.hatchType !== 'none') {
+				this.drawGroupHatch(ctx, groupId);
 			}
 		}
-		if (this.debugRenderTiming) {
-			this._timingTotals.hatch += (performance.now() - hatchStart);
-		}
+	}
 
-		// Render all other shapes on top of walls.
-		const shapesStart = this.debugRenderTiming ? performance.now() : 0;
+	drawOtherShapesPass(ctx, otherShapes, screenOrigin, interacting) {
 		// Keep frame transforms active across contiguous shapes in the same frame
 		// to avoid per-shape save/restore churn.
 		let activeFrameId = null;
 		let hasActiveFrameTransform = false;
+
 		for (const shape of otherShapes) {
 			const shapeFrameId = shape.frameId || null;
 
@@ -419,11 +388,11 @@ export class Renderer
 					hasActiveFrameTransform = false;
 				}
 
-					activeFrameId = shapeFrameId;
-					if (activeFrameId) {
-						hasActiveFrameTransform = this.beginFrameTransform(ctx, activeFrameId, screenOrigin);
-					}
+				activeFrameId = shapeFrameId;
+				if (activeFrameId) {
+					hasActiveFrameTransform = this.beginFrameTransform(ctx, activeFrameId, screenOrigin);
 				}
+			}
 
 			// Draw hatch fill underneath outline — skip during drags
 			if (!interacting && shape.hatchType && shape.hatchType !== 'none') {
@@ -435,82 +404,61 @@ export class Renderer
 			shape.draw(ctx, this);
 			shape.drawHandles(ctx, this);
 		}
-			if (hasActiveFrameTransform) {
-				this.endFrameTransform(ctx, hasActiveFrameTransform);
-			}
-		if (this.debugRenderTiming) {
-			this._timingTotals.shapes += (performance.now() - shapesStart);
-		}
 
-		// Draw symbol instance labels (for selection/dragging)
+		if (hasActiveFrameTransform) {
+			this.endFrameTransform(ctx, hasActiveFrameTransform);
+		}
+	}
+
+	drawSymbolLabelsPass(ctx) {
 		// Instances are expanded in getShapesToRender() but we need to draw their labels
 		if (data._symbolInstances) {
 			for (const symbol of data._symbolInstances) {
 				symbol.draw(ctx, this);
 			}
 		}
+	}
 
+	drawActiveFrameIndicator(ctx) {
 		// Draw active frame indicator (shows which frame new shapes will be added to)
-		if (data.activeFrameId) {
-			const activeFrame = data.getFrame(data.activeFrameId);
-			if (activeFrame) {
-				const topLeft = this.toScreen(activeFrame.x, activeFrame.y);
-				const width = this.toScreenScale(activeFrame.width);
-				const height = this.toScreenScale(activeFrame.height);
+		if (!data.activeFrameId) return;
+		const activeFrame = data.getFrame(data.activeFrameId);
+		if (!activeFrame) return;
 
-				ctx.strokeStyle = '#10b981';  // Green to indicate "active/ready"
-				ctx.lineWidth = 2;
-				ctx.setLineDash([6, 4]);
-				ctx.strokeRect(topLeft.x, topLeft.y, width, height);
-				ctx.setLineDash([]);
+		const topLeft = this.toScreen(activeFrame.x, activeFrame.y);
+		const width = this.toScreenScale(activeFrame.width);
+		const height = this.toScreenScale(activeFrame.height);
 
-				// Draw "Active" badge at top-right
-				const badgeText = 'Active';
-				ctx.font = '10px sans-serif';
-				const metrics = ctx.measureText(badgeText);
-				const badgeWidth = metrics.width + 8;
-				const badgeHeight = 16;
-				const badgeX = topLeft.x + width - badgeWidth - 4;
-				const badgeY = topLeft.y + 4;
+		ctx.strokeStyle = '#10b981'; // Green to indicate "active/ready"
+		ctx.lineWidth = 2;
+		ctx.setLineDash([6, 4]);
+		ctx.strokeRect(topLeft.x, topLeft.y, width, height);
+		ctx.setLineDash([]);
 
-				ctx.fillStyle = '#10b981';
-				ctx.beginPath();
-				ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 3);
-				ctx.fill();
+		// Draw "Active" badge at top-right
+		const badgeText = 'Active';
+		ctx.font = '10px sans-serif';
+		const metrics = ctx.measureText(badgeText);
+		const badgeWidth = metrics.width + 8;
+		const badgeHeight = 16;
+		const badgeX = topLeft.x + width - badgeWidth - 4;
+		const badgeY = topLeft.y + 4;
 
-				ctx.fillStyle = '#ffffff';
-				ctx.textBaseline = 'middle';
-				ctx.textAlign = 'center';
-				ctx.fillText(badgeText, badgeX + badgeWidth / 2, badgeY + badgeHeight / 2);
-			}
-		}
+		ctx.fillStyle = '#10b981';
+		ctx.beginPath();
+		ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 3);
+		ctx.fill();
 
-/* debugging - disabled for performance
-		// Draw snap point indicators
-		for(const intersection of data.getIntersectionCandidates())
-		{
-			const pt = this.toScreen(intersection.x, intersection.y);
-			ctx.beginPath();
-			ctx.strokeStyle = '#FF0000';
-			ctx.lineWidth = 0.5;
-			ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
-			ctx.stroke();
-		}
-		// Draw snap point indicators
-		for(const intersection of data.getPOICandidates())
-		{
-			const pt = this.toScreen(intersection.x, intersection.y);
-			ctx.beginPath();
-			ctx.strokeStyle = '#00FF00';
-			ctx.lineWidth = 0.5;
-			ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
-			ctx.stroke();
-		}
-*/
+		ctx.fillStyle = '#ffffff';
+		ctx.textBaseline = 'middle';
+		ctx.textAlign = 'center';
+		ctx.fillText(badgeText, badgeX + badgeWidth / 2, badgeY + badgeHeight / 2);
+	}
+
+	drawOverlayPass(ctx) {
 		// Draw snap point indicators (small circles at stored snap points)
 		// Source snap points show guide relationship labels (align:x, tangent, etc.)
-		for(const snapPoint of data.snapPoints)
-		{
+		for (const snapPoint of data.snapPoints) {
 			const pt = this.toScreen(snapPoint.x, snapPoint.y);
 			ctx.beginPath();
 			ctx.strokeStyle = '#2b6cb0';
@@ -519,11 +467,10 @@ export class Renderer
 			ctx.stroke();
 
 			// Draw guide relationship label for this source snap point
-			if(snapPoint.label){
+			if (snapPoint.label) {
 				this.drawSnapLabel(ctx, pt, snapPoint.label);
 			}
 		}
-
 
 		// Draw snap point crosshair
 		const s = this.toScreen(data.snapPoint.x, data.snapPoint.y);
@@ -551,6 +498,81 @@ export class Renderer
 
 		// Draw zoom box preview
 		this.drawZoomRect(ctx);
+	}
+
+	draw()
+	{
+		const totalStart = this.debugRenderTiming ? performance.now() : 0;
+		let ctx = stage.ctx;
+		ctx.fillStyle = data.backgroundColor;
+		ctx.fillRect(0, 0, stage.canvas.width, stage.canvas.height);
+
+		// Calculate viewport once for frustum culling
+		const viewport = this.getViewport();
+		const screenOrigin = stage.worldToScreen(0, 0);
+
+		// Track interaction state for hatch optimization
+		const interacting = this.isInteracting();
+		if (!interacting && this._wasInteracting) {
+			// Just finished dragging — invalidate all hatch caches
+			data.invalidateAllGroupHatch();
+			for (const shape of data.shapes) {
+				shape._hatchCache = null;
+			}
+		}
+		this._wasInteracting = interacting;
+
+		// Clear frame transform cache
+		frameTransformCache.clear();
+		const { wallsByFrame, otherShapes } = this.buildRenderQueues(viewport);
+
+		// Render walls first (underneath other geometry)
+		const wallsStart = this.debugRenderTiming ? performance.now() : 0;
+		this.drawWallsPass(ctx, wallsByFrame, screenOrigin);
+		if (this.debugRenderTiming) {
+			this._timingTotals.walls += (performance.now() - wallsStart);
+		}
+
+		// Render group hatch fills (underneath shapes) — skip during drags
+		const hatchStart = this.debugRenderTiming ? performance.now() : 0;
+		this.drawGroupHatchPass(ctx, interacting);
+		if (this.debugRenderTiming) {
+			this._timingTotals.hatch += (performance.now() - hatchStart);
+		}
+
+		// Render all other shapes on top of walls.
+		const shapesStart = this.debugRenderTiming ? performance.now() : 0;
+		this.drawOtherShapesPass(ctx, otherShapes, screenOrigin, interacting);
+		if (this.debugRenderTiming) {
+			this._timingTotals.shapes += (performance.now() - shapesStart);
+		}
+
+		this.drawSymbolLabelsPass(ctx);
+		this.drawActiveFrameIndicator(ctx);
+
+/* debugging - disabled for performance
+		// Draw snap point indicators
+		for(const intersection of data.getIntersectionCandidates())
+		{
+			const pt = this.toScreen(intersection.x, intersection.y);
+			ctx.beginPath();
+			ctx.strokeStyle = '#FF0000';
+			ctx.lineWidth = 0.5;
+			ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
+			ctx.stroke();
+		}
+		// Draw snap point indicators
+		for(const intersection of data.getPOICandidates())
+		{
+			const pt = this.toScreen(intersection.x, intersection.y);
+			ctx.beginPath();
+			ctx.strokeStyle = '#00FF00';
+			ctx.lineWidth = 0.5;
+			ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
+			ctx.stroke();
+		}
+*/
+		this.drawOverlayPass(ctx);
 
 		if (this.debugRenderTiming) {
 			this._timingTotals.total += (performance.now() - totalStart);

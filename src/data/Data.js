@@ -42,6 +42,7 @@ import {	AddConstructionCommand,
 		} from '../core/Commands.js';
 import { calculateLayout } from '../core/LayoutEngine.js';
 import { computeGroupHatch } from '../geometry/utils/HatchUtils.js';
+import { buildRenderList } from './RenderListBuilder.js';
 
 
 class Data
@@ -1398,58 +1399,16 @@ class Data
 	// Paper/Frames render first (background), then images, then other shapes
 	// Shapes with frameId are cloned and translated to world coords for rendering
 	getShapesToRender(){
-		const papers = [];
-		const frames = [];
-		const images = [];
-		const symbols = [];  // Keep track of symbol instances for selection boxes
-		const other = [];
-		const unselected = [];
-		const selected = [];
-
-		const pushPartitioned = (shape) => {
-			if (!shape) return;
-			if (shape.selected) selected.push(shape);
-			else unselected.push(shape);
-		};
-
-		const pushPartitionedList = (list) => {
-			for (const item of list) {
-				pushPartitioned(item);
-			}
-		};
-
-		for (const s of this.shapes) {
-			if (s.geometry === Shape.PAPER) {
-				papers.push(s);
-			} else if (s.geometry === Shape.FRAME) {
-				frames.push(s);
-			} else if (s.geometry === Shape.IMAGE) {
-				images.push(s);
-			} else if (s.geometry === Shape.SYMBOL) {
-				// Expand symbol into its transformed shapes
-				symbols.push(s);
-				const symbolShapes = s.getShapesForRender();
-				other.push(...symbolShapes);
-			} else {
-				// All shapes (including frame shapes) store world coords
-				// No translation needed
-				other.push(s);
-			}
-		}
+		const { renderList, symbolInstances } = buildRenderList(
+			this.shapes,
+			this.constructions,
+			this.guides,
+			this.shapePreviews
+		);
 
 		// Store symbols for selection box rendering (accessed by renderer)
-		this._symbolInstances = symbols;
-
-		// Preserve category order while ensuring selected shapes render last.
-		pushPartitionedList(papers);
-		pushPartitionedList(frames);
-		pushPartitionedList(images);
-		pushPartitionedList(other);
-		pushPartitionedList(this.constructions);
-		pushPartitionedList(this.guides);
-		pushPartitionedList(this.shapePreviews);
-
-		return [...unselected, ...selected];
+		this._symbolInstances = symbolInstances;
+		return renderList;
 	}
 
 	// Array of all intersection points we could snap to
