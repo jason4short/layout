@@ -460,21 +460,24 @@ class Data
 		}
 	}
 
-	// Toggle control point visibility on a shape (Cmd+click)
+	// Toggle control point visibility on a shape (Cmd+click).
+	// If mouse is provided, resolve nearest shape from the pointer position;
+	// otherwise use the current snap target.
 	toggleControlPoints(mouse){
-		let snap = draftingAssistant.findNearestSnapPoint_OnShape(mouse, this.shapes);
-		if(snap && snap.shape){
-			snap.shape.showControlPoints = !snap.shape.showControlPoints;
-			return snap.shape;
+		if (mouse) {
+			const snap = draftingAssistant.findNearestSnapPoint_OnShape(mouse, this.shapes);
+			if (snap && snap.shape) {
+				snap.shape.showControlPoints = !snap.shape.showControlPoints;
+				return snap.shape;
+			}
+			return null;
+		}
+
+		if (this.snapPoint.shape) {
+			this.snapPoint.shape.showControlPoints = !this.snapPoint.shape.showControlPoints;
+			return this.snapPoint.shape;
 		}
 		return null;
-	}
-
-	// Toggle control point visibility on a shape (Cmd+click)
-	toggleControlPoints(){
-		if(this.snapPoint.shape){
-			this.snapPoint.shape.showControlPoints = !this.snapPoint.shape.showControlPoints;
-		}
 	}
 
 	selectAll(){
@@ -1400,6 +1403,20 @@ class Data
 		const images = [];
 		const symbols = [];  // Keep track of symbol instances for selection boxes
 		const other = [];
+		const unselected = [];
+		const selected = [];
+
+		const pushPartitioned = (shape) => {
+			if (!shape) return;
+			if (shape.selected) selected.push(shape);
+			else unselected.push(shape);
+		};
+
+		const pushPartitionedList = (list) => {
+			for (const item of list) {
+				pushPartitioned(item);
+			}
+		};
 
 		for (const s of this.shapes) {
 			if (s.geometry === Shape.PAPER) {
@@ -1423,10 +1440,14 @@ class Data
 		// Store symbols for selection box rendering (accessed by renderer)
 		this._symbolInstances = symbols;
 
-		// Combine all shapes, then partition so selected shapes render last (on top)
-		const allShapes = [...papers, ...frames, ...images, ...other, ...this.constructions, ...this.guides, ...this.shapePreviews].filter(Boolean);
-		const unselected = allShapes.filter(s => !s.selected);
-		const selected = allShapes.filter(s => s.selected);
+		// Preserve category order while ensuring selected shapes render last.
+		pushPartitionedList(papers);
+		pushPartitionedList(frames);
+		pushPartitionedList(images);
+		pushPartitionedList(other);
+		pushPartitionedList(this.constructions);
+		pushPartitionedList(this.guides);
+		pushPartitionedList(this.shapePreviews);
 
 		return [...unselected, ...selected];
 	}
@@ -1583,4 +1604,3 @@ class Data
 const instance = new Data();
 //Object.freeze(instance); // Optional: Prevent modifications to the instance
 export default instance;
-

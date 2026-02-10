@@ -12,6 +12,7 @@
 // Small inward inset used for half-plane tests so boundary-coincident edges
 // are treated as exterior (not clipped) unless there is real overlap.
 const EPSILON = 0.05;
+const BROADPHASE_CELL_SIZE = 1000;
 
 function getBoundsFromCorners(corners) {
 	let minX = Infinity;
@@ -47,6 +48,48 @@ function segmentMayTouchBounds(segStart, segEnd, bounds) {
 		segMaxY < bounds.minY ||
 		segMinY > bounds.maxY
 	);
+}
+
+function getCellSpan(bounds, cellSize) {
+	return {
+		minX: Math.floor(bounds.minX / cellSize),
+		maxX: Math.floor(bounds.maxX / cellSize),
+		minY: Math.floor(bounds.minY / cellSize),
+		maxY: Math.floor(bounds.maxY / cellSize)
+	};
+}
+
+function buildBoundsGrid(boundsArray, cellSize) {
+	const grid = new Map();
+	for (let i = 0; i < boundsArray.length; i++) {
+		const span = getCellSpan(boundsArray[i], cellSize);
+		for (let cx = span.minX; cx <= span.maxX; cx++) {
+			for (let cy = span.minY; cy <= span.maxY; cy++) {
+				const key = `${cx},${cy}`;
+				let bucket = grid.get(key);
+				if (!bucket) {
+					bucket = [];
+					grid.set(key, bucket);
+				}
+				bucket.push(i);
+			}
+		}
+	}
+	return grid;
+}
+
+function getCandidateIndices(bounds, grid, cellSize) {
+	const span = getCellSpan(bounds, cellSize);
+	const out = new Set();
+	for (let cx = span.minX; cx <= span.maxX; cx++) {
+		for (let cy = span.minY; cy <= span.maxY; cy++) {
+			const key = `${cx},${cy}`;
+			const bucket = grid.get(key);
+			if (!bucket) continue;
+			for (const idx of bucket) out.add(idx);
+		}
+	}
+	return out;
 }
 
 /**
@@ -187,6 +230,7 @@ export function renderWallBoolean(ctx, renderer, walls, fillColor, strokeColor, 
 	// Get corners for all walls (world coords)
 	const allCorners = walls.map(w => w.getCorners());
 	const allBounds = allCorners.map(getBoundsFromCorners);
+	const boundsGrid = buildBoundsGrid(allBounds, BROADPHASE_CELL_SIZE);
 
 	// ---- Fill pass: union of all wall rectangles ----
 	ctx.beginPath();
@@ -213,7 +257,8 @@ export function renderWallBoolean(ctx, renderer, walls, fillColor, strokeColor, 
 
 		// Broadphase: only walls with overlapping AABBs can clip this wall.
 		const overlapCandidates = [];
-		for (let oi = 0; oi < walls.length; oi++) {
+		const candidateIndices = getCandidateIndices(wallBounds, boundsGrid, BROADPHASE_CELL_SIZE);
+		for (const oi of candidateIndices) {
 			if (oi === wi) continue;
 			if (!boundsOverlap(wallBounds, allBounds[oi])) continue;
 			overlapCandidates.push(oi);

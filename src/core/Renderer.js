@@ -75,6 +75,11 @@ export class Renderer
 			[PenStyle.OUTLINE]:      { dash: [],                   width: 1.5 },
 			[PenStyle.DIMENSION]:    { dash: [],                   width: 0.5 }
 		};
+
+		// Optional lightweight render profiling (disabled by default).
+		this.debugRenderTiming = false;
+		this._timingFrames = 0;
+		this._timingTotals = { walls: 0, hatch: 0, shapes: 0, total: 0 };
 	}
 
 	// Get effective color for a pen style (theme + overrides)
@@ -293,12 +298,14 @@ export class Renderer
 
 	draw()
 	{
+		const totalStart = this.debugRenderTiming ? performance.now() : 0;
 		let ctx = stage.ctx;
 		ctx.fillStyle = data.backgroundColor;
 		ctx.fillRect(0, 0, stage.canvas.width, stage.canvas.height);
 
 		// Calculate viewport once for frustum culling
 		const viewport = this.getViewport();
+		const screenOrigin = stage.worldToScreen(0, 0);
 
 		// Track interaction state for hatch optimization
 		const interacting = this.isInteracting();
@@ -333,6 +340,7 @@ export class Renderer
 		}
 
 		// Render walls first (underneath other geometry)
+		const wallsStart = this.debugRenderTiming ? performance.now() : 0;
 		for (const [frameKey, walls] of wallsByFrame) {
 			const frameId = frameKey === '__world__' ? null : frameKey;
 
@@ -341,7 +349,6 @@ export class Renderer
 				if (frame) {
 					ctx.save();
 					const screenOffset = stage.worldToScreen(frame.x, frame.y);
-					const screenOrigin = stage.worldToScreen(0, 0);
 					ctx.translate(screenOffset.x - screenOrigin.x, screenOffset.y - screenOrigin.y);
 				}
 			}
@@ -376,8 +383,12 @@ export class Renderer
 				if (frame) ctx.restore();
 			}
 		}
+		if (this.debugRenderTiming) {
+			this._timingTotals.walls += (performance.now() - wallsStart);
+		}
 
 		// Render group hatch fills (underneath shapes) — skip during drags
+		const hatchStart = this.debugRenderTiming ? performance.now() : 0;
 		if (!interacting) {
 			for (const [groupId, group] of data.groups) {
 				if (group.hatchType && group.hatchType !== 'none') {
@@ -385,47 +396,53 @@ export class Renderer
 				}
 			}
 		}
+		if (this.debugRenderTiming) {
+			this._timingTotals.hatch += (performance.now() - hatchStart);
+		}
 
-			// Render all other shapes on top of walls.
-			// Keep frame transforms active across contiguous shapes in the same frame
-			// to avoid per-shape save/restore churn.
-			let activeFrameId = null;
-			let hasActiveFrameTransform = false;
-			for (const shape of otherShapes) {
-				const shapeFrameId = shape.frameId || null;
+		// Render all other shapes on top of walls.
+		const shapesStart = this.debugRenderTiming ? performance.now() : 0;
+		// Keep frame transforms active across contiguous shapes in the same frame
+		// to avoid per-shape save/restore churn.
+		let activeFrameId = null;
+		let hasActiveFrameTransform = false;
+		for (const shape of otherShapes) {
+			const shapeFrameId = shape.frameId || null;
 
-				if (shapeFrameId !== activeFrameId) {
-					if (hasActiveFrameTransform) {
-						ctx.restore();
-						hasActiveFrameTransform = false;
-					}
-
-					activeFrameId = shapeFrameId;
-					if (activeFrameId) {
-						const frame = this.getFrameTransform(activeFrameId);
-						if (frame) {
-							ctx.save();
-							const screenOffset = stage.worldToScreen(frame.x, frame.y);
-							const screenOrigin = stage.worldToScreen(0, 0);
-							ctx.translate(screenOffset.x - screenOrigin.x, screenOffset.y - screenOrigin.y);
-							hasActiveFrameTransform = true;
-						}
-					}
+			if (shapeFrameId !== activeFrameId) {
+				if (hasActiveFrameTransform) {
+					ctx.restore();
+					hasActiveFrameTransform = false;
 				}
 
-				// Draw hatch fill underneath outline — skip during drags
-				if (!interacting && shape.hatchType && shape.hatchType !== 'none') {
-					this.drawHatch(ctx, shape);
+				activeFrameId = shapeFrameId;
+				if (activeFrameId) {
+					const frame = this.getFrameTransform(activeFrameId);
+					if (frame) {
+						ctx.save();
+						const screenOffset = stage.worldToScreen(frame.x, frame.y);
+						ctx.translate(screenOffset.x - screenOrigin.x, screenOffset.y - screenOrigin.y);
+						hasActiveFrameTransform = true;
+					}
 				}
+			}
 
-				ctx.beginPath();
-				this.applyPenStyle(ctx, shape);
-				shape.draw(ctx, this);
-				shape.drawHandles(ctx, this);
+			// Draw hatch fill underneath outline — skip during drags
+			if (!interacting && shape.hatchType && shape.hatchType !== 'none') {
+				this.drawHatch(ctx, shape);
 			}
-			if (hasActiveFrameTransform) {
-				ctx.restore();
-			}
+
+			ctx.beginPath();
+			this.applyPenStyle(ctx, shape);
+			shape.draw(ctx, this);
+			shape.drawHandles(ctx, this);
+		}
+		if (hasActiveFrameTransform) {
+			ctx.restore();
+		}
+		if (this.debugRenderTiming) {
+			this._timingTotals.shapes += (performance.now() - shapesStart);
+		}
 
 		// Draw symbol instance labels (for selection/dragging)
 		// Instances are expanded in getShapesToRender() but we need to draw their labels
@@ -536,6 +553,17 @@ export class Renderer
 
 		// Draw zoom box preview
 		this.drawZoomRect(ctx);
+
+		if (this.debugRenderTiming) {
+			this._timingTotals.total += (performance.now() - totalStart);
+			this._timingFrames++;
+			if (this._timingFrames >= 60) {
+				const f = this._timingFrames;
+				console.log(`[render] avg ms over ${f} frames: total=${(this._timingTotals.total / f).toFixed(2)}, walls=${(this._timingTotals.walls / f).toFixed(2)}, hatch=${(this._timingTotals.hatch / f).toFixed(2)}, shapes=${(this._timingTotals.shapes / f).toFixed(2)}`);
+				this._timingFrames = 0;
+				this._timingTotals = { walls: 0, hatch: 0, shapes: 0, total: 0 };
+			}
+		}
 	}
 
 	// Draw snap type label next to the snap point
