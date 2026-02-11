@@ -62,6 +62,7 @@ export class Renderer
 	constructor()
 	{
 		this.marqueeRect = null; // Set by PointerTool during drag
+		this.lassoPolygon = null; // Set by LassoTool during drag
 		this.zoomRect = null;    // Set by StrokeTool during zoom gesture
 		this.textCursorInfo = null; // Updated via events from TextTool
 
@@ -493,8 +494,9 @@ export class Renderer
 		// Draw auto-layout frame for selected groups
 		this.drawAutoLayoutFrame(ctx);
 
-		// Draw marquee selection box
+		// Draw marquee selection box / lasso polygon
 		this.drawMarquee(ctx);
+		this.drawLasso(ctx);
 
 		// Draw zoom box preview
 		this.drawZoomRect(ctx);
@@ -802,6 +804,30 @@ export class Renderer
 
 		// Store handle positions for hit testing (in world coords)
 		this.autoLayoutHandles = { corners, edges };
+	}
+
+	drawLasso(ctx){
+		if(!this.lassoPolygon || this.lassoPolygon.length < 2) return;
+
+		ctx.beginPath();
+		const p0 = this.toScreen(this.lassoPolygon[0].x, this.lassoPolygon[0].y);
+		ctx.moveTo(p0.x, p0.y);
+		for(let i = 1; i < this.lassoPolygon.length; i++){
+			const p = this.toScreen(this.lassoPolygon[i].x, this.lassoPolygon[i].y);
+			ctx.lineTo(p.x, p.y);
+		}
+		ctx.closePath();
+
+		// Semi-transparent fill
+		ctx.fillStyle = 'rgba(0, 102, 204, 0.1)';
+		ctx.fill();
+
+		// Dashed blue outline
+		ctx.strokeStyle = '#0066CC';
+		ctx.lineWidth = 1;
+		ctx.setLineDash([4, 4]);
+		ctx.stroke();
+		ctx.setLineDash([]);
 	}
 
 	drawMarquee(ctx){

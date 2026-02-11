@@ -41,6 +41,7 @@ import { SlotTool } 					from "./SlotTool.js";
 import { PolygonTool } 					from "./PolygonTool.js";
 import { LiveMirrorTool } 				from "./LiveMirrorTool.js";
 import { WallTool } 					from "./WallTool.js";
+import { LassoTool } 					from "./LassoTool.js";
 
 
 
@@ -97,11 +98,13 @@ class ToolManager extends EventDispatcher
 		this.polygonTool				= new PolygonTool();
 		this.liveMirrorTool				= new LiveMirrorTool();
 		this.wallTool					= new WallTool();
+		this.lassoTool					= new LassoTool();
 
 		// Tool palette configuration: [tool, displayName, shortcut, icon]
 		this.toolPaletteConfig = [
 			{ category: 'Select' },
 			{ tool: this.pointerTool, 				name: 'Pointer', shortcut: 'V', icon: 'pointer' },
+			{ tool: this.lassoTool, 				name: 'Lasso', shortcut: 'Q', icon: 'lasso' },
 			{ tool: this.handTool, 					name: 'Hand', shortcut: 'H', icon: 'hand' },
 			{ category: 'Draw' },
 			{ tool: this.lineTool, 					name: 'Line', shortcut: 'L', icon: 'line' },
@@ -266,7 +269,9 @@ class ToolManager extends EventDispatcher
 			this.strokeTool.onMouseDown(e);
 
 		}else if(stage.shiftKey){
-			this.pointerTool.onMouseDown(e);
+			// If current tool is a selection tool (Pointer/Lasso), let it handle shift
+			const shiftTool = (this.currentTool instanceof PointerTool) ? this.currentTool : this.pointerTool;
+			shiftTool.onMouseDown(e);
 
 		}else{
 			this.currentTool.onMouseDown(e);
@@ -277,12 +282,13 @@ class ToolManager extends EventDispatcher
 	{
 		if(stage.spaceKey){
 			this.handTool.onMouseMove(e);
-			
+
 		}else if(stage.commandKey){
 			this.strokeTool.onMouseMove(e);
 
 		}else if(stage.shiftKey){
-			this.pointerTool.onMouseMove(e);
+			const shiftTool = (this.currentTool instanceof PointerTool) ? this.currentTool : this.pointerTool;
+			shiftTool.onMouseMove(e);
 
 		}else{
 			this.currentTool.onMouseMove(e);
@@ -293,12 +299,13 @@ class ToolManager extends EventDispatcher
 	{
 		if(stage.spaceKey){
 			this.handTool.onMouseUp(e);
-			
+
 		}else if(stage.commandKey){
 			this.strokeTool.onMouseUp(e);
-			
+
 		}else if(stage.shiftKey){
-			this.pointerTool.onMouseUp(e);
+			const shiftTool = (this.currentTool instanceof PointerTool) ? this.currentTool : this.pointerTool;
+			shiftTool.onMouseUp(e);
 
 		}else{
 			this.currentTool.onMouseUp(e);
@@ -621,7 +628,10 @@ class ToolManager extends EventDispatcher
 	// In auto-layout groups, reorder shapes instead of nudging
 	nudgeSelection(key, shift) {
 
+
+		// XXX refactor - is this function needed? why not grab the array already created? why reconstruct?
 		const selected = data.getSelected();
+		
 		if (selected.length === 0) return;
 
 		// Check for auto-layout group - reorder or ignore (no nudging)
@@ -645,6 +655,7 @@ class ToolManager extends EventDispatcher
 		}
 
 		// Standard nudge behavior (only outside auto-layout)
+		// XXX refactor - should be dependant on MM vs Inches as well. use 1/16" or 1"
 		const amount = shift ? 10 : 1;
 		let dx = 0, dy = 0;
 
@@ -659,6 +670,7 @@ class ToolManager extends EventDispatcher
 		const moveData = [];
 
 		// nudge selected points
+		// XXX refactor - is this best way? 
 		for (const shape of selected) {
 			const pois = shape.getSnapPOIs();
 			const selectableIndices = data.getSelectableIndices(shape);
@@ -682,6 +694,7 @@ class ToolManager extends EventDispatcher
 			shape.translate(dx, dy);
 		}
 
+		// XXX refactor - why rebuild the POIs?
 		data.rebuildPOIs();
 		data.recalculateIntersectionsForShapes(selected);
 

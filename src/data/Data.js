@@ -995,6 +995,119 @@ class Data
 		this.checkAutoPromotion();
 	}
 
+	// Point-in-polygon test using ray casting (even-odd rule)
+	_pointInPolygon(point, polygon){
+		let inside = false;
+		for(let i = 0, j = polygon.length - 1; i < polygon.length; j = i++){
+			if(((polygon[i].y > point.y) !== (polygon[j].y > point.y)) &&
+			   (point.x < (polygon[j].x - polygon[i].x) * (point.y - polygon[i].y) / (polygon[j].y - polygon[i].y) + polygon[i].x)){
+				inside = !inside;
+			}
+		}
+		return inside;
+	}
+
+	// Select shapes whose POIs fall inside a freeform lasso polygon
+	selectByLasso(polygon, shiftKey){
+		if(!shiftKey){
+			this.selectNone();
+		}
+
+		for(const shape of this.shapes){
+			// Skip locked shapes
+			if(shape.locked) continue;
+
+			// Special handling for symbol instances - only select if entirely contained
+			if(shape.geometry === Shape.SYMBOL){
+				const b = shape.bounds;
+				const corners = [
+					{x: b.x, y: b.y},
+					{x: b.x + b.width, y: b.y},
+					{x: b.x + b.width, y: b.y + b.height},
+					{x: b.x, y: b.y + b.height}
+				];
+				if(corners.every(c => this._pointInPolygon(c, polygon))){
+					if(shiftKey){
+						shape.selected = !shape.selected;
+					} else {
+						shape.selected = true;
+					}
+				}
+				continue;
+			}
+
+			// Frames are only selectable by clicking their label POI, not by lasso
+			if(shape.geometry === Shape.FRAME){
+				continue;
+			}
+
+			const pois = shape.getSnapPOIs();
+			const selectableIndices = this.getSelectableIndices(shape);
+
+			// Get frame transform if shape belongs to a frame
+			const frame = shape.frameId ? this.getFrame(shape.frameId) : null;
+
+			// Test each selectable POI against the lasso polygon
+			const insideIndices = [];
+			for(const i of selectableIndices){
+				if(!pois[i]) continue;
+
+				let testPoint = pois[i];
+				if(frame){
+					testPoint = frame.localToWorld(pois[i].x, pois[i].y);
+				}
+
+				if(this._pointInPolygon(testPoint, polygon)){
+					insideIndices.push(i);
+				}
+			}
+
+			// Check if ALL selectable points are inside
+			if(insideIndices.length === selectableIndices.length && selectableIndices.length > 0){
+				if(shiftKey){
+					shape.selected = !shape.selected;
+					if(shape.selected){
+						this.selectedPoints.delete(shape);
+					}
+				} else {
+					shape.selected = true;
+					this.selectedPoints.delete(shape);
+				}
+
+			} else if(insideIndices.length > 0){
+				if(shiftKey){
+					if(!this.selectedPoints.has(shape)){
+						this.selectedPoints.set(shape, new Set());
+					}
+					const pointSet = this.selectedPoints.get(shape);
+					for(const idx of insideIndices){
+						if(pointSet.has(idx)){
+							pointSet.delete(idx);
+						} else {
+							pointSet.add(idx);
+						}
+					}
+					if(pointSet.size === 0){
+						this.selectedPoints.delete(shape);
+					}
+				} else {
+					shape.selected = false;
+
+					if(!this.selectedPoints.has(shape)){
+						this.selectedPoints.set(shape, new Set());
+					}
+
+					for(const idx of insideIndices){
+						this.selectedPoints.get(shape).add(idx);
+					}
+				}
+			}
+		}
+
+		// Check if any partial selections should be promoted to whole shape
+		this.checkAutoPromotion();
+	}
+
 	// If all selectable POIs of a shape are selected, promote to whole shape selection
 	checkAutoPromotion(){
 		for(const [shape, indices] of this.selectedPoints.entries()){
