@@ -253,6 +253,20 @@ class Data
 		}
 	}
 
+	// Update POI cache for a subset of shapes (faster than full rebuild on nudges/moves)
+	updatePOIsForShapes(shapes){
+		if(!shapes || shapes.length === 0) return;
+
+		const uniqueShapes = [...new Set(shapes)];
+		const shapeSet = new Set(uniqueShapes);
+
+		// Remove cached POIs for moved shapes, then append refreshed POIs.
+		this.shapePOIs = this.shapePOIs.filter(poi => !poi.shape || !shapeSet.has(poi.shape));
+		for(const shape of uniqueShapes){
+			this.storeShapePOIs(shape);
+		}
+	}
+
 	// Add POIs for a shape to our cache
 	// Shapes in frames store LOCAL coords - transform to world for snapping
 	storeShapePOIs(shape){

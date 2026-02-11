@@ -3,6 +3,7 @@ import data 							from '../data/Data.js';
 import { Shape }						from '../geometry/Geometry.js';
 import undoManager						from '../core/UndoManager.js';
 import fileManager						from '../core/FileManager.js';
+import units, { UnitType }				from '../core/Units.js';
 import { AddShapeCommand, AddShapesCommand, GroupCommand, UngroupCommand, MoveCommand, DeleteShapesCommand, ConvertToSymbolCommand, ApplyLayoutCommand }	from '../core/Commands.js';
 
 import { EventDispatcher } 				from '../core/EventDispatcher.js';
@@ -627,11 +628,7 @@ class ToolManager extends EventDispatcher
 	// Nudge selected shapes by arrow keys
 	// In auto-layout groups, reorder shapes instead of nudging
 	nudgeSelection(key, shift) {
-
-
-		// XXX refactor - is this function needed? why not grab the array already created? why reconstruct?
 		const selected = data.getSelected();
-		
 		if (selected.length === 0) return;
 
 		// Check for auto-layout group - reorder or ignore (no nudging)
@@ -655,9 +652,46 @@ class ToolManager extends EventDispatcher
 		}
 
 		// Standard nudge behavior (only outside auto-layout)
-		// XXX refactor - should be dependant on MM vs Inches as well. use 1/16" or 1"
-		const amount = shift ? 10 : 1;
-		let dx = 0, dy = 0;
+		const { dx, dy } = this.getNudgeDelta(key, shift);
+		if (dx === 0 && dy === 0) return;
+
+		// Build move data for undo once, then apply one translation per affected shape.
+		const moveData = this.buildNudgeMoveData(selected, dx, dy);
+		if (moveData.length === 0) return;
+
+		const movedShapes = [...new Set(moveData.map(item => item.shape))];
+		for (const shape of movedShapes) {
+			shape.translate(dx, dy);
+		}
+
+		data.updatePOIsForShapes(movedShapes);
+		data.recalculateIntersectionsForShapes(movedShapes);
+
+		// Record for undo
+		undoManager.record(new MoveCommand(moveData));
+
+		stage.render();
+	}
+
+	getNudgeAmount(shift){
+		const unit = units.getUnit();
+		const isImperial =
+			unit === UnitType.IN ||
+			unit === UnitType.FT ||
+			unit === UnitType.FT_IN;
+
+		if (isImperial) {
+			// Internal units are mm: 1/16" default, 1" with Shift.
+			return units.toMM(shift ? 1 : (1 / 16), UnitType.IN);
+		}
+
+		return shift ? 10 : 1;
+	}
+
+	getNudgeDelta(key, shift){
+		const amount = this.getNudgeAmount(shift);
+		let dx = 0;
+		let dy = 0;
 
 		switch (key) {
 			case 'ArrowUp':    dy = -amount; break;
@@ -666,42 +700,45 @@ class ToolManager extends EventDispatcher
 			case 'ArrowRight': dx = amount;  break;
 		}
 
-		// Build move data for undo
+		return { dx, dy };
+	}
+
+	buildNudgeMoveData(selected, dx, dy){
 		const moveData = [];
 
-		// nudge selected points
-		// XXX refactor - is this best way? 
 		for (const shape of selected) {
-			const pois = shape.getSnapPOIs();
 			const selectableIndices = data.getSelectableIndices(shape);
+
+			// Shapes without control points move as whole objects.
+			if (selectableIndices.length === 0) {
+				moveData.push({
+					shape,
+					index: -1,
+					oldX: shape.bounds.x,
+					oldY: shape.bounds.y,
+					newX: shape.bounds.x + dx,
+					newY: shape.bounds.y + dy
+				});
+				continue;
+			}
+
+			const pois = shape.getSnapPOIs();
 			for (const index of selectableIndices) {
 				const poi = pois[index];
-				if (poi) {
-					moveData.push({
-						shape,
-						index,
-						oldX: poi.x,
-						oldY: poi.y,
-						newX: poi.x + dx,
-						newY: poi.y + dy
-					});
-				}
+				if (!poi) continue;
+
+				moveData.push({
+					shape,
+					index,
+					oldX: poi.x,
+					oldY: poi.y,
+					newX: poi.x + dx,
+					newY: poi.y + dy
+				});
 			}
 		}
 
-		// Apply the move
-		for (const shape of selected) {
-			shape.translate(dx, dy);
-		}
-
-		// XXX refactor - why rebuild the POIs?
-		data.rebuildPOIs();
-		data.recalculateIntersectionsForShapes(selected);
-
-		// Record for undo
-		undoManager.record(new MoveCommand(moveData));
-
-		stage.render();
+		return moveData;
 	}
 
 	// Reorder a shape within an auto-layout group
@@ -768,5 +805,4 @@ class ToolManager extends EventDispatcher
 
 const instance = new ToolManager();
 export default instance;
-
 
