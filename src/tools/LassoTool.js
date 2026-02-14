@@ -17,6 +17,21 @@ export class LassoTool extends PointerTool
 		stage.setCursor('crosshair');
 	}
 
+	onMouseDown(e){
+		if(stage.shiftKey){
+			// Shift = additive lasso. Skip PointerTool's click-selection logic
+			// which clears partial point selections when clicking unselected shapes.
+			data.resetSnaps();
+			this.dragStart = {x: e.x, y: e.y, screenX: e.screenX, screenY: e.screenY};
+			this.isDragging = false;
+			this.isMoving = false;
+			this.moveTarget = null;
+			return;
+		}
+
+		super.onMouseDown(e);
+	}
+
 	onMouseMove(e){
 		if(!this.dragStart) return;
 
