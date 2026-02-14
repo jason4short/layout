@@ -103,7 +103,8 @@ class FileManager
 			backgroundColor: data.backgroundColor,
 			theme: data.theme,
 			penStyleOverrides: data.penStyleOverrides,
-			gridVisible: data.gridVisible
+			gridVisible: data.gridVisible,
+			snapToGrid: data.snapToGrid
 		};
 	}
 
@@ -180,6 +181,9 @@ class FileManager
 		}
 		if(json.gridVisible !== undefined){
 			data.gridVisible = json.gridVisible;
+		}
+		if(json.snapToGrid !== undefined){
+			data.snapToGrid = json.snapToGrid;
 		}
 
 		// Recreate shapes - track old ID → new ID mapping for references

@@ -117,6 +117,7 @@ class Data
 		this.penStyleOverrides = {};       // Per-style color overrides
 		this.hatchDirty = false;           // Flag for hatch cache invalidation
 		this.gridVisible = true;           // Show background grid
+		this.snapToGrid = false;           // Snap moves to grid
 
 		// This is a singleton class
         return Data.instance;

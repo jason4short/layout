@@ -86,6 +86,10 @@ document.getElementById('menuToggleGrid').addEventListener('click', () => {
 	document.getElementById('menuToggleGrid').classList.toggle('unchecked', !data.gridVisible);
 	stage.render();
 });
+document.getElementById('menuToggleSnapGrid').addEventListener('click', () => {
+	data.snapToGrid = !data.snapToGrid;
+	document.getElementById('menuToggleSnapGrid').classList.toggle('unchecked', !data.snapToGrid);
+});
 
 document.addEventListener('contextmenu', (e) => {
 	e.preventDefault();

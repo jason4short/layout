@@ -17,6 +17,7 @@ import {AddShapeCommand,
 		ResizeAutoLayoutGroupCommand,
 		ApplyLayoutCommand} 	from '../core/Commands.js';
 import { calculateLayout } from '../core/LayoutEngine.js';
+import units, { UnitType } from '../core/Units.js';
 
 export class PointerTool extends Tool
 {
@@ -664,11 +665,43 @@ export class PointerTool extends Tool
 		}
 	}
 
+	// Get the finest visible grid spacing for snap-to-grid
+	getGridSnapSize(){
+		const unit = units.getUnit();
+		const isImperial = (unit === UnitType.IN || unit === UnitType.FT || unit === UnitType.FT_IN);
+		const minPx = 4;
+
+		if(isImperial){
+			const spacings = [
+				25.4/16, 25.4/8, 25.4/4, 25.4/2, 25.4,
+				25.4*2, 25.4*6, 25.4*12, 25.4*24, 25.4*48
+			];
+			for(const s of spacings){
+				if(s * stage.zoom >= minPx) return s;
+			}
+			return spacings[spacings.length - 1];
+		}
+
+		for(const s of [1, 10, 100, 1000]){
+			if(s * stage.zoom >= minPx) return s;
+		}
+		return 1000;
+	}
+
 	updateMove(){
 		if(this.originalPositions.length === 0) return;
 
 		// Get current snap point (already set by Stage.onMouseMove)
-		const snapPt = draftingAssistant.getCurrentSnapPoint();
+		let snapPt = draftingAssistant.getCurrentSnapPoint();
+
+		// Snap to grid if enabled — quantize to finest visible grid tier
+		if(data.snapToGrid){
+			const gridSize = this.getGridSnapSize();
+			snapPt = {
+				x: Math.round(snapPt.x / gridSize) * gridSize,
+				y: Math.round(snapPt.y / gridSize) * gridSize
+			};
+		}
 
 		// Calculate delta from where we started dragging (WORLD space)
 		const worldDx = snapPt.x - this.moveStart.x;
