@@ -17,6 +17,9 @@ import {openSVGFile} from './core/SVGImporter.js';
 import undoManager from './core/UndoManager.js';
 import {AddShapesCommand} from './core/Commands.js';
 
+import IndexedDBProvider from './core/IndexedDBProvider.js';
+import DocumentBrowser from './core/DocumentBrowser.js';
+
 
 let intersections = new Intersections();
 
@@ -25,10 +28,36 @@ toolManager.init();
 inspector.init();
 palettePanel.init();
 
+// Initialize storage and auto-load most recent document
+const storageProvider = new IndexedDBProvider();
+await fileManager.initStorage(storageProvider);
+
+if (fileManager.storage) {
+	const docs = await fileManager.storage.listDocuments();
+	if (docs.length > 0) {
+		await fileManager.loadFromStorage(docs[0].id); // most recent
+	} else {
+		await fileManager.newDocument();
+	}
+} else {
+	fileManager._updateTitle();
+}
+
+// Document browser
+const documentBrowser = new DocumentBrowser();
+
 // Wire up File menu items
-document.getElementById('menuNew').addEventListener('click', () => fileManager.confirmIfDirty(() => fileManager.newDocument()));
-document.getElementById('menuOpen').addEventListener('click', () => fileManager.confirmIfDirty(() => fileManager.open()));
-document.getElementById('menuSave').addEventListener('click', () => fileManager.save());
+document.getElementById('menuNew').addEventListener('click', async () => {
+	fileManager.confirmIfDirty(async () => {
+		await fileManager.newDocument();
+		inspector.update();
+	});
+});
+document.getElementById('menuDocuments').addEventListener('click', () => documentBrowser.open());
+document.getElementById('menuImportFile').addEventListener('click', () => {
+	fileManager.confirmIfDirty(() => fileManager.importFile());
+});
+document.getElementById('menuExportFile').addEventListener('click', () => fileManager.exportFile());
 
 // Import SVG
 document.getElementById('menuImportSVG').addEventListener('click', () => {
@@ -51,8 +80,8 @@ document.getElementById('menuExportSVG').addEventListener('click', () => {
 		return;
 	}
 	const svg = exportToSVG([...data.shapes, ...data.getExportHatchLines()], paper);
-	const fileName = fileManager.currentFileName
-		? fileManager.currentFileName.replace(/\.[^.]+$/, '.svg')
+	const fileName = fileManager.currentDocumentName
+		? fileManager.currentDocumentName.replace(/\.[^.]+$/, '') + '.svg'
 		: 'drawing.svg';
 	downloadSVG(svg, fileName);
 });
@@ -65,8 +94,8 @@ document.getElementById('menuExportGcode').addEventListener('click', () => {
 		return;
 	}
 	const gcode = exportToGcode([...data.shapes, ...data.getExportHatchLines()], paper);
-	const fileName = fileManager.currentFileName
-		? fileManager.currentFileName.replace(/\.[^.]+$/, '.gcode')
+	const fileName = fileManager.currentDocumentName
+		? fileManager.currentDocumentName.replace(/\.[^.]+$/, '') + '.gcode'
 		: 'drawing.gcode';
 	downloadGcode(gcode, fileName);
 });
@@ -74,8 +103,8 @@ document.getElementById('menuExportGcode').addEventListener('click', () => {
 // Export DXF
 document.getElementById('menuExportDXF').addEventListener('click', () => {
 	const dxf = exportToDXF([...data.shapes, ...data.getExportHatchLines()]);
-	const fileName = fileManager.currentFileName
-		? fileManager.currentFileName.replace(/\.[^.]+$/, '.dxf')
+	const fileName = fileManager.currentDocumentName
+		? fileManager.currentDocumentName.replace(/\.[^.]+$/, '') + '.dxf'
 		: 'drawing.dxf';
 	downloadDXF(dxf, fileName);
 });

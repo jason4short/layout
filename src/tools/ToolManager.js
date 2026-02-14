@@ -449,11 +449,11 @@ class ToolManager extends EventDispatcher
 					break;
 
 				case 's':
-					fileManager.save();
+					fileManager.exportFile();
 					break;
-	
+
 				case 'o':
-					fileManager.confirmIfDirty(() => fileManager.open());
+					fileManager.confirmIfDirty(() => fileManager.importFile());
 					break;
 
 				case 'n':

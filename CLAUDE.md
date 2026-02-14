@@ -150,9 +150,23 @@ src/
   - Fill section added to group inspector schema
   - Persisted in FileManager.js, preserved across Group/Ungroup commands
 
+### Feb 14, 2026
+- Added IndexedDB auto-save system (Figma-like persistence):
+  - `StorageProvider.js` - abstract storage interface (5 async methods: list, save, load, delete, isAvailable)
+  - `IndexedDBProvider.js` - IndexedDB implementation with `cadc-documents` database
+  - `DocumentBrowser.js` - modal dialog for managing multiple documents (open, rename, delete)
+  - FileManager.js gains auto-save: debounced 500ms save on every undo/redo change
+  - New methods: `initStorage()`, `saveToStorage()`, `loadFromStorage()`, `_autoSave()`
+  - `save()` → `exportFile()`, `open()` → `importFile()` (legacy aliases kept)
+  - Documents auto-created on New, imported files saved to storage automatically
+  - Title bar shows document name: "DocName - Layout" (with `*` if dirty pre-autosave)
+  - `beforeunload` warning only when auto-save is disabled (e.g. private browsing)
+  - On startup: loads most recent document from IndexedDB, or creates new if none exist
+  - File menu restructured: New, Documents, Import File, Import SVG, Export File/SVG/Gcode/DXF
+
 ## Future Ideas
-- **Database storage** - Move from JSON files to DB backend (prerequisite for multiplayer)
-- **Multiplayer** - Real-time collaboration (CRDTs, presence, sync)
+- **Remote storage** - Implement `RemoteStorageProvider` extending `StorageProvider` for server-side persistence
+- **Multiplayer** - Real-time collaboration (CRDTs, presence, sync) - requires remote storage first
 
 ---
-*Last updated: Feb 9, 2026*
+*Last updated: Feb 14, 2026*

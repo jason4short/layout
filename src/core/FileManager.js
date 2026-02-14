@@ -16,9 +16,17 @@ class FileManager
 		}
 
 		this.currentFileName = null;
-		this.fileVersion = '1.1';  // Updated version for new symbol model
+		this.fileVersion = '1.1';
 		this._dirty = false;
-		this._baseTitle = document.title;
+		this._baseTitle = 'Layout';
+
+		// Storage properties
+		this.storage = null;
+		this.currentDocumentId = null;
+		this.currentDocumentName = 'Untitled';
+		this._autoSaveTimer = null;
+		this._autoSaveDelay = 500; // ms debounce
+		this._autoSaveEnabled = false;
 
 		// Mark dirty on any undo/redo stack change
 		undoManager.onChange = () => {
@@ -26,9 +34,9 @@ class FileManager
 			data.hatchDirty = true;
 		};
 
-		// Warn before closing tab with unsaved changes
+		// Warn before closing tab with unsaved changes (only when auto-save is off)
 		window.addEventListener('beforeunload', (e) => {
-			if (this._dirty) {
+			if (this._dirty && !this._autoSaveEnabled) {
 				e.preventDefault();
 				e.returnValue = '';
 			}
@@ -42,7 +50,81 @@ class FileManager
 	_setDirty(value) {
 		if (this._dirty === value) return;
 		this._dirty = value;
-		document.title = value ? `${this._baseTitle} *` : this._baseTitle;
+		this._updateTitle();
+	}
+
+	_updateTitle() {
+		const name = this.currentDocumentName || 'Untitled';
+		const dirty = this._dirty ? ' *' : '';
+		document.title = `${name} - ${this._baseTitle}${dirty}`;
+	}
+
+	// Initialize storage provider and enable auto-save
+	async initStorage(provider) {
+		if (!await provider.isAvailable()) {
+			console.warn('Storage not available, auto-save disabled');
+			return;
+		}
+		this.storage = provider;
+		this._autoSaveEnabled = true;
+
+		// Rewire onChange to also trigger auto-save
+		undoManager.onChange = () => {
+			this._setDirty(true);
+			data.hatchDirty = true;
+			this._scheduleAutoSave();
+		};
+	}
+
+	_scheduleAutoSave() {
+		if (!this._autoSaveEnabled) return;
+		clearTimeout(this._autoSaveTimer);
+		this._autoSaveTimer = setTimeout(() => this._autoSave(), this._autoSaveDelay);
+	}
+
+	async _autoSave() {
+		if (!this.storage || !this.currentDocumentId) return;
+		try {
+			const json = this.toJSON();
+			await this.storage.saveDocument({
+				id: this.currentDocumentId,
+				name: this.currentDocumentName,
+				data: json
+			});
+			this._setDirty(false);
+		} catch (err) {
+			console.error('Auto-save failed:', err);
+		}
+	}
+
+	// Save current document to storage (create or update)
+	async saveToStorage(name) {
+		if (!this.storage) return null;
+		const json = this.toJSON();
+		const docName = name || this.currentDocumentName || 'Untitled';
+		const id = await this.storage.saveDocument({
+			id: this.currentDocumentId,
+			name: docName,
+			data: json
+		});
+		this.currentDocumentId = id;
+		this.currentDocumentName = docName;
+		this._setDirty(false);
+		return id;
+	}
+
+	// Load a document from storage by id
+	async loadFromStorage(id) {
+		if (!this.storage) return;
+		const doc = await this.storage.loadDocument(id);
+		if (!doc) {
+			console.error('Document not found:', id);
+			return;
+		}
+		this.fromJSON(doc.data);
+		this.currentDocumentId = doc.id;
+		this.currentDocumentName = doc.name;
+		this._updateTitle();
 	}
 
 	// Show confirmation dialog if there are unsaved changes, then run callback
@@ -57,17 +139,15 @@ class FileManager
 	// Serialize all document data to JSON
 	toJSON()
 	{
-		// Serialize shapes, including id, groupId, frameId
 		const shapes = data.shapes.map(shape => {
 			const json = shape.toJSON();
-			json.id = shape.id;  // Preserve shape ID for references
+			json.id = shape.id;
 			if(shape.groupId) json.groupId = shape.groupId;
 			if(shape.frameId) json.frameId = shape.frameId;
 			return json;
 		});
 		const constructions = data.constructions.map(c => c.toJSON());
 
-		// Serialize groups with layout properties and symbol source info
 		const groups = [];
 		for(const [id, group] of data.groups){
 			const groupData = {
@@ -75,12 +155,10 @@ class FileManager
 				parentId: group.parentId,
 				layout: group.layout || { ...DEFAULT_LAYOUT }
 			};
-			// Save symbol source properties if present
 			if(group.isSymbolSource){
 				groupData.isSymbolSource = true;
 				groupData.symbolName = group.symbolName || 'Symbol';
 			}
-			// Save hatch properties if present
 			if(group.hatchType && group.hatchType !== 'none'){
 				groupData.hatchType = group.hatchType;
 				groupData.hatchAngle = group.hatchAngle;
@@ -111,7 +189,6 @@ class FileManager
 	// Deserialize from JSON and rebuild document
 	fromJSON(json)
 	{
-		// Clear existing data
 		data.shapes = [];
 		data.constructions = [];
 		data.intersectionSet.clear();
@@ -127,14 +204,12 @@ class FileManager
 		data.clearActiveFrame();
 		undoManager.clear();
 
-		// Restore viewport
 		if(json.viewport){
 			stage.panX = json.viewport.panX || 0;
 			stage.panY = json.viewport.panY || 0;
 			stage.zoom = json.viewport.zoom || 1;
 		}
 
-		// Restore groups with layout properties and symbol source info
 		if(json.groups){
 			let maxId = 0;
 			for(const groupData of json.groups){
@@ -143,36 +218,28 @@ class FileManager
 					parentId: groupData.parentId || null,
 					layout: groupData.layout || { ...DEFAULT_LAYOUT }
 				};
-				// Restore symbol source properties if present
 				if(groupData.isSymbolSource){
 					group.isSymbolSource = true;
 					group.symbolName = groupData.symbolName || 'Symbol';
 				}
-				// Restore hatch properties if present
 				if(groupData.hatchType){
 					group.hatchType = groupData.hatchType;
 					group.hatchAngle = groupData.hatchAngle;
 					group.hatchSpacing = groupData.hatchSpacing;
 				}
 				data.groups.set(groupData.id, group);
-				// Track highest group ID number for _nextGroupId
 				const match = groupData.id.match(/group_(\d+)/);
 				if(match) maxId = Math.max(maxId, parseInt(match[1]));
 			}
 			data._nextGroupId = maxId + 1;
 		}
 
-		// Restore color palette
 		if(json.colorPalette){
 			data.colorPalette = json.colorPalette;
 		}
-
-		// Restore background color
 		if(json.backgroundColor){
 			data.backgroundColor = json.backgroundColor;
 		}
-
-		// Restore theme settings
 		if(json.theme){
 			data.theme = json.theme;
 		}
@@ -186,33 +253,23 @@ class FileManager
 			data.snapToGrid = json.snapToGrid;
 		}
 
-		// Recreate shapes - track old ID → new ID mapping for references
-		const idMap = new Map();  // oldId → newId
-		const pendingFrameIds = [];  // shapes that need frameId remapped
-		const pendingSourceFrameIds = [];  // SymbolInstances that need sourceFrameId remapped
+		const idMap = new Map();
+		const pendingFrameIds = [];
+		const pendingSourceFrameIds = [];
 
 		if(json.shapes){
 			for(const shapeData of json.shapes){
 				const shape = this.createShapeFromJSON(shapeData);
 				if(shape){
 					const oldId = shapeData.id;
-
-					// Restore groupId if present
 					if(shapeData.groupId) shape.groupId = shapeData.groupId;
-
-					// Track frameId for later remapping
 					if(shapeData.frameId){
 						pendingFrameIds.push({ shape, oldFrameId: shapeData.frameId });
 					}
-
-					// Track SymbolInstance sourceFrameId for later remapping
 					if(shape.geometry === Shape.SYMBOL && shape.sourceFrameId){
 						pendingSourceFrameIds.push({ shape, oldSourceFrameId: shape.sourceFrameId });
 					}
-
 					data.addShape(shape);
-
-					// Map old ID to new ID
 					if(oldId){
 						idMap.set(oldId, shape.id);
 					}
@@ -220,7 +277,6 @@ class FileManager
 			}
 		}
 
-		// Remap frameId references
 		for(const { shape, oldFrameId } of pendingFrameIds){
 			const newFrameId = idMap.get(oldFrameId);
 			if(newFrameId){
@@ -230,18 +286,16 @@ class FileManager
 			}
 		}
 
-		// Remap SymbolInstance sourceFrameId references
 		for(const { shape, oldSourceFrameId } of pendingSourceFrameIds){
 			const newSourceFrameId = idMap.get(oldSourceFrameId);
 			if(newSourceFrameId){
 				shape.sourceFrameId = newSourceFrameId;
-				shape.update();  // Recalculate bounds with valid source
+				shape.update();
 			} else {
 				console.warn('FileManager: Could not remap sourceFrameId', oldSourceFrameId);
 			}
 		}
 
-		// Recreate constructions
 		if(json.constructions){
 			for(const conData of json.constructions){
 				const construction = Construction.fromJSON(conData);
@@ -251,8 +305,6 @@ class FileManager
 			}
 		}
 
-		// Link angle dimensions to their referenced lines
-		// Remap stored line reference IDs from old->new shape IDs before linking.
 		for (const shape of data.shapes) {
 			if (shape.geometry === Shape.ANGLE_DIMENSION) {
 				if (shape._line1Id) {
@@ -286,59 +338,66 @@ class FileManager
 			}
 		}
 
-		// Rebuild POIs now that all frameId references are valid
 		data.rebuildPOIs();
-
 		this._setDirty(false);
 		stage.render();
 	}
 
-	// Factory method to create shapes from JSON based on geometry type
+	// Factory method to create shapes from JSON
 	createShapeFromJSON(shapeData)
 	{
 		return geometryFactory.fromJSON(shapeData);
 	}
 
-	// Save document to file (triggers download)
-	save(fileName = 'drawing.cadc')
+	// Export document to file (triggers download)
+	exportFile(fileName)
 	{
+		const name = fileName || this.currentDocumentName || 'drawing';
+		const fullName = name.endsWith('.cadc') ? name : `${name}.cadc`;
+
 		const json = this.toJSON();
 		const jsonString = JSON.stringify(json, null, 2);
 		const blob = new Blob([jsonString], { type: 'application/json' });
 
-		// Create download link
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = fileName;
+		a.download = fullName;
 		document.body.appendChild(a);
 		a.click();
 		document.body.removeChild(a);
 		URL.revokeObjectURL(url);
 
-		this.currentFileName = fileName;
-		this._setDirty(false);
-		console.log('Saved:', fileName);
+		this.currentFileName = fullName;
+		console.log('Exported:', fullName);
 	}
 
-	// Open file picker and load document
-	open()
+	// Import file from disk via file picker
+	importFile()
 	{
 		const input = document.createElement('input');
 		input.type = 'file';
 		input.accept = '.cadc,.json';
 
-		input.onchange = (e) => {
+		input.onchange = async (e) => {
 			const file = e.target.files[0];
 			if(!file) return;
 
 			const reader = new FileReader();
-			reader.onload = (event) => {
+			reader.onload = async (event) => {
 				try {
 					const json = JSON.parse(event.target.result);
 					this.fromJSON(json);
 					this.currentFileName = file.name;
-					console.log('Loaded:', file.name);
+
+					// Save imported file into storage so auto-save works
+					if (this.storage) {
+						const docName = file.name.replace(/\.[^.]+$/, '');
+						this.currentDocumentId = null; // force new entry
+						await this.saveToStorage(docName);
+					}
+
+					console.log('Imported:', file.name);
 				} catch(err){
 					console.error('Failed to load file:', err);
 					alert('Failed to load file. Invalid format.');
@@ -350,8 +409,12 @@ class FileManager
 		input.click();
 	}
 
+	// Legacy alias
+	open() { this.importFile(); }
+	save(fileName) { this.exportFile(fileName); }
+
 	// Create new document (clear everything)
-	newDocument()
+	async newDocument()
 	{
 		data.shapes = [];
 		data.constructions = [];
@@ -371,6 +434,17 @@ class FileManager
 		stage.zoom = 1;
 
 		this.currentFileName = null;
+
+		// Create a new storage entry so auto-save has a target
+		if (this.storage) {
+			this.currentDocumentId = null; // force new entry
+			this.currentDocumentName = 'Untitled';
+			await this.saveToStorage('Untitled');
+		} else {
+			this.currentDocumentId = null;
+			this.currentDocumentName = 'Untitled';
+		}
+
 		this._setDirty(false);
 		stage.render();
 		console.log('New document created');

@@ -1,10 +1,14 @@
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<!-- Two lines meeting at a vertex -->
-<path d="M4 20L20 20" stroke="black" stroke-width="1.5" stroke-linecap="round"/>
-<path d="M4 20L16 4" stroke="black" stroke-width="1.5" stroke-linecap="round"/>
-<!-- Arc showing the angle -->
-<path d="M10 20 A6 6 0 0 1 8.5 13.5" stroke="black" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-<!-- Small arrows at arc ends -->
-<path d="M10 20L10 17.5L12 19.5Z" fill="black"/>
-<path d="M8.5 13.5L6.5 14.5L9 15.5Z" fill="black"/>
+<g clip-path="url(#clip0_351_2590)">
+<path d="M18 19.3135C18 17 17.5 13.5 13.5 11.5" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M18 21.5L15 17.5L21 17.5L18 21.5Z" fill="black"/>
+<path d="M12.1213 10.1213L17.071 10.8284L12.8284 15.0711L12.1213 10.1213Z" fill="black"/>
+<rect x="1" y="23" width="2" height="21" rx="1" transform="rotate(-90 1 23)" fill="black"/>
+<rect x="1.41418" y="20.728" width="2" height="22.0449" rx="1" transform="rotate(-135 1.41418 20.728)" fill="black"/>
+</g>
+<defs>
+<clipPath id="clip0_351_2590">
+<rect width="24" height="24" fill="white"/>
+</clipPath>
+</defs>
 </svg>
