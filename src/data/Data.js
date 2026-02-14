@@ -116,6 +116,7 @@ class Data
 		this.theme = 'light';              // Current theme preset
 		this.penStyleOverrides = {};       // Per-style color overrides
 		this.hatchDirty = false;           // Flag for hatch cache invalidation
+		this.gridVisible = true;           // Show background grid
 
 		// This is a singleton class
         return Data.instance;

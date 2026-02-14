@@ -3,6 +3,7 @@ import data from '../data/Data.js';
 import {Shape, PenStyle} from '../geometry/Geometry.js';
 import toolManager from '../tools/ToolManager.js';
 import { renderWallBoolean } from '../geometry/utils/WallBooleanUtils.js';
+import units, { UnitType } from './Units.js';
 
 // Cache for frame transforms during render
 let frameTransformCache = new Map();
@@ -14,6 +15,9 @@ export const ThemePresets = {
 		background: '#E5E5E5',
 		foreground: '#333333',
 		wallFill: '#D0D0D0',
+		gridRGB: '0,0,0',
+		gridMinor: 'rgba(0,0,0,0.07)',
+		gridMajor: 'rgba(0,0,0,0.15)',
 		colors: {
 			[PenStyle.VISIBLE]:      '#111111',
 			[PenStyle.CONSTRUCTION]: '#B400F5',
@@ -29,6 +33,9 @@ export const ThemePresets = {
 		background: '#1E1E1E',
 		foreground: '#EEEEEE',
 		wallFill: '#3A3A3A',
+		gridRGB: '255,255,255',
+		gridMinor: 'rgba(255,255,255,0.07)',
+		gridMajor: 'rgba(255,255,255,0.15)',
 		colors: {
 			[PenStyle.VISIBLE]:      '#DDDDDD',
 			[PenStyle.CONSTRUCTION]: '#E066FF',
@@ -44,6 +51,9 @@ export const ThemePresets = {
 		background: '#0A2463',
 		foreground: '#FFFFFF',
 		wallFill: '#1A3473',
+		gridRGB: '255,255,255',
+		gridMinor: 'rgba(255,255,255,0.08)',
+		gridMajor: 'rgba(255,255,255,0.18)',
 		colors: {
 			[PenStyle.VISIBLE]:      '#FFFFFF',
 			[PenStyle.CONSTRUCTION]: '#87CEEB',
@@ -331,6 +341,163 @@ export class Renderer
 		return { wallsByFrame, otherShapes };
 	}
 
+	// Metric grid tiers: fixed decade levels (mm), drawn finest-first.
+	// Each tier only appears when its screen spacing >= minScreenPx.
+	// Lines skip positions that align with a coarser tier (drawn on top).
+	static METRIC_TIERS = [
+		{ spacing: 1,    opacity: 0.02 },   // 1mm   — lightest
+		{ spacing: 10,   opacity: 0.04 },   // 10mm  — bolder
+		{ spacing: 100,  opacity: 0.07 },   // 100mm — bolder
+		{ spacing: 1000, opacity: 0.11 },   // 1000mm — boldest
+	];
+
+	// Imperial: adaptive two-level (kept as before)
+	static IMPERIAL_SPACINGS = [
+		25.4 / 16,   // 1/16"
+		25.4 / 8,    // 1/8"
+		25.4 / 4,    // 1/4"
+		25.4 / 2,    // 1/2"
+		25.4,        // 1"
+		25.4 * 2,    // 2"
+		25.4 * 6,    // 6"
+		25.4 * 12,   // 1'
+		25.4 * 24,   // 2'
+		25.4 * 48,   // 4'
+		25.4 * 120,  // 10'
+		25.4 * 240,  // 20'
+	];
+
+	drawGrid(ctx) {
+		if(!data.gridVisible) return;
+
+		const theme = ThemePresets[data.theme] || ThemePresets.light;
+		const unit = units.getUnit();
+		const isImperial = (unit === UnitType.IN || unit === UnitType.FT || unit === UnitType.FT_IN);
+
+		if(isImperial){
+			this.drawGridAdaptive(ctx, theme);
+		} else {
+			this.drawGridMetric(ctx, theme);
+		}
+	}
+
+	drawGridMetric(ctx, theme) {
+		const viewport = this.getViewport();
+		const canvasW = stage.canvas.width;
+		const canvasH = stage.canvas.height;
+		const minScreenPx = 4; // minimum screen pixels between lines to draw a tier
+		const zoom = stage.zoom;
+		const panX = stage.panX;
+		const panY = stage.panY;
+
+		const rgb = theme.gridRGB || '0,0,0';
+
+		// Draw tiers finest-first so coarser tiers paint on top
+		const tiers = Renderer.METRIC_TIERS;
+		for(let t = 0; t < tiers.length; t++){
+			const tier = tiers[t];
+			const spacing = tier.spacing;
+			const screenSpacing = spacing * zoom;
+
+			// Skip tier if lines would be too dense
+			if(screenSpacing < minScreenPx) continue;
+
+			// Next coarser tier (to skip those positions).
+			// The coarsest visible tier draws everything including the origin.
+			const isCoarsest = (t === tiers.length - 1);
+			const coarserSpacing = isCoarsest ? null : spacing * 10;
+
+			const startX = Math.floor(viewport.minX / spacing) * spacing;
+			const startY = Math.floor(viewport.minY / spacing) * spacing;
+			const endX = Math.ceil(viewport.maxX / spacing) * spacing;
+			const endY = Math.ceil(viewport.maxY / spacing) * spacing;
+
+			ctx.beginPath();
+			ctx.strokeStyle = `rgba(${rgb},${tier.opacity})`;
+			ctx.lineWidth = 1;
+
+			for(let x = startX; x <= endX; x += spacing){
+				// Skip positions that belong to a coarser tier
+				if(coarserSpacing && Math.abs(x % coarserSpacing) < spacing * 0.01) continue;
+				const sx = Math.round(x * zoom + panX) + 0.5;
+				ctx.moveTo(sx, 0);
+				ctx.lineTo(sx, canvasH);
+			}
+			for(let y = startY; y <= endY; y += spacing){
+				if(coarserSpacing && Math.abs(y % coarserSpacing) < spacing * 0.01) continue;
+				const sy = Math.round(y * zoom + panY) + 0.5;
+				ctx.moveTo(0, sy);
+				ctx.lineTo(canvasW, sy);
+			}
+			ctx.stroke();
+		}
+	}
+
+	drawGridAdaptive(ctx, theme) {
+		const viewport = this.getViewport();
+		const canvasW = stage.canvas.width;
+		const canvasH = stage.canvas.height;
+		const zoom = stage.zoom;
+		const panX = stage.panX;
+		const panY = stage.panY;
+		const spacings = Renderer.IMPERIAL_SPACINGS;
+
+		// Find minor spacing: smallest candidate where screen pixels >= 20
+		let minorIdx = spacings.length - 1;
+		for(let i = 0; i < spacings.length; i++){
+			if(spacings[i] * zoom >= 20){
+				minorIdx = i;
+				break;
+			}
+		}
+		const minorSpacing = spacings[minorIdx];
+		const majorSpacing = (minorIdx + 1 < spacings.length) ? spacings[minorIdx + 1] : minorSpacing * 10;
+
+		const startX = Math.floor(viewport.minX / minorSpacing) * minorSpacing;
+		const startY = Math.floor(viewport.minY / minorSpacing) * minorSpacing;
+		const endX = Math.ceil(viewport.maxX / minorSpacing) * minorSpacing;
+		const endY = Math.ceil(viewport.maxY / minorSpacing) * minorSpacing;
+
+		// Minor lines
+		ctx.beginPath();
+		ctx.strokeStyle = theme.gridMinor;
+		ctx.lineWidth = 1;
+		for(let x = startX; x <= endX; x += minorSpacing){
+			if(Math.abs(x % majorSpacing) < minorSpacing * 0.01) continue;
+			const sx = Math.round(x * zoom + panX) + 0.5;
+			ctx.moveTo(sx, 0);
+			ctx.lineTo(sx, canvasH);
+		}
+		for(let y = startY; y <= endY; y += minorSpacing){
+			if(Math.abs(y % majorSpacing) < minorSpacing * 0.01) continue;
+			const sy = Math.round(y * zoom + panY) + 0.5;
+			ctx.moveTo(0, sy);
+			ctx.lineTo(canvasW, sy);
+		}
+		ctx.stroke();
+
+		// Major lines
+		const majorStartX = Math.floor(viewport.minX / majorSpacing) * majorSpacing;
+		const majorStartY = Math.floor(viewport.minY / majorSpacing) * majorSpacing;
+		const majorEndX = Math.ceil(viewport.maxX / majorSpacing) * majorSpacing;
+		const majorEndY = Math.ceil(viewport.maxY / majorSpacing) * majorSpacing;
+
+		ctx.beginPath();
+		ctx.strokeStyle = theme.gridMajor;
+		ctx.lineWidth = 1;
+		for(let x = majorStartX; x <= majorEndX; x += majorSpacing){
+			const sx = Math.round(x * zoom + panX) + 0.5;
+			ctx.moveTo(sx, 0);
+			ctx.lineTo(sx, canvasH);
+		}
+		for(let y = majorStartY; y <= majorEndY; y += majorSpacing){
+			const sy = Math.round(y * zoom + panY) + 0.5;
+			ctx.moveTo(0, sy);
+			ctx.lineTo(canvasW, sy);
+		}
+		ctx.stroke();
+	}
+
 	drawWallsPass(ctx, wallsByFrame, screenOrigin) {
 		for (const [frameKey, walls] of wallsByFrame) {
 			const frameId = frameKey === '__world__' ? null : frameKey;
@@ -508,6 +675,9 @@ export class Renderer
 		let ctx = stage.ctx;
 		ctx.fillStyle = data.backgroundColor;
 		ctx.fillRect(0, 0, stage.canvas.width, stage.canvas.height);
+
+		// Grid behind all geometry
+		this.drawGrid(ctx);
 
 		// Calculate viewport once for frustum culling
 		const viewport = this.getViewport();

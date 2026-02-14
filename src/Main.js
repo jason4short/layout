@@ -80,6 +80,13 @@ document.getElementById('menuExportDXF').addEventListener('click', () => {
 	downloadDXF(dxf, fileName);
 });
 
+// Wire up View menu items
+document.getElementById('menuToggleGrid').addEventListener('click', () => {
+	data.gridVisible = !data.gridVisible;
+	document.getElementById('menuToggleGrid').classList.toggle('unchecked', !data.gridVisible);
+	stage.render();
+});
+
 document.addEventListener('contextmenu', (e) => {
 	e.preventDefault();
 });

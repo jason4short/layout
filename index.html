@@ -25,6 +25,9 @@
 			.menu-item:hover { background:#f5f5f5; }
 			.menu-item .shortcut { color:var(--muted); font-size:12px; margin-left:2rem; }
 			.menu-separator { height:1px; background:var(--border); margin:.25rem 0; }
+			.menu-toggle { justify-content:flex-start; }
+			.menu-check { display:inline-block; width:1.2em; text-align:center; margin-right:.25rem; }
+			.menu-item.unchecked .menu-check { visibility:hidden; }
 
 			/* ---- Layout ---- */
 			.split { display:flex; flex:1; position:relative; min-height:0; }
@@ -180,7 +183,12 @@
 							<div class="menu-item" id="menuExportDXF">Export DXF</div>
 						</div>
 					</div>
-					<div class="menu-trigger" id="menuAbout">About
+					<div class="menu-trigger" id="menuView">View
+						<div class="menu-dropdown">
+							<div class="menu-item menu-toggle" id="menuToggleGrid"><span class="menu-check">&#10003;</span>Grid</div>
+						</div>
+					</div>
+				<div class="menu-trigger" id="menuAbout">About
 						<div class="menu-dropdown">
 							<div class="menu-item" id="menuAboutApp">About Layout</div>
 						</div>
