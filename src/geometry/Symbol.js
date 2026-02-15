@@ -453,14 +453,26 @@ export class SymbolInstance extends Geometry {
 			}
 		];
 
-		// Local symbols: editable name. Library symbols: read-only info.
+		// Local symbols: editable name. Library symbols: read-only info + edit button.
 		if (isLibrary) {
 			const lib = data.linkedLibraries.find(l => l.docId === this.libraryDocId);
+			const docId = this.libraryDocId;
 			sections.push({
 				title: 'Library',
 				fields: [
 					{ key: 'symbolName', label: 'Symbol', type: 'readonly', get: () => symbolName },
-					{ key: 'libraryName', label: 'Library', type: 'readonly', get: () => lib ? lib.name : 'Unknown' }
+					{ key: 'libraryName', label: 'Library', type: 'readonly', get: () => lib ? lib.name : 'Unknown' },
+					{
+						key: 'editOriginal',
+						label: 'Edit Original',
+						type: 'button',
+						action: async () => {
+							const fileManager = (await import('../core/FileManager.js')).default;
+							fileManager.confirmIfDirty(async () => {
+								await fileManager.loadFromStorage(docId);
+							});
+						}
+					}
 				]
 			});
 		} else {
