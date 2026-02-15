@@ -24,6 +24,10 @@ export class SymbolInstance extends Geometry {
 		this.x = params[1] || 0;
 		this.y = params[2] || 0;
 
+		// Library reference (for instances from linked libraries)
+		this.libraryDocId = null;
+		this.libraryFrameId = null;
+
 		// Screen-space label bounds (updated during draw)
 		this.screenLabelBounds = null;
 
@@ -32,18 +36,37 @@ export class SymbolInstance extends Geometry {
 
 	/**
 	 * Get the source Frame.
+	 * For local symbols: looks up by sourceFrameId in data.
+	 * For library symbols: looks up cached frame from SymbolLibrary.
 	 */
 	getSourceFrame() {
+		if (this.libraryDocId && this.libraryFrameId) {
+			const entry = data.libraryCache.get(`${this.libraryDocId}:${this.libraryFrameId}`);
+			return entry ? entry.frame : null;
+		}
 		if (!this.sourceFrameId) return null;
 		return data.getFrame(this.sourceFrameId);
 	}
 
 	/**
 	 * Get the shapes belonging to the source Frame.
+	 * For local symbols: looks up by sourceFrameId in data.
+	 * For library symbols: looks up cached shapes from SymbolLibrary.
 	 */
 	getSourceShapes() {
+		if (this.libraryDocId && this.libraryFrameId) {
+			const entry = data.libraryCache.get(`${this.libraryDocId}:${this.libraryFrameId}`);
+			return entry ? entry.shapes : [];
+		}
 		if (!this.sourceFrameId) return [];
 		return data.getFrameShapes(this.sourceFrameId);
+	}
+
+	/**
+	 * Whether this instance references a linked library symbol.
+	 */
+	isLibraryInstance() {
+		return !!(this.libraryDocId && this.libraryFrameId);
 	}
 
 	/**
@@ -143,6 +166,8 @@ export class SymbolInstance extends Geometry {
 			this.x,
 			this.y
 		]);
+		inst.libraryDocId = this.libraryDocId;
+		inst.libraryFrameId = this.libraryFrameId;
 		inst.penStyle = this.penStyle;
 		inst.colorToken = this.colorToken;
 		return inst;
@@ -150,6 +175,8 @@ export class SymbolInstance extends Geometry {
 
 	copyFrom(other) {
 		this.sourceFrameId = other.sourceFrameId;
+		this.libraryDocId = other.libraryDocId;
+		this.libraryFrameId = other.libraryFrameId;
 		this.x = other.x;
 		this.y = other.y;
 		this.update();
@@ -382,7 +409,7 @@ export class SymbolInstance extends Geometry {
 	 * Serialize for storage.
 	 */
 	toJSON() {
-		return {
+		const json = {
 			geometry: this.geometry,
 			sourceFrameId: this.sourceFrameId,
 			x: this.x,
@@ -390,6 +417,9 @@ export class SymbolInstance extends Geometry {
 			penStyle: this.penStyle,
 			colorToken: this.colorToken
 		};
+		if (this.libraryDocId) json.libraryDocId = this.libraryDocId;
+		if (this.libraryFrameId) json.libraryFrameId = this.libraryFrameId;
+		return json;
 	}
 
 	/**
@@ -401,6 +431,8 @@ export class SymbolInstance extends Geometry {
 			json.x,
 			json.y
 		]);
+		inst.libraryDocId = json.libraryDocId || null;
+		inst.libraryFrameId = json.libraryFrameId || null;
 		inst.penStyle = json.penStyle;
 		inst.colorToken = json.colorToken;
 		return inst;
@@ -409,49 +441,63 @@ export class SymbolInstance extends Geometry {
 	getInspectorSchema() {
 		const frame = this.getSourceFrame();
 		const symbolName = frame ? frame.label : 'Instance';
+		const isLibrary = this.isLibraryInstance();
 
-		return {
-			name: symbolName,
-			sections: [
-				{
-					title: 'Position',
-					fields: [
-						{ key: 'x', label: 'X', type: 'number', precision: 2, step: 1 },
-						{ key: 'y', label: 'Y', type: 'number', precision: 2, step: 1 }
-					]
-				},
-				{
-					title: 'Symbol',
-					fields: [
-						{
-							key: 'label',
-							label: 'Name',
-							type: 'string',
-							get: () => frame ? frame.label : '',
-							set: (value) => {
-								if (frame) {
-									frame.label = value;
-									stage.render();
-								}
-							}
-						}
-					]
-				},
-				{
-					title: 'Instance',
-					fields: [
-						{
-							key: 'explode',
-							label: 'Break Apart',
-							type: 'button',
-							action: (instance) => {
-								undoManager.execute(new BreakApartInstanceCommand(instance));
+		const sections = [
+			{
+				title: 'Position',
+				fields: [
+					{ key: 'x', label: 'X', type: 'number', precision: 2, step: 1 },
+					{ key: 'y', label: 'Y', type: 'number', precision: 2, step: 1 }
+				]
+			}
+		];
+
+		// Local symbols: editable name. Library symbols: read-only info.
+		if (isLibrary) {
+			const lib = data.linkedLibraries.find(l => l.docId === this.libraryDocId);
+			sections.push({
+				title: 'Library',
+				fields: [
+					{ key: 'symbolName', label: 'Symbol', type: 'readonly', get: () => symbolName },
+					{ key: 'libraryName', label: 'Library', type: 'readonly', get: () => lib ? lib.name : 'Unknown' }
+				]
+			});
+		} else {
+			sections.push({
+				title: 'Symbol',
+				fields: [
+					{
+						key: 'label',
+						label: 'Name',
+						type: 'string',
+						get: () => frame ? frame.label : '',
+						set: (value) => {
+							if (frame) {
+								frame.label = value;
 								stage.render();
 							}
 						}
-					]
+					}
+				]
+			});
+		}
+
+		sections.push({
+			title: 'Instance',
+			fields: [
+				{
+					key: 'explode',
+					label: 'Break Apart',
+					type: 'button',
+					action: (instance) => {
+						undoManager.execute(new BreakApartInstanceCommand(instance));
+						stage.render();
+					}
 				}
 			]
-		};
+		});
+
+		return { name: symbolName, sections };
 	}
 }

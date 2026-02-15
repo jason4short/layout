@@ -13,12 +13,12 @@ import {Intersections} from './data/Intersections.js';
 import {exportToSVG, downloadSVG} from './core/SVGExporter.js';
 import {exportToGcode, downloadGcode} from './core/GcodeExporter.js';
 import {exportToDXF, downloadDXF} from './core/DXFExporter.js';
-import {openSVGFile} from './core/SVGImporter.js';
 import undoManager from './core/UndoManager.js';
-import {AddShapesCommand} from './core/Commands.js';
+import symbolLibrary from './core/SymbolLibrary.js';
 
 import IndexedDBProvider from './core/IndexedDBProvider.js';
 import DocumentBrowser from './core/DocumentBrowser.js';
+import SymbolBrowser from './core/SymbolBrowser.js';
 
 
 let intersections = new Intersections();
@@ -46,6 +46,9 @@ if (fileManager.storage) {
 // Document browser
 const documentBrowser = new DocumentBrowser();
 
+// Symbol library browser
+const symbolBrowser = new SymbolBrowser();
+
 // Wire up File menu items
 document.getElementById('menuNew').addEventListener('click', async () => {
 	fileManager.confirmIfDirty(async () => {
@@ -54,23 +57,11 @@ document.getElementById('menuNew').addEventListener('click', async () => {
 	});
 });
 document.getElementById('menuDocuments').addEventListener('click', () => documentBrowser.open());
+document.getElementById('menuSymbolLibrary').addEventListener('click', () => symbolBrowser.open());
 document.getElementById('menuImportFile').addEventListener('click', () => {
 	fileManager.confirmIfDirty(() => fileManager.importFile());
 });
 document.getElementById('menuExportFile').addEventListener('click', () => fileManager.exportFile());
-
-// Import SVG
-document.getElementById('menuImportSVG').addEventListener('click', () => {
-	openSVGFile((shapes, fileName) => {
-		if (shapes.length === 0) {
-			alert('No shapes found in SVG file');
-			return;
-		}
-		undoManager.execute(new AddShapesCommand(shapes));
-		stage.render();
-		console.log(`Imported ${shapes.length} shapes from ${fileName}`);
-	});
-});
 
 // Export SVG
 document.getElementById('menuExportSVG').addEventListener('click', () => {
@@ -118,6 +109,22 @@ document.getElementById('menuToggleGrid').addEventListener('click', () => {
 document.getElementById('menuToggleSnapGrid').addEventListener('click', () => {
 	data.snapToGrid = !data.snapToGrid;
 	document.getElementById('menuToggleSnapGrid').classList.toggle('unchecked', !data.snapToGrid);
+});
+
+// Load library symbol cache after loading a document
+// Then update library instances (their bounds/POIs need the cache)
+document.addEventListener('document-loaded', async () => {
+	await symbolLibrary.loadCache();
+
+	// Update all library instances now that cache is available
+	for (const shape of data.shapes) {
+		if (shape.geometry === Shape.SYMBOL && shape.libraryDocId) {
+			shape.update();
+		}
+	}
+	data.rebuildPOIs();
+
+	stage.render();
 });
 
 document.addEventListener('contextmenu', (e) => {

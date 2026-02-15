@@ -34,6 +34,9 @@ export class Frame extends Geometry {
 		// Symbol source flag
 		this.isSymbolSource = false;
 
+		// Stable identifier for library references (survives save/load cycles)
+		this.symbolId = null;
+
 		// Parent frame for nested frames (future)
 		this.parent = null;
 
@@ -66,6 +69,7 @@ export class Frame extends Geometry {
 		const f = new Frame([this.x, this.y, this.width, this.height, this.label]);
 		f.type = this.type;
 		f.isSymbolSource = this.isSymbolSource;
+		f.symbolId = this.symbolId;
 		f.groupId = this.groupId;
 		f.penStyle = this.penStyle;
 		f.colorToken = this.colorToken;
@@ -204,7 +208,6 @@ export class Frame extends Geometry {
 	}
 
 	getInspectorSchema() {
-		// TODO: Create frameSchema in InspectorSchemas.js
 		return {
 			name: this.isSymbolSource ? this.label : 'Frame',
 			sections: [
@@ -232,8 +235,15 @@ export class Frame extends Geometry {
 		};
 	}
 
+	// Generate a stable symbolId (call when making this a symbol source)
+	ensureSymbolId() {
+		if (!this.symbolId) {
+			this.symbolId = crypto.randomUUID();
+		}
+	}
+
 	toJSON() {
-		return {
+		const json = {
 			geometry: this.geometry,
 			type: this.type,
 			transform: this.transform.toJSON(),
@@ -244,6 +254,8 @@ export class Frame extends Geometry {
 			penStyle: this.penStyle,
 			colorToken: this.colorToken
 		};
+		if (this.symbolId) json.symbolId = this.symbolId;
+		return json;
 	}
 
 	static fromJSON(data) {
@@ -253,6 +265,11 @@ export class Frame extends Geometry {
 		const frame = new Frame([x, y, data.width, data.height, data.label]);
 		frame.type = data.type;
 		frame.isSymbolSource = data.isSymbolSource || false;
+		frame.symbolId = data.symbolId || null;
+		// Auto-generate symbolId for legacy symbol frames that lack one
+		if (frame.isSymbolSource && !frame.symbolId) {
+			frame.ensureSymbolId();
+		}
 		if (data.penStyle) frame.penStyle = data.penStyle;
 		if (data.colorToken) frame.colorToken = data.colorToken;
 		return frame;

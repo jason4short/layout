@@ -70,6 +70,7 @@ export class FrameTool extends Tool
 			'Symbol'
 		]);
 		this.frame.isSymbolSource = true;
+		this.frame.ensureSymbolId();
 
 		// Add as temp shape while dragging
 		data.addTempShape(this.frame);

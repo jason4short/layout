@@ -82,14 +82,70 @@ class FileManager
 		this._autoSaveTimer = setTimeout(() => this._autoSave(), this._autoSaveDelay);
 	}
 
+	// Capture a small thumbnail of the current canvas (aspect-preserving crop)
+	_captureThumbnail() {
+		try {
+			const canvas = stage.canvas;
+			if (!canvas) return null;
+			const thumbWidth = 400;
+			const thumbHeight = 240;
+			const thumb = document.createElement('canvas');
+			thumb.width = thumbWidth;
+			thumb.height = thumbHeight;
+			const ctx = thumb.getContext('2d');
+
+			// Cover-crop: scale source to fill thumb, center the crop
+			const srcW = canvas.width;
+			const srcH = canvas.height;
+			const srcAspect = srcW / srcH;
+			const thumbAspect = thumbWidth / thumbHeight;
+			let sx, sy, sw, sh;
+			if (srcAspect > thumbAspect) {
+				// Source is wider - crop sides
+				sh = srcH;
+				sw = srcH * thumbAspect;
+				sx = (srcW - sw) / 2;
+				sy = 0;
+			} else {
+				// Source is taller - crop top/bottom
+				sw = srcW;
+				sh = srcW / thumbAspect;
+				sx = 0;
+				sy = (srcH - sh) / 2;
+			}
+			ctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, thumbWidth, thumbHeight);
+			return thumb.toDataURL('image/png', 0.7);
+		} catch (e) {
+			return null;
+		}
+	}
+
+	// True if document has no geometry worth saving
+	_isDocumentEmpty() {
+		return data.shapes.length === 0 && data.constructions.length === 0;
+	}
+
+	// Delete the current document from storage if it's empty
+	async _cleanupEmptyDocument() {
+		if (!this.storage || !this.currentDocumentId) return;
+		if (this._isDocumentEmpty()) {
+			await this.storage.deleteDocument(this.currentDocumentId);
+			this.currentDocumentId = null;
+		}
+	}
+
 	async _autoSave() {
 		if (!this.storage || !this.currentDocumentId) return;
+		// Don't save empty documents
+		if (this._isDocumentEmpty()) return;
 		try {
 			const json = this.toJSON();
+			const thumbnail = this._captureThumbnail();
 			await this.storage.saveDocument({
 				id: this.currentDocumentId,
 				name: this.currentDocumentName,
-				data: json
+				data: json,
+				thumbnail: thumbnail
 			});
 			this._setDirty(false);
 		} catch (err) {
@@ -101,11 +157,13 @@ class FileManager
 	async saveToStorage(name) {
 		if (!this.storage) return null;
 		const json = this.toJSON();
+		const thumbnail = this._captureThumbnail();
 		const docName = name || this.currentDocumentName || 'Untitled';
 		const id = await this.storage.saveDocument({
 			id: this.currentDocumentId,
 			name: docName,
-			data: json
+			data: json,
+			thumbnail: thumbnail
 		});
 		this.currentDocumentId = id;
 		this.currentDocumentName = docName;
@@ -116,6 +174,8 @@ class FileManager
 	// Load a document from storage by id
 	async loadFromStorage(id) {
 		if (!this.storage) return;
+		// Clean up current doc if it's empty before switching
+		await this._cleanupEmptyDocument();
 		const doc = await this.storage.loadDocument(id);
 		if (!doc) {
 			console.error('Document not found:', id);
@@ -125,6 +185,7 @@ class FileManager
 		this.currentDocumentId = doc.id;
 		this.currentDocumentName = doc.name;
 		this._updateTitle();
+		document.dispatchEvent(new CustomEvent('document-loaded'));
 	}
 
 	// Show confirmation dialog if there are unsaved changes, then run callback
@@ -182,7 +243,8 @@ class FileManager
 			theme: data.theme,
 			penStyleOverrides: data.penStyleOverrides,
 			gridVisible: data.gridVisible,
-			snapToGrid: data.snapToGrid
+			snapToGrid: data.snapToGrid,
+			linkedLibraries: data.linkedLibraries.length > 0 ? data.linkedLibraries : undefined
 		};
 	}
 
@@ -252,6 +314,7 @@ class FileManager
 		if(json.snapToGrid !== undefined){
 			data.snapToGrid = json.snapToGrid;
 		}
+		data.linkedLibraries = json.linkedLibraries || [];
 
 		const idMap = new Map();
 		const pendingFrameIds = [];
@@ -397,6 +460,7 @@ class FileManager
 						await this.saveToStorage(docName);
 					}
 
+					document.dispatchEvent(new CustomEvent('document-loaded'));
 					console.log('Imported:', file.name);
 				} catch(err){
 					console.error('Failed to load file:', err);
@@ -425,6 +489,10 @@ class FileManager
 		data.selectedPoints.clear();
 		data.resetSnaps();
 		data.clearGuides();
+		data.groups.clear();
+		data._nextGroupId = 1;
+		data.linkedLibraries = [];
+		data.libraryCache.clear();
 		data.exitGroup();
 		data.clearActiveFrame();
 		undoManager.clear();

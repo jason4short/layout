@@ -226,7 +226,7 @@ export class Renderer
 	}
 
 	// Draw hatch fill for a group of shapes
-	drawGroupHatch(ctx, groupId) {
+	drawGroupHatch(ctx, groupId, screenOrigin) {
 		const segments = data.getGroupHatchSegments(groupId);
 		if (segments.length === 0) return;
 
@@ -234,10 +234,18 @@ export class Renderer
 		const shapes = data.getGroupShapes(groupId);
 		const anySelected = shapes.some(s => s.selected);
 
+		// Check if group shapes are in a frame (use first shape's frameId)
+		const frameId = shapes.length > 0 ? shapes[0].frameId : null;
+		const didTransform = frameId ? this.beginFrameTransform(ctx, frameId, screenOrigin) : false;
+
 		ctx.strokeStyle = anySelected ? '#FF0000' : style.color;
 		ctx.lineWidth = style.width;
 		ctx.setLineDash([]);
 		this.drawHatchSegments(ctx, segments);
+
+		if (didTransform) {
+			this.endFrameTransform(ctx, didTransform);
+		}
 	}
 
 	/**
@@ -532,11 +540,11 @@ export class Renderer
 		}
 	}
 
-	drawGroupHatchPass(ctx, interacting) {
+	drawGroupHatchPass(ctx, interacting, screenOrigin) {
 		if (interacting) return;
 		for (const [groupId, group] of data.groups) {
 			if (group.hatchType && group.hatchType !== 'none') {
-				this.drawGroupHatch(ctx, groupId);
+				this.drawGroupHatch(ctx, groupId, screenOrigin);
 			}
 		}
 	}
@@ -708,7 +716,7 @@ export class Renderer
 
 		// Render group hatch fills (underneath shapes) — skip during drags
 		const hatchStart = this.debugRenderTiming ? performance.now() : 0;
-		this.drawGroupHatchPass(ctx, interacting);
+		this.drawGroupHatchPass(ctx, interacting, screenOrigin);
 		if (this.debugRenderTiming) {
 			this._timingTotals.hatch += (performance.now() - hatchStart);
 		}

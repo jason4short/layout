@@ -814,6 +814,7 @@ export class ConvertToSymbolCommand extends Command {
 		// Create the Frame
 		this.frame = new Frame([frameX, frameY, frameWidth, frameHeight, this.name]);
 		this.frame.isSymbolSource = true;
+		this.frame.ensureSymbolId();
 		data.addShape(this.frame);
 
 		// Store original state for undo
@@ -1075,5 +1076,22 @@ export class AlignCommand extends Command {
 		}
 		data.rebuildPOIs();
 		data.recalculateIntersectionsForShapes(this.shapes);
+	}
+}
+
+// Place a library symbol instance (just adds a SymbolInstance with library reference)
+export class PlaceLibrarySymbolCommand extends Command {
+	constructor(instance) {
+		super('Place library symbol');
+		this.instance = instance;
+	}
+
+	execute() {
+		data.addShape(this.instance);
+		this.instance.update();
+	}
+
+	undo() {
+		data.deleteShape(this.instance);
 	}
 }

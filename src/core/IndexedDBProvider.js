@@ -1,50 +1,15 @@
-// IndexedDB storage for documents
+// IndexedDB storage for documents (uses shared DatabaseManager)
 
 import StorageProvider from './StorageProvider.js';
+import databaseManager from './DatabaseManager.js';
 
 class IndexedDBProvider extends StorageProvider {
-	constructor(dbName = 'cadc-documents', version = 1) {
-		super();
-		this.dbName = dbName;
-		this.version = version;
-		this.db = null;
-	}
-
-	// Lazy open/create the database
 	async _open() {
-		if (this.db) return this.db;
-
-		return new Promise((resolve, reject) => {
-			const request = indexedDB.open(this.dbName, this.version);
-
-			request.onupgradeneeded = (event) => {
-				const db = event.target.result;
-				if (!db.objectStoreNames.contains('documents')) {
-					const store = db.createObjectStore('documents', { keyPath: 'id' });
-					store.createIndex('updatedAt', 'updatedAt');
-					store.createIndex('name', 'name');
-				}
-			};
-
-			request.onsuccess = (event) => {
-				this.db = event.target.result;
-				resolve(this.db);
-			};
-
-			request.onerror = (event) => {
-				reject(event.target.error);
-			};
-		});
+		return databaseManager.open();
 	}
 
 	async isAvailable() {
-		try {
-			await this._open();
-			return true;
-		} catch (e) {
-			console.warn('IndexedDB not available:', e);
-			return false;
-		}
+		return databaseManager.isAvailable();
 	}
 
 	async listDocuments() {
@@ -63,6 +28,7 @@ class IndexedDBProvider extends StorageProvider {
 					results.push({
 						id: doc.id,
 						name: doc.name,
+						thumbnail: doc.thumbnail || null,
 						updatedAt: doc.updatedAt,
 						createdAt: doc.createdAt
 					});
@@ -92,6 +58,7 @@ class IndexedDBProvider extends StorageProvider {
 			id: doc.id || crypto.randomUUID(),
 			name: doc.name || 'Untitled',
 			data: doc.data,
+			thumbnail: doc.thumbnail || null,
 			updatedAt: now,
 			createdAt: createdAt
 		};

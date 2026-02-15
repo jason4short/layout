@@ -119,6 +119,13 @@ class Data
 		this.gridVisible = true;           // Show background grid
 		this.snapToGrid = false;           // Snap moves to grid
 
+		// Linked libraries: [{docId, name}]
+		this.linkedLibraries = [];
+
+		// Library symbol cache: Map<"docId:frameId", { frame, shapes }>
+		// Populated by SymbolLibrary.loadCache(), read by SymbolInstance
+		this.libraryCache = new Map();
+
 		// This is a singleton class
         return Data.instance;
 	}

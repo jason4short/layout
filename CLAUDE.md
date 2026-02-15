@@ -163,6 +163,9 @@ src/
   - `beforeunload` warning only when auto-save is disabled (e.g. private browsing)
   - On startup: loads most recent document from IndexedDB, or creates new if none exist
   - File menu restructured: New, Documents, Import File, Import SVG, Export File/SVG/Gcode/DXF
+  - Document browser: card grid with canvas thumbnails (Figma design), 3-col wrapping layout
+  - Thumbnails captured on every save via `_captureThumbnail()` (400x300 PNG data URL)
+  - Card UI: thumbnail preview, bold name, date, delete button on hover, double-click to rename
 
 ## Future Ideas
 - **Remote storage** - Implement `RemoteStorageProvider` extending `StorageProvider` for server-side persistence

@@ -1,4 +1,4 @@
-// Document list dialog for managing saved documents
+// Document browser dialog - card grid with thumbnails
 
 import fileManager from './FileManager.js';
 import stage from './Stage.js';
@@ -7,7 +7,7 @@ import inspector from './Inspector.js';
 class DocumentBrowser {
 	constructor() {
 		this.overlay = document.getElementById('documentBrowser');
-		this.listEl = document.getElementById('documentList');
+		this.gridEl = document.getElementById('documentGrid');
 
 		// Close on backdrop click
 		this.overlay.addEventListener('click', (e) => {
@@ -17,11 +17,18 @@ class DocumentBrowser {
 		// Close button
 		document.getElementById('documentCloseBtn').addEventListener('click', () => this.close());
 
-		// New document button
+		// New file button
 		document.getElementById('documentNewBtn').addEventListener('click', async () => {
 			await fileManager.newDocument();
 			inspector.update();
 			this.close();
+		});
+
+		// Escape key closes
+		document.addEventListener('keydown', (e) => {
+			if (e.key === 'Escape' && !this.overlay.classList.contains('hidden')) {
+				this.close();
+			}
 		});
 	}
 
@@ -29,7 +36,7 @@ class DocumentBrowser {
 		if (!fileManager.storage) return;
 
 		const docs = await fileManager.storage.listDocuments();
-		this._renderList(docs);
+		this._renderGrid(docs);
 		this.overlay.classList.remove('hidden');
 	}
 
@@ -37,100 +44,106 @@ class DocumentBrowser {
 		this.overlay.classList.add('hidden');
 	}
 
-	_renderList(docs) {
-		this.listEl.innerHTML = '';
+	_renderGrid(docs) {
+		this.gridEl.innerHTML = '';
 
 		if (docs.length === 0) {
-			this.listEl.innerHTML = '<div class="doc-empty">No saved documents</div>';
+			this.gridEl.innerHTML = '<div class="doc-empty">No saved documents yet</div>';
 			return;
 		}
 
 		for (const doc of docs) {
-			const row = document.createElement('div');
-			row.className = 'doc-row';
+			const card = document.createElement('div');
+			card.className = 'doc-card';
 			if (doc.id === fileManager.currentDocumentId) {
-				row.classList.add('doc-current');
+				card.classList.add('doc-current');
 			}
 
-			// Document name (clickable to open)
-			const name = document.createElement('span');
-			name.className = 'doc-name';
-			name.textContent = doc.name;
-			name.addEventListener('click', async () => {
-				await fileManager.loadFromStorage(doc.id);
-				inspector.update();
-				this.close();
+			// Thumbnail area
+			const thumbEl = document.createElement('div');
+			thumbEl.className = 'doc-thumb';
+			if (doc.thumbnail) {
+				const img = document.createElement('img');
+				img.src = doc.thumbnail;
+				img.alt = doc.name;
+				thumbEl.appendChild(img);
+			}
+
+			// Delete button (top-right of thumbnail)
+			const deleteBtn = document.createElement('button');
+			deleteBtn.className = 'doc-card-delete';
+			deleteBtn.textContent = '\u00D7';
+			deleteBtn.title = 'Delete';
+			deleteBtn.addEventListener('click', async (e) => {
+				e.stopPropagation();
+				if (!confirm(`Delete "${doc.name}"?`)) return;
+				await fileManager.storage.deleteDocument(doc.id);
+				if (doc.id === fileManager.currentDocumentId) {
+					await fileManager.newDocument();
+					inspector.update();
+				}
+				this.open();
 			});
+			thumbEl.appendChild(deleteBtn);
 
-			// Last modified date
-			const date = document.createElement('span');
-			date.className = 'doc-date';
-			date.textContent = this._formatDate(doc.updatedAt);
+			// Info area
+			const info = document.createElement('div');
+			info.className = 'doc-info';
 
-			// Rename button
-			const renameBtn = document.createElement('button');
-			renameBtn.className = 'doc-action';
-			renameBtn.textContent = '\u270E'; // pencil
-			renameBtn.title = 'Rename';
-			renameBtn.addEventListener('click', async (e) => {
+			const name = document.createElement('div');
+			name.className = 'doc-card-name';
+			name.textContent = doc.name;
+
+			// Double-click to rename
+			name.addEventListener('dblclick', async (e) => {
 				e.stopPropagation();
 				const newName = prompt('Rename document:', doc.name);
 				if (newName && newName.trim()) {
-					// Load doc data to re-save with new name
 					const fullDoc = await fileManager.storage.loadDocument(doc.id);
 					if (fullDoc) {
 						await fileManager.storage.saveDocument({
 							id: doc.id,
 							name: newName.trim(),
-							data: fullDoc.data
+							data: fullDoc.data,
+							thumbnail: fullDoc.thumbnail
 						});
-						// Update current name if this is the open document
 						if (doc.id === fileManager.currentDocumentId) {
 							fileManager.currentDocumentName = newName.trim();
 							fileManager._updateTitle();
 						}
-						this.open(); // refresh list
+						this.open();
 					}
 				}
 			});
 
-			// Delete button
-			const deleteBtn = document.createElement('button');
-			deleteBtn.className = 'doc-delete';
-			deleteBtn.textContent = '\u00D7'; // ×
-			deleteBtn.title = 'Delete';
-			deleteBtn.addEventListener('click', async (e) => {
-				e.stopPropagation();
-				if (!confirm(`Delete "${doc.name}"?`)) return;
+			const date = document.createElement('div');
+			date.className = 'doc-card-date';
+			date.textContent = this._formatDate(doc.updatedAt);
 
-				await fileManager.storage.deleteDocument(doc.id);
+			info.append(name, date);
+			card.append(thumbEl, info);
 
-				// If we deleted the current document, create a new one
-				if (doc.id === fileManager.currentDocumentId) {
-					await fileManager.newDocument();
-					inspector.update();
-				}
-				this.open(); // refresh list
+			// Click card to open document
+			card.addEventListener('click', async () => {
+				await fileManager.loadFromStorage(doc.id);
+				inspector.update();
+				this.close();
 			});
 
-			row.append(name, date, renameBtn, deleteBtn);
-			this.listEl.appendChild(row);
+			this.gridEl.appendChild(card);
 		}
 	}
 
 	_formatDate(timestamp) {
 		const date = new Date(timestamp);
-		const now = new Date();
-		const diffMs = now - date;
-		const diffMins = Math.floor(diffMs / 60000);
-
-		if (diffMins < 1) return 'Just now';
-		if (diffMins < 60) return `${diffMins}m ago`;
-
-		const diffHours = Math.floor(diffMins / 60);
-		if (diffHours < 24) return `${diffHours}h ago`;
-
-		return date.toLocaleDateString();
+		const month = date.getMonth() + 1;
+		const day = date.getDate();
+		const year = date.getFullYear();
+		const hours = date.getHours();
+		const mins = date.getMinutes().toString().padStart(2, '0');
+		const ampm = hours >= 12 ? 'PM' : 'AM';
+		const h = hours % 12 || 12;
+		return `${month}/${day}/${year} @ ${h}:${mins} ${ampm}`;
 	}
 }
 
