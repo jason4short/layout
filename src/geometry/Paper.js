@@ -189,7 +189,7 @@ export class Paper extends Geometry
 		const height = renderer.toScreenScale(displayHeight);
 
 		// Paper fill (subtle light background)
-		ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+		ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
 		ctx.fillRect(topLeft.x, topLeft.y, width, height);
 
 		// Paper border (always light gray, not selectable)

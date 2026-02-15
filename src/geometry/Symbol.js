@@ -468,9 +468,11 @@ export class SymbolInstance extends Geometry {
 						type: 'button',
 						action: async () => {
 							const fileManager = (await import('../core/FileManager.js')).default;
-							fileManager.confirmIfDirty(async () => {
-								await fileManager.loadFromStorage(docId);
-							});
+							// Auto-save current doc, then load library doc in new tab
+							if (fileManager.storage && fileManager.currentDocumentId) {
+								await fileManager._autoSave();
+							}
+							await fileManager.loadFromStorage(docId);
 						}
 					}
 				]

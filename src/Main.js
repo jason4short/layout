@@ -19,6 +19,7 @@ import symbolLibrary from './core/SymbolLibrary.js';
 import IndexedDBProvider from './core/IndexedDBProvider.js';
 import DocumentBrowser from './core/DocumentBrowser.js';
 import SymbolBrowser from './core/SymbolBrowser.js';
+import tabBar from './core/TabBar.js';
 
 
 let intersections = new Intersections();
@@ -31,6 +32,7 @@ palettePanel.init();
 // Initialize storage and auto-load most recent document
 const storageProvider = new IndexedDBProvider();
 await fileManager.initStorage(storageProvider);
+fileManager.tabBar = tabBar;
 
 if (fileManager.storage) {
 	const docs = await fileManager.storage.listDocuments();
@@ -51,10 +53,12 @@ const symbolBrowser = new SymbolBrowser();
 
 // Wire up File menu items
 document.getElementById('menuNew').addEventListener('click', async () => {
-	fileManager.confirmIfDirty(async () => {
-		await fileManager.newDocument();
-		inspector.update();
-	});
+	// Auto-save current doc before creating new one
+	if (fileManager.storage && fileManager.currentDocumentId) {
+		await fileManager._autoSave();
+	}
+	await fileManager.newDocument();
+	inspector.update();
 });
 document.getElementById('menuDocuments').addEventListener('click', () => documentBrowser.open());
 document.getElementById('menuSymbolLibrary').addEventListener('click', () => symbolBrowser.open());
@@ -123,6 +127,10 @@ document.addEventListener('document-loaded', async () => {
 		}
 	}
 	data.rebuildPOIs();
+
+	// Sync view menu checkmarks with loaded document state
+	document.getElementById('menuToggleGrid').classList.toggle('unchecked', !data.gridVisible);
+	document.getElementById('menuToggleSnapGrid').classList.toggle('unchecked', !data.snapToGrid);
 
 	stage.render();
 });

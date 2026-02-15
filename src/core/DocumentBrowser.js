@@ -19,6 +19,9 @@ class DocumentBrowser {
 
 		// New file button
 		document.getElementById('documentNewBtn').addEventListener('click', async () => {
+			if (fileManager.storage && fileManager.currentDocumentId) {
+				await fileManager._autoSave();
+			}
 			await fileManager.newDocument();
 			inspector.update();
 			this.close();
@@ -123,8 +126,11 @@ class DocumentBrowser {
 			info.append(name, date);
 			card.append(thumbEl, info);
 
-			// Click card to open document
+			// Click card to open document (in new tab)
 			card.addEventListener('click', async () => {
+				if (fileManager.storage && fileManager.currentDocumentId) {
+					await fileManager._autoSave();
+				}
 				await fileManager.loadFromStorage(doc.id);
 				inspector.update();
 				this.close();

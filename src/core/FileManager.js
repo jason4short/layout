@@ -28,6 +28,9 @@ class FileManager
 		this._autoSaveDelay = 500; // ms debounce
 		this._autoSaveEnabled = false;
 
+		// Tab bar reference (set by Main.js)
+		this.tabBar = null;
+
 		// Mark dirty on any undo/redo stack change
 		undoManager.onChange = () => {
 			this._setDirty(true);
@@ -57,6 +60,9 @@ class FileManager
 		const name = this.currentDocumentName || 'Untitled';
 		const dirty = this._dirty ? ' *' : '';
 		document.title = `${name} - ${this._baseTitle}${dirty}`;
+		if (this.tabBar) {
+			this.tabBar.updateActive(name, this._dirty);
+		}
 	}
 
 	// Initialize storage provider and enable auto-save
@@ -185,6 +191,9 @@ class FileManager
 		this.currentDocumentId = doc.id;
 		this.currentDocumentName = doc.name;
 		this._updateTitle();
+		if (this.tabBar) {
+			this.tabBar.openTab(doc.id, doc.name);
+		}
 		document.dispatchEvent(new CustomEvent('document-loaded'));
 	}
 
@@ -514,6 +523,10 @@ class FileManager
 		}
 
 		this._setDirty(false);
+		this._updateTitle();
+		if (this.tabBar) {
+			this.tabBar.openTab(this.currentDocumentId, this.currentDocumentName);
+		}
 		stage.render();
 		console.log('New document created');
 	}

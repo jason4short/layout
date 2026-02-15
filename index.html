@@ -29,6 +29,15 @@
 			.menu-check { display:inline-block; width:1.2em; text-align:center; margin-right:.25rem; }
 			.menu-item.unchecked .menu-check { visibility:hidden; }
 
+			/* ---- Tab Bar ---- */
+			.tab-bar { display:flex; align-items:stretch; height:32px; background:#e8e8e8; border-bottom:1px solid var(--border); flex-shrink:0; overflow-x:auto; padding:0 .25rem; gap:1px; padding-top:2px; }
+			.tab { display:flex; align-items:center; gap:.5rem; padding:0 .75rem; font-size:12px; color:#555; background:#ddd; border:1px solid var(--border); border-bottom:none; border-radius:.35rem .35rem 0 0; cursor:pointer; white-space:nowrap; user-select:none; min-width:0; }
+			.tab:hover { background:#eee; }
+			.tab.active { background:#fff; color:#111; border-bottom:1px solid #fff; margin-bottom:-1px; }
+			.tab-label { overflow:hidden; text-overflow:ellipsis; max-width:150px; }
+			.tab-close { font-size:14px; color:#999; cursor:pointer; line-height:1; padding:0 2px; border-radius:3px; }
+			.tab-close:hover { background:rgba(0,0,0,.1); color:#333; }
+
 			/* ---- Layout ---- */
 			.split { display:flex; flex:1; position:relative; min-height:0; }
 			.canvas-wrap { flex:1; position:relative; min-width:0; }
@@ -228,6 +237,9 @@
 					</div>
 				</div>
 			</div>
+
+			<!-- Tab Bar -->
+			<div class="tab-bar hidden" id="tabBar"></div>
 
 			<!-- Main Content -->
 			<div class="split">
