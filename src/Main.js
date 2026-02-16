@@ -19,7 +19,7 @@ import symbolLibrary from './core/SymbolLibrary.js';
 import IndexedDBProvider from './core/IndexedDBProvider.js';
 import DocumentBrowser from './core/DocumentBrowser.js';
 import SymbolBrowser from './core/SymbolBrowser.js';
-import tabBar from './core/TabBar.js';
+import tabBar, { TabBar } from './core/TabBar.js';
 
 
 let intersections = new Intersections();
@@ -35,8 +35,25 @@ await fileManager.initStorage(storageProvider);
 fileManager.tabBar = tabBar;
 
 if (fileManager.storage) {
+	const saved = TabBar.loadState();
 	const docs = await fileManager.storage.listDocuments();
-	if (docs.length > 0) {
+	const docIds = new Set(docs.map(d => d.id));
+
+	if (saved && saved.tabs.length > 0) {
+		// Restore saved tabs, skipping any that were deleted
+		const validTabs = saved.tabs.filter(t => docIds.has(t.docId));
+		if (validTabs.length > 0) {
+			const activeIdx = Math.min(saved.activeIndex, validTabs.length - 1);
+			// Load the active document
+			await fileManager.loadFromStorage(validTabs[activeIdx].docId);
+			// Rebuild tab array in saved order (loadFromStorage added the active one)
+			tabBar.tabs = validTabs.map(t => ({ docId: t.docId, name: t.name, dirty: false }));
+			tabBar.activeIndex = activeIdx;
+			tabBar._render();
+		} else {
+			await fileManager.newDocument();
+		}
+	} else if (docs.length > 0) {
 		await fileManager.loadFromStorage(docs[0].id); // most recent
 	} else {
 		await fileManager.newDocument();

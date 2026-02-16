@@ -10,7 +10,7 @@
 		<style>
 			:root { --border:#e5e7eb; --muted:#6b7280; --blue:#2563eb; --light-blue:#dbeafe; --green:#10b981; }
 			html, body { height:100%; margin:0; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-			#app { display:flex; flex-direction:column; height:100%; }
+			#app { display:flex; flex-direction:column; height:100%; background:#e5e5e5; }
 			.hidden { display:none !important; }
 
 			/* ---- Menu Bar ---- */
@@ -30,28 +30,28 @@
 			.menu-item.unchecked .menu-check { visibility:hidden; }
 
 			/* ---- Tab Bar ---- */
-			.tab-bar { display:flex; align-items:stretch; height:32px; background:#e8e8e8; border-bottom:1px solid var(--border); flex-shrink:0; overflow-x:auto; padding:0 .25rem; gap:1px; padding-top:2px; }
-			.tab { display:flex; align-items:center; gap:.5rem; padding:0 .75rem; font-size:12px; color:#555; background:#ddd; border:1px solid var(--border); border-bottom:none; border-radius:.35rem .35rem 0 0; cursor:pointer; white-space:nowrap; user-select:none; min-width:0; }
-			.tab:hover { background:#eee; }
-			.tab.active { background:#fff; color:#111; border-bottom:1px solid #fff; margin-bottom:-1px; }
+			.tab-bar { position:absolute; top:10px; left:122px; display:flex; align-items:center; height:26px; overflow-x:auto; gap:6px; z-index:10; }
+			.tab { display:flex; align-items:center; gap:6px; padding:0 12px; height:26px; font-size:13px; color:#111; background:#c3c3c3; border:none; border-radius:70px; cursor:pointer; white-space:nowrap; user-select:none; min-width:0; }
+			.tab:hover { background:#d0d0d0; }
+			.tab.active { background:#fff; }
 			.tab-label { overflow:hidden; text-overflow:ellipsis; max-width:150px; }
-			.tab-close { font-size:14px; color:#999; cursor:pointer; line-height:1; padding:0 2px; border-radius:3px; }
-			.tab-close:hover { background:rgba(0,0,0,.1); color:#333; }
+			.tab-close { font-size:11px; color:#999; cursor:pointer; line-height:1; padding:0 2px; }
+			.tab-close:hover { color:#333; }
 
 			/* ---- Layout ---- */
-			.split { display:flex; flex:1; position:relative; min-height:0; }
-			.canvas-wrap { flex:1; position:relative; min-width:0; }
+			.middle { display:flex; flex:1; position:relative; min-height:0; }
+			.canvas-wrap { flex:1; position:relative; min-width:0; overflow:clip; }
 			.canvas { width:100%; height:100%; display:block; cursor:crosshair; }
-			.sidebar { width:250px; min-width:180px; flex-shrink:0; border-left:1px solid var(--border); padding:.75rem; background:rgba(255,255,255,.95); overflow:auto; }
+			.sidebar { width:270px; min-width:180px; flex-shrink:0; padding:16px; background:#fff; overflow:auto; }
 			.label { font-size:12px; color:var(--muted); }
 
 			/* ---- Bottom Input Bar ---- */
-			.input-bar { position:absolute; bottom:0; left:0; right:0; height:50px; background:#fff; border-top:1px solid var(--border); display:flex; align-items:center; padding:0 1.5rem; gap:1rem; z-index:10; }
+			.input-bar { height:50px; background:#fff; border-top:1px solid var(--border); display:flex; align-items:center; padding:0 1.5rem; gap:1rem; flex-shrink:0; }
 			.input-bar-label { font-size:16px; color:#111; white-space:nowrap; min-width:120px; }
 			.input-bar .icon-input { width:180px; margin-bottom:0; }
 
 			/* ---- Tool Palette - Floating ---- */
-			.tool-palette { position:absolute; left:.5rem; top:.5rem; width:76px; background:rgba(255,255,255,.95); border:1px solid var(--border); border-radius:.5rem; padding:.5rem; box-shadow:0 2px 8px rgba(0,0,0,.08); z-index:10; max-height:calc(100% - 1rem); overflow-y:auto; }
+			.tool-palette { position:absolute; left:10px; top:10px; width:76px; background:#fff; border-radius:12px; padding:10px; box-shadow:0 2px 8px rgba(0,0,0,.08); z-index:10; max-height:calc(100% - 20px); overflow-y:auto; }
 			.tool-palette h3 { font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin:.5rem 0 .25rem 0; padding:0 .25rem; }
 			.tool-palette h3:first-child { margin-top:0; }
 			.tool-btn { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:4px; margin:2px; border:1px solid transparent; border-radius:.35rem; background:transparent; cursor:pointer; vertical-align:top; }
@@ -64,7 +64,7 @@
 			/* ---- Inspector Panel ---- */
 			.inspector-panel { font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size:13px; padding:0 8px; }
 			.inspector-header { font-size:16px; font-weight:600; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
-			.inspector-section { margin-bottom:16px; }
+			.inspector-section { margin-bottom:12px; }
 			.inspector-section-title { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
 
 			/* Icon Input */
@@ -238,31 +238,29 @@
 				</div>
 			</div>
 
-			<!-- Tab Bar -->
-			<div class="tab-bar hidden" id="tabBar"></div>
-
 			<!-- Main Content -->
-			<div class="split">
+			<div class="middle">
 				<div class="canvas-wrap">
 					<canvas id="stage" class="canvas"></canvas>
 					<nav class="tool-palette" id="toolPalette">
 						<!-- Tools will be populated by ToolManager -->
 					</nav>
-					<!-- Bottom Input Bar -->
-					<div class="input-bar" id="inputBar">
-						<span class="input-bar-label" id="inputLabel"></span>
-						<div class="icon-input hidden" id="inputIconWrap">
-							<input type="text" id="toolbarTextInput" />
-						</div>
-						<div class="icon-input hidden" id="inputIconWrap2">
-							<input type="text" id="toolbarTextInput2" />
-						</div>
-					</div>
+					<div class="tab-bar" id="tabBar"></div>
 				</div>
 				<aside class="sidebar">
 					<div id="inspector"></div>
 					<div id="palette-panel"></div>
 				</aside>
+			</div>
+			<!-- Bottom Input Bar -->
+			<div class="input-bar" id="inputBar">
+				<span class="input-bar-label" id="inputLabel"></span>
+				<div class="icon-input hidden" id="inputIconWrap">
+					<input type="text" id="toolbarTextInput" />
+				</div>
+				<div class="icon-input hidden" id="inputIconWrap2">
+					<input type="text" id="toolbarTextInput2" />
+				</div>
 			</div>
 		</div>
 		<div id="confirmDialog" class="dialog-overlay hidden">

@@ -27,6 +27,10 @@ export class HandTool extends Tool
 	}
 
 	begin(){
+		// Ignore mouse events briefly to avoid palette click bleeding into pan
+		this._activating = true;
+		requestAnimationFrame(() => { this._activating = false; });
+
 		stage.addEventListener('mouseUp', this.onMouseUp);
 		stage.addEventListener('mouseMove', this.onMouseMove);
 		stage.addEventListener('mouseDown', this.onMouseDown);
@@ -48,6 +52,7 @@ export class HandTool extends Tool
 
 	onMouseDown(e)
 	{
+		if (this._activating) return;
 		this.isPanning = true;
 		this.lastScreenX = e.screenX;
 		this.lastScreenY = e.screenY;

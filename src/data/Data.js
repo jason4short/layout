@@ -926,8 +926,8 @@ class Data
 			// Skip locked shapes
 			if(shape.locked) continue;
 
-			// Special handling for symbol instances - only select if entirely contained
-			if(shape.geometry === Shape.SYMBOL){
+			// Special handling for symbols and images - only select if entirely contained
+			if(shape.geometry === Shape.SYMBOL || shape.geometry === Shape.IMAGE){
 				if(rect.containsRect(shape.bounds)){
 					if(shiftKey){
 						// Toggle selection

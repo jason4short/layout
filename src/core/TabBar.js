@@ -106,17 +106,30 @@ class TabBar {
 		this._render();
 	}
 
+	// Save open tabs to localStorage
+	_saveState() {
+		const state = {
+			tabs: this.tabs.map(t => ({ docId: t.docId, name: t.name })),
+			activeIndex: this.activeIndex
+		};
+		localStorage.setItem('cadc-tabs', JSON.stringify(state));
+	}
+
+	// Load saved tab state from localStorage
+	static loadState() {
+		try {
+			const json = localStorage.getItem('cadc-tabs');
+			if (!json) return null;
+			return JSON.parse(json);
+		} catch {
+			return null;
+		}
+	}
+
 	// Render the tab bar DOM
 	_render() {
+		this._saveState();
 		this.el.innerHTML = '';
-
-		// Hide when only 1 tab
-		if (this.tabs.length <= 1) {
-			this.el.classList.add('hidden');
-			return;
-		}
-
-		this.el.classList.remove('hidden');
 
 		for (let i = 0; i < this.tabs.length; i++) {
 			const tab = this.tabs[i];
@@ -150,4 +163,5 @@ class TabBar {
 }
 
 const tabBar = new TabBar(document.getElementById('tabBar'));
+export { TabBar };
 export default tabBar;
