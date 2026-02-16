@@ -23,7 +23,7 @@ export class StrokeTool extends Tool
 		super();
 
 		this.name 	= "Gesture";
-		this.usage 	= "Draw gestures to create construction lines or trigger commands.";
+		this.usage 	= "Draw horizontal or vertical gestures to create construction lines  |  diagonal gestures for zoom in or out.";
 
 		this.generateGuides 	= false;
 		this.active 			= false;

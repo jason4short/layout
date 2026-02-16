@@ -23,7 +23,7 @@ export class CenterPointArcTool extends Tool
 		super();
 
 		this.name 			= "Center Arc";
-		this.usage 			= "Click center, click or drag to set radius and start angle, then click to set end angle.";
+		this.usage 			= "Click or drag from center to set radius and start angle, then click to set end angle.";
 
 		this.arc 			= null;
 		this.radiusLine		= null;

@@ -18,7 +18,7 @@ export class WallTool extends Tool {
 	constructor() {
 		super();
 		this.name = "Wall";
-		this.usage = "Click to place start, drag or click again to set end. Hold Option to flip side.";
+		this.usage = "Click or drag to draw a wall segment. Hold Option to flip side.";
 
 		this.generateGuides = true;
 

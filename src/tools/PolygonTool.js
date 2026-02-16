@@ -24,7 +24,7 @@ export class PolygonTool extends Tool {
 		super();
 
 		this.name = "Polygon";
-		this.usage = "Click to set center, drag to set radius. Use inspector to change sides.";
+		this.usage = "Click or drag to draw a polygon. Use inspector to change number of sides.";
 
 		this.generateGuides = true;
 

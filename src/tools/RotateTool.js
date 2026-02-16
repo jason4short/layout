@@ -21,7 +21,7 @@ export class RotateTool extends Tool
 		super();
 
 		this.name 	= "Rotate";
-		this.usage 	= "Select shapes first. Click anchor, then reference, then target angle.";
+		this.usage 	= "Select shapes first. Click or drag a line to set initial angle, then click again to set the final angle.";
 
 		this.generateGuides = false;
 
@@ -50,7 +50,7 @@ export class RotateTool extends Tool
 		} else {
 			this.usage = "Click to set rotation center.";
 		}
-		toolManager.updateToolNameDisplay();
+		//toolManager.updateToolNameDisplay();
 	}
 
 	deactivate(){

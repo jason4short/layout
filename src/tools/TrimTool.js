@@ -20,7 +20,7 @@ export class TrimTool extends Tool
 		super();
 
 		this.name 	= "Trim";
-		this.usage 	= "Click on a segment to trim it at the nearest intersections.";
+		this.usage 	= "Select an intersecting shape, Click on a line or curve to trim. Hold option to extend.";
 
 		this.generateGuides		= false;
 

@@ -20,7 +20,7 @@ export class CenterPointEllipseTool extends Tool
 		super();
 
 		this.name 	= "Center Ellipse";
-		this.usage 	= "Click to set center, then click or drag to define radii.";
+		this.usage 	= "Click or drag from center to draw ellipse. Escape to cancel.";
 
 		this.generateGuides = true;
 

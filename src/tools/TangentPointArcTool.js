@@ -24,7 +24,7 @@ export class TangentPointArcTool extends Tool
 		super();
 
 		this.name 	= "Tangent Arc";
-		this.usage 	= "Click start point, click or drag to set tangent direction, then click end point.";
+		this.usage 	= "Click or drag to set tangent line, then click or drag to set end point.";
 
 		this.arc 			= null;
 		this.tangentLine	= null;

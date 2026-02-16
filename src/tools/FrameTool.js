@@ -18,7 +18,7 @@ export class FrameTool extends Tool
 	{
 		super();
 		this.name = "Frame";
-		this.usage = "Drag to create a symbol frame. Shapes drawn inside become part of the symbol.";
+		this.usage = "Click and Drag to create a symbol frame. Shapes drawn or pasted inside become part of the symbol.";
 
 		this.generateGuides = false;
 

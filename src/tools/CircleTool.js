@@ -20,7 +20,7 @@ export class CircleTool extends Tool
 		super();
 
 		this.name 	= "Circle";
-		this.usage 	= "Click to set center, drag to set radius. Option-click to place circle with last diameter.";
+		this.usage 	= "Click or drag to create a circle. Option-click to place circle with last diameter.";
 
 		this.circle 				= false;
 		this.prevCircle 			= null;

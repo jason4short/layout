@@ -30,7 +30,7 @@ export class DimensionTool extends Tool
 		super();
 
 		this.name 	= "Dimension";
-		this.usage 	= "Click two points for linear dimension, or click a circle/arc for radius dimension. Shift+click for diameter.";
+		this.usage 	= "Click two points for linear dimension, or click a circle/arc for radius dimension. Option+click for diameter.";
 
 		this.generateGuides 	= false;
 
@@ -85,7 +85,7 @@ export class DimensionTool extends Tool
 			if (isCircularShape(clickedShape)) {
 				// Start radial dimension workflow
 				this.targetShape = clickedShape;
-				this.radialMode = stage.shiftKey ? 'diameter' : 'radius';
+				this.radialMode = stage.optionKey ? 'diameter' : 'radius';
 
 				// Calculate initial angle from center to click point
 				const angle = Math.atan2(
@@ -188,7 +188,7 @@ export class DimensionTool extends Tool
 			);
 
 			// Allow toggling mode with shift key during preview
-			this.dimension.mode = stage.shiftKey ? 'diameter' : 'radius';
+			this.dimension.mode = stage.optionKey ? 'diameter' : 'radius';
 
 			this.dimension.update();
 			stage.render();

@@ -28,7 +28,7 @@ export class PointerTool extends Tool
 		super();
 
 		this.name 	= "Pointer";
-		this.usage 	= "Click to select. Drag to marquee or move. Option+drag to clone.";
+		this.usage 	= "Click to select. Drag to marquee or move. Option+drag selection to clone.";
 
 		this.generateGuides 	= false; // Enable snapping for move operations
 

@@ -18,7 +18,7 @@ export class BoardTool extends Tool {
 	constructor() {
 		super();
 		this.name = "Board";
-		this.usage = "Click to place start, drag to set length. Use inspector to change preset/dimensions.";
+		this.usage = "Click or drag to draw a board. Hold Option to flip side.";
 
 		this.generateGuides = true;
 
@@ -34,6 +34,7 @@ export class BoardTool extends Tool {
 		this.onMouseMove = this.onMouseMove.bind(this);
 		this.onMouseUp = this.onMouseUp.bind(this);
 		this.updateLength = this.updateLength.bind(this);
+		this._onKeyChange = this._onKeyChange.bind(this);
 	}
 
 	get currentPreset() {
@@ -42,9 +43,13 @@ export class BoardTool extends Tool {
 
 	begin() {
 		this.reset();
+		stage.addEventListener('keyDown', this._onKeyChange);
+		stage.addEventListener('keyUp', this._onKeyChange);
 	}
 
 	deactivate(){
+		stage.removeEventListener('keyDown', this._onKeyChange);
+		stage.removeEventListener('keyUp', this._onKeyChange);
 		this.reset();
 	}
 
@@ -97,6 +102,7 @@ export class BoardTool extends Tool {
 		// Update end point to current snap position
 		this.board.end.x = data.snapPoint.x;
 		this.board.end.y = data.snapPoint.y;
+		this.board.alignment = stage.optionKey ? 'bottom' : 'top';
 		this.board.update();
 
 		stage.render();
@@ -135,6 +141,13 @@ export class BoardTool extends Tool {
 			this.prevBoard.scaleToDim(newLength);
 			stage.render();
 		}
+	}
+
+	_onKeyChange(e) {
+		if (!this.board) return;
+		this.board.alignment = stage.optionKey ? 'bottom' : 'top';
+		this.board.update();
+		stage.render();
 	}
 
 	// Cycle through presets with number keys

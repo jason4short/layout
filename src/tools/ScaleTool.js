@@ -19,7 +19,8 @@ export class ScaleTool extends Tool
 		super();
 
 		this.name 	= "Scale";
-		this.usage 	= "Select shapes first. Click anchor, then reference, then target.";
+		this.usage 	= "Select shapes first. Click or drag a line to set initial size, then click again to set the final size.";
+
 		this.cursor = "cursor_crosshair";
 
 		this.generateGuides = false;

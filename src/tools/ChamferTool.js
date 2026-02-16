@@ -24,7 +24,7 @@ export class ChamferTool extends Tool
 		super();
 
 		this.name 	= "Chamfer";
-		this.usage 	= "Click two lines to add a beveled corner. Shift+click near intersection for quick chamfer.";
+		this.usage 	= "Click or drag between two shapes (lines, arcs, or circles) to add a rounded corner. Option+click near intersection for quick chamfer.";
 
 		this.generateGuides = false;
 

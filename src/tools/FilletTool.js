@@ -41,7 +41,7 @@ export class FilletTool extends Tool
 		super();
 
 		this.name 	= "Fillet";
-		this.usage 	= "Click two shapes (lines, arcs, or circles) to add a rounded corner. Option+click near intersection for quick fillet.";
+		this.usage 	= "Click or drag between two shapes (lines, arcs, or circles) to add a rounded corner. Option+click near intersection for quick fillet.";
 
 		this.generateGuides = false;
 

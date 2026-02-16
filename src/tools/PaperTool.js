@@ -14,7 +14,7 @@ export class PaperTool extends Tool
 	{
 		super();
 		this.name = "Paper";
-		this.usage = "Click to place paper. Drag to position. Click again to reposition.";
+		this.usage = "Click or drag to place paper. Drag Label to reposition.";
 
 		this.generateGuides = false;
 

@@ -28,7 +28,7 @@ export class OutlineText extends Geometry {
 		this.text = params[2] || 'Text';
 
 		// Font properties
-		this.fontSize = params[3] || 20;
+		this.fontSize = params[3] || 100;
 		this.fontFamily = params[4] || 'Roboto';
 		this.fontWeight = 'normal';
 		this.fontStyle = 'normal';

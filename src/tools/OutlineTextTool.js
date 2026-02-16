@@ -24,7 +24,7 @@ export class OutlineTextTool extends Tool {
 
 		// Default properties for new text
 		this.defaultText = 'Text';
-		this.defaultFontSize = 20;
+		this.defaultFontSize = 100;
 		this.defaultFontFamily = 'Roboto';
 		this.defaultFontWeight = 'normal';
 
@@ -147,6 +147,16 @@ export class OutlineTextTool extends Tool {
 		outlineText.selected = true;
 
 		stage.render();
+		inspector.update();
+
+		// Focus the text input after DOM updates
+		requestAnimationFrame(() => {
+			const textInput = document.getElementById('prop-text');
+			if (textInput) {
+				textInput.focus();
+				textInput.select();
+			}
+		});
 	}
 
 	onMouseMove(e) {

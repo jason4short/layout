@@ -21,7 +21,7 @@ export class VertDimensionTool extends Tool
 		super();
 
 		this.name 	= "Vert Dim";
-		this.usage 	= "Click two points to measure vertical distance, then click to set offset.";
+		this.usage 	= "Click two points to measure vertical distance, then click to locate dimension.";
 
 		this.generateGuides 	= false;
 

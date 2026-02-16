@@ -204,6 +204,7 @@ class ToolManager extends EventDispatcher
 
 		if(tool == this.strokeTool){
 			this.strokeTool.begin();
+
 		}else{
 			data.clearGuides();
 			//data.selectNone();
@@ -212,18 +213,21 @@ class ToolManager extends EventDispatcher
 			this.currentTool.updateCursor();
 		}
 
-		this.updateToolNameDisplay();
-		
-		
+		this.updateToolNameDisplay();		
 		stage.render();
 	}
 
 	// Display current tool name and usage in the toolbar, update palette active state
 	updateToolNameDisplay(){
+		// Show override tool hints (command key = stroke, space = hand)
+		const displayTool = this.strokeTool.active ? this.strokeTool
+			: stage.spaceKey ? this.handTool
+			: this.currentTool;
+
 		const toolNameEl = document.getElementById('currentToolName');
-		if(toolNameEl && this.currentTool){
-			const name = this.currentTool.name || 'Tool';
-			const usage = this.currentTool.usage || '';
+		if(toolNameEl && displayTool){
+			const name = displayTool.name || 'Tool';
+			const usage = displayTool.usage || '';
 			toolNameEl.innerHTML = `<strong>${name}</strong> ${usage}`;
 		}
 
@@ -325,6 +329,7 @@ class ToolManager extends EventDispatcher
 		if(stage.commandKey){
 			stage.setCursor('command', 8, 8);
 			this.strokeTool.activate();
+			this.updateToolNameDisplay();
 			data.resetSnaps();
 
 		} else if(stage.spaceKey){
@@ -791,15 +796,19 @@ class ToolManager extends EventDispatcher
 	
 	onKeyUp(e)
 	{
-		// Handle command key release - deactivate strokeTool and restore cursor
+		// Handle command key release - deactivate strokeTool and restore hints
 		if(e.key == 'Meta'){
 			if(this.strokeTool.active){
 				this.strokeTool.deactivate();
 			}
+			this.currentTool.updateCursor();
+			this.updateToolNameDisplay();
+			return;
 		}
 
-		if(!(stage.commandKey && stage.spaceKey && stage.shiftKey)){
+		if(!stage.commandKey && !stage.spaceKey && !stage.shiftKey){
 			this.currentTool.updateCursor();
+			this.updateToolNameDisplay();
 		}
 	}
 }

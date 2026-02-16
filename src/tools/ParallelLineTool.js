@@ -30,7 +30,7 @@ export class ParallelLineTool extends Tool
 		super();
 
 		this.name 	= "Offset";
-		this.usage 	= "Click a line, arc, or circle, then drag to create an offset copy.";
+		this.usage 	= "Click or drag to offset a line, arc, or circle.";
 
 		this.generateGuides 	= false; // Enable snapping for move operations
 

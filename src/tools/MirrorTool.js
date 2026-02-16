@@ -19,7 +19,7 @@ export class MirrorTool extends Tool
 		super();
 
 		this.name 	= "Line";
-		this.usage 	= "Click to set start point, drag or click again to set end point. Press Escape to cancel.";
+		this.usage 	= "Click or drag an axis to mirror any selected objects.";
 
 		this.generateGuides 	= false; // Enable snapping for move operations
 
@@ -45,7 +45,7 @@ export class MirrorTool extends Tool
 		} else {
 			this.usage = "Click first point of mirror line.";
 		}
-		toolManager.updateToolNameDisplay();
+		//toolManager.updateToolNameDisplay();
 	}
 
 	deactivate(){

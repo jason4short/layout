@@ -21,7 +21,7 @@ export class BoxTool extends Tool
 	{
 		super();
 		this.name 	= "Rectangle";
-		this.usage 	= "Click to set first corner, then click or drag to opposite corner.";
+		this.usage 	= "Click or drag to draw a box. Escape to cancel";
 
 		this.generateGuides = true;
 

@@ -18,7 +18,7 @@ export class SlotTool extends Tool {
 	constructor() {
 		super();
 		this.name = "Slot";
-		this.usage = "Click to place start, drag to set length. Use inspector to change width.";
+		this.usage = "Click or drag to draw a slot.";
 
 		this.generateGuides = true;
 

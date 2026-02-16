@@ -21,7 +21,7 @@ export class OppositeCornerEllipseTool extends Tool
 		super();
 
 		this.name 	= "Corner Ellipse";
-		this.usage 	= "Click first corner, then click or drag to opposite corner.";
+		this.usage 	= "Click or drag opposite corners to draw ellipse. Escape to cancel.";
 
 		this.generateGuides = true;
 

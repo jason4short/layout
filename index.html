@@ -28,7 +28,7 @@
 			.menu-toggle { justify-content:flex-start; }
 			.menu-check { display:inline-block; width:1.2em; text-align:center; margin-right:.25rem; }
 			.menu-item.unchecked .menu-check { visibility:hidden; }
-			.tool-tip-text { flex:1; font-size:13px; color:#888; margin-left:2rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+			.tool-tip-text { flex:1; font-size:13px; color:#888; margin-left:2rem; padding-left:2rem; border-left:1px solid var(--border); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 			.tool-tip-text strong { color:#333; font-weight:600; }
 
 			/* ---- Tab Bar ---- */
@@ -324,12 +324,14 @@
 		<div id="helpPanel" class="dialog-overlay hidden">
 			<div class="help-browser">
 				<div class="doc-browser-header">
-					<span class="doc-browser-title">Help</span>
+					<span class="doc-browser-title"> </span>
 					<button class="doc-browser-close" id="helpCloseBtn">&#x2715;</button>
 				</div>
 				<div class="help-content">
 					<h2>Getting Started</h2>
 					<p>Click and drag on the canvas to draw. Use the tool palette on the left to switch between drawing and modification tools.</p>
+					<p>Hold Command + drag to create horizontal or vertical guides. Or hold Command + drag diagonally to the lower right to zoom in or upper left to zoom out. </p>
+					<p>Use the pointers snapping capability to reference geometry.</p>
 
 					<h2>Keyboard Shortcuts</h2>
 					<table>
@@ -368,7 +370,7 @@
 					</ul>
 
 					<h2>Snapping</h2>
-					<p>The drafting assistant automatically generates guide lines from snap points (endpoints, midpoints, centers, tangents). Guides appear as red dashed lines. Press <kbd>F4</kbd> to clear all guides.</p>
+					<p>The drafting assistant automatically generates guide lines from snap points (endpoints, midpoints, centers, tangents). Guides appear as red dashed lines.</p>
 				</div>
 			</div>
 		</div>

@@ -237,7 +237,7 @@ export class Text extends Geometry
 
 	mirror(x1, y1, x2, y2)
 	{
-		const result = TransformUtils.mirrorPoint({x: this.x, y: this.y}, x1, y1, x2, y2);
+		const result = TransformUtils.mirrorPoint(this.x, this.y, x1, y1, x2, y2);
 		this.x = result.x;
 		this.y = result.y;
 		// Flip alignment on mirror

@@ -82,7 +82,6 @@ export class Mirror extends Geometry {
 	 */
 	isPointInCaptureZone(px, py) {
 		const corners = this.getCaptureCorners();
-		// Use winding number or cross product test for convex quad
 		return this.pointInQuad(px, py, corners);
 	}
 
@@ -90,7 +89,6 @@ export class Mirror extends Geometry {
 	 * Point-in-quadrilateral test (convex).
 	 */
 	pointInQuad(px, py, corners) {
-		// Check if point is on same side of all edges
 		let sign = 0;
 		for (let i = 0; i < 4; i++) {
 			const c1 = corners[i];
@@ -109,7 +107,8 @@ export class Mirror extends Geometry {
 	 */
 	isShapeInCaptureZone(shape) {
 		if (!shape || !shape.bounds) return false;
-		// Check if shape's center is inside
+		// Skip shapes that live in frames (their coords are frame-local)
+		if (shape.frameId) return false;
 		const cx = shape.bounds.x + shape.bounds.width / 2;
 		const cy = shape.bounds.y + shape.bounds.height / 2;
 		return this.isPointInCaptureZone(cx, cy);
@@ -119,12 +118,12 @@ export class Mirror extends Geometry {
 	 * Find all shapes currently in the capture zone.
 	 */
 	findCapturedShapes() {
-		const allShapes = data.getShapes();
 		const captured = [];
 
-		for (const shape of allShapes) {
+		for (const shape of data.shapes) {
 			if (shape === this) continue;
 			if (shape.geometry === Shape.MIRROR) continue;
+			if (shape.geometry === Shape.PAPER) continue;
 			if (this.isShapeInCaptureZone(shape)) {
 				captured.push(shape);
 			}
@@ -241,23 +240,63 @@ export class Mirror extends Geometry {
 	}
 
 	/**
+	 * Expand a captured shape into renderable sub-shapes.
+	 * Symbols must be expanded into their constituent geometry first,
+	 * then each sub-shape is mirrored individually.
+	 */
+	_expandAndMirror(srcShape) {
+		const ax1 = this.start.x, ay1 = this.start.y;
+		const ax2 = this.end.x, ay2 = this.end.y;
+		const shapes = [];
+
+		if (srcShape.geometry === Shape.SYMBOL && srcShape.getShapesForRender) {
+			// Symbols need expansion — their draw() only renders labels
+			const subShapes = srcShape.getShapesForRender();
+			for (const sub of subShapes) {
+				sub.mirror(ax1, ay1, ax2, ay2);
+				sub._mirrorRef = this;
+				sub.selected = this.selected;
+				shapes.push(sub);
+			}
+		} else {
+			const shape = srcShape.clone();
+			shape.mirror(ax1, ay1, ax2, ay2);
+			shape._mirrorRef = this;
+			shape.selected = this.selected;
+			shapes.push(shape);
+		}
+
+		return shapes;
+	}
+
+	/**
 	 * Draw the mirror.
 	 */
 	draw(ctx, renderer) {
-		// Always refresh captured shapes on render
+		// Refresh captured shapes on render
 		this.updateCapturedShapes();
 
 		const corners = this.getCaptureCorners();
-		// Mirror surface is on the opposite side - where reflected geometry appears
 		const mirrorSurfaceCorners = corners.map(c => this.mirrorPoint(c.x, c.y));
 
 		// Convert to screen coords
+		const screenCaptureCorners = corners.map(c => renderer.toScreen(c.x, c.y));
 		const screenMirrorCorners = mirrorSurfaceCorners.map(c => renderer.toScreen(c.x, c.y));
 		const axisStart = renderer.toScreen(this.start.x, this.start.y);
 		const axisEnd = renderer.toScreen(this.end.x, this.end.y);
 
-		// Draw mirror surface fill (where virtual/reflected geometry appears)
-		ctx.fillStyle = this.selected ? 'rgba(0, 120, 255, 0.08)' : 'rgba(0, 0, 0, 0.03)';
+		// Draw capture zone fill (where source shapes live)
+		ctx.fillStyle = this.selected ? 'rgba(34, 170, 34, 0.06)' : 'rgba(34, 170, 34, 0.03)';
+		ctx.beginPath();
+		ctx.moveTo(screenCaptureCorners[0].x, screenCaptureCorners[0].y);
+		for (let i = 1; i < screenCaptureCorners.length; i++) {
+			ctx.lineTo(screenCaptureCorners[i].x, screenCaptureCorners[i].y);
+		}
+		ctx.closePath();
+		ctx.fill();
+
+		// Draw mirror surface fill (where reflected geometry appears)
+		ctx.fillStyle = this.selected ? 'rgba(0, 120, 255, 0.06)' : 'rgba(0, 0, 0, 0.03)';
 		ctx.beginPath();
 		ctx.moveTo(screenMirrorCorners[0].x, screenMirrorCorners[0].y);
 		for (let i = 1; i < screenMirrorCorners.length; i++) {
@@ -266,10 +305,26 @@ export class Mirror extends Geometry {
 		ctx.closePath();
 		ctx.fill();
 
-		// Draw mirror surface border (dashed, subtle)
-		ctx.strokeStyle = this.selected ? 'rgba(0, 120, 255, 0.3)' : 'rgba(0, 0, 0, 0.1)';
+		// Draw capture zone border (dashed green)
+		ctx.strokeStyle = this.selected ? 'rgba(34, 170, 34, 0.3)' : 'rgba(34, 170, 34, 0.15)';
 		ctx.lineWidth = 1;
 		ctx.setLineDash([4, 4]);
+		ctx.beginPath();
+		ctx.moveTo(screenCaptureCorners[0].x, screenCaptureCorners[0].y);
+		for (let i = 1; i < screenCaptureCorners.length; i++) {
+			ctx.lineTo(screenCaptureCorners[i].x, screenCaptureCorners[i].y);
+		}
+		ctx.closePath();
+		ctx.stroke();
+
+		// Draw mirror surface border (dashed blue)
+		ctx.strokeStyle = this.selected ? 'rgba(0, 120, 255, 0.3)' : 'rgba(0, 0, 0, 0.1)';
+		ctx.beginPath();
+		ctx.moveTo(screenMirrorCorners[0].x, screenMirrorCorners[0].y);
+		for (let i = 1; i < screenMirrorCorners.length; i++) {
+			ctx.lineTo(screenMirrorCorners[i].x, screenMirrorCorners[i].y);
+		}
+		ctx.closePath();
 		ctx.stroke();
 		ctx.setLineDash([]);
 
@@ -286,8 +341,8 @@ export class Mirror extends Geometry {
 		// Draw mirrored shapes
 		const mirroredShapes = this.getShapesForRender();
 		for (const shape of mirroredShapes) {
-			ctx.beginPath();  // Ensure clean path state for each shape
-			renderer.applyPenStyle(ctx, shape);  // Apply the shape's pen style
+			ctx.beginPath();
+			renderer.applyPenStyle(ctx, shape);
 			shape.draw(ctx, renderer);
 		}
 	}
@@ -378,7 +433,6 @@ export class Mirror extends Geometry {
 			return { x: segStart.x, y: segStart.y };
 		}
 
-		// Project point onto line, clamped to segment
 		let t = ((point.x - segStart.x) * dx + (point.y - segStart.y) * dy) / lenSq;
 		t = Math.max(0, Math.min(1, t));
 
@@ -389,16 +443,14 @@ export class Mirror extends Geometry {
 	}
 
 	/**
-	 * Get geometric snap (only on axis line - capture zone fill is not selectable).
+	 * Get geometric snap (only on axis line).
 	 */
 	getGeoSnap(mouse, mouseRect, pixelTolerance) {
-		// Only check the axis line for selection - not the fill area
 		const axisSnap = this.closestPointOnSegment(mouse, this.start, this.end);
 		if (!axisSnap) return null;
 
 		const dist = Math.sqrt((mouse.x - axisSnap.x) ** 2 + (mouse.y - axisSnap.y) ** 2);
 
-		// Must be within pixel tolerance of the axis line
 		if (dist > pixelTolerance) return null;
 
 		return { x: axisSnap.x, y: axisSnap.y, distance: dist, shape: this };
@@ -406,17 +458,15 @@ export class Mirror extends Geometry {
 
 	/**
 	 * Get mirrored shapes for rendering.
+	 * Expands Symbols into sub-shapes before mirroring.
 	 */
 	getShapesForRender() {
 		const shapes = [];
 		const capturedShapes = this.getCapturedShapes();
 
 		for (const srcShape of capturedShapes) {
-			const shape = srcShape.clone();
-			shape.mirror(this.start.x, this.start.y, this.end.x, this.end.y);
-			shape._mirrorRef = this;
-			shape.selected = this.selected;
-			shapes.push(shape);
+			const expanded = this._expandAndMirror(srcShape);
+			shapes.push(...expanded);
 		}
 
 		return shapes;
@@ -430,10 +480,12 @@ export class Mirror extends Geometry {
 		const capturedShapes = this.getCapturedShapes();
 
 		for (const srcShape of capturedShapes) {
-			const shape = srcShape.clone();
-			shape.mirror(this.start.x, this.start.y, this.end.x, this.end.y);
-			shape.groupId = null;
-			shapes.push(shape);
+			const expanded = this._expandAndMirror(srcShape);
+			for (const shape of expanded) {
+				shape.groupId = null;
+				shape.selected = false;
+			}
+			shapes.push(...expanded);
 		}
 
 		return shapes;
@@ -475,11 +527,9 @@ export class Mirror extends Geometry {
 			const dy = axis.y2 - axis.y1;
 			const lenSq = dx * dx + dy * dy;
 			if (lenSq > 1e-10) {
-				// Project point onto axis line
 				const t = ((newX - axis.x1) * dx + (newY - axis.y1) * dy) / lenSq;
 				const projX = axis.x1 + t * dx;
 				const projY = axis.y1 + t * dy;
-				// Distance from projection to new point
 				const dist = Math.sqrt((newX - projX) ** 2 + (newY - projY) ** 2);
 				this.width = Math.max(10, dist);
 			}

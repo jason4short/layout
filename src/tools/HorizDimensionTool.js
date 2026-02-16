@@ -21,7 +21,7 @@ export class HorizDimensionTool extends Tool
 		super();
 
 		this.name 	= "Horiz Dim";
-		this.usage 	= "Click two points to measure horizontal distance, then click to set offset.";
+		this.usage 	= "Click two points to measure horizontal distance, then click to locate dimension.";
 
 		this.generateGuides 	= false;
 

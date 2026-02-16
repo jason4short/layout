@@ -24,7 +24,7 @@ export class ThreePointArcTool extends Tool
 		super();
 
 		this.name 	= "3-Point Arc";
-		this.usage 	= "Click start, then click or drag to end point, then click to define curvature.";
+		this.usage 	= "Click or drag from start to end, then click to define curvature.";
 		this.cursor = "cursor_arc";
 
 		this.arc 			= null;

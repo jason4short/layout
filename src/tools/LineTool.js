@@ -18,7 +18,7 @@ export class LineTool extends Tool
 		super();
 
 		this.name 	= "Line";
-		this.usage 	= "Click to set start point, drag or click again to set end point. Press Escape to cancel.";
+		this.usage 	= "Click or drag to draw a line. Escape to cancel.";
 
 		this.line 				= false;
 		this.prevLine 			= false;

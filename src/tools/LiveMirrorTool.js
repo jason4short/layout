@@ -23,7 +23,7 @@ export class LiveMirrorTool extends Tool {
 	constructor() {
 		super();
 		this.name = "Live Mirror";
-		this.usage = "Click to set axis start, drag to axis end. Shapes to the left of the axis will be mirrored.";
+		this.usage = "Click or drag to set the mirror axis. Shapes to the left of the axis will be mirrored.";
 
 		this.generateGuides = true;
 
