@@ -12,7 +12,7 @@ let frameTransformCache = new Map();
 export const ThemePresets = {
 	light: {
 		name: 'Light',
-		background: '#E5E5E5',
+		background: '#F5F5F5',
 		foreground: '#333333',
 		wallFill: '#D0D0D0',
 		gridRGB: '0,0,0',
@@ -160,7 +160,7 @@ export class Renderer
 				return;
 			}
 			ctx.strokeStyle = '#ff0000';
-			ctx.lineWidth = 0.5;
+			ctx.lineWidth = 1;
 			ctx.setLineDash([1, 4]);
 			return;
 		}

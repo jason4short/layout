@@ -112,11 +112,11 @@ class Data
 		};
 
 		// Document settings
-		this.backgroundColor = '#E5E5E5';  // Canvas background color
+		this.backgroundColor = '#F5F5F5';  // Canvas background color
 		this.theme = 'light';              // Current theme preset
 		this.penStyleOverrides = {};       // Per-style color overrides
 		this.hatchDirty = false;           // Flag for hatch cache invalidation
-		this.gridVisible = true;           // Show background grid
+		this.gridVisible = false;          // Show background grid
 		this.snapToGrid = false;           // Snap moves to grid
 
 		// Linked libraries: [{docId, name}]
