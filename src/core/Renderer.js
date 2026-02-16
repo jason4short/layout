@@ -12,7 +12,7 @@ let frameTransformCache = new Map();
 export const ThemePresets = {
 	light: {
 		name: 'Light',
-		background: '#F5F5F5',
+		background: '#F0F0F0',
 		foreground: '#333333',
 		wallFill: '#D0D0D0',
 		gridRGB: '0,0,0',

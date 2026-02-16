@@ -512,6 +512,11 @@ class FileManager
 		data.libraryCache.clear();
 		data.exitGroup();
 		data.clearActiveFrame();
+		data.backgroundColor = '#F0F0F0';
+		data.theme = 'light';
+		data.penStyleOverrides = {};
+		data.gridVisible = false;
+		data.snapToGrid = false;
 		undoManager.clear();
 
 		stage.panX = 0;

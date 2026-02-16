@@ -112,7 +112,7 @@ class Data
 		};
 
 		// Document settings
-		this.backgroundColor = '#F5F5F5';  // Canvas background color
+		this.backgroundColor = '#F0F0F0';  // Canvas background color
 		this.theme = 'light';              // Current theme preset
 		this.penStyleOverrides = {};       // Per-style color overrides
 		this.hatchDirty = false;           // Flag for hatch cache invalidation
