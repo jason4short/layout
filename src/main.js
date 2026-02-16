@@ -90,8 +90,9 @@ if (fileManager.storage) {
 			const activeIdx = Math.min(saved.activeIndex, validTabs.length - 1);
 			// Load the active document
 			await fileManager.loadFromStorage(validTabs[activeIdx].docId);
-			// Rebuild tab array in saved order (loadFromStorage added the active one)
-			tabBar.tabs = validTabs.map(t => ({ docId: t.docId, name: t.name, dirty: false }));
+			// Rebuild tab array with fresh names from IndexedDB
+			const docMap = new Map(docs.map(d => [d.id, d.name]));
+			tabBar.tabs = validTabs.map(t => ({ docId: t.docId, name: docMap.get(t.docId) || t.name, dirty: false }));
 			tabBar.activeIndex = activeIdx;
 			tabBar._render();
 		} else {
@@ -174,6 +175,26 @@ document.getElementById('menuToggleGrid').addEventListener('click', () => {
 document.getElementById('menuToggleSnapGrid').addEventListener('click', () => {
 	data.snapToGrid = !data.snapToGrid;
 	document.getElementById('menuToggleSnapGrid').classList.toggle('unchecked', !data.snapToGrid);
+});
+document.getElementById('menuShowAll').addEventListener('click', () => {
+	stage.zoomToFit(false);
+});
+document.getElementById('menuClearGuides').addEventListener('click', () => {
+	data.deleteConstructions();
+	data.clearGuides();
+	stage.render();
+});
+
+// Help panel
+const helpPanel = document.getElementById('helpPanel');
+document.getElementById('menuHelpOpen').addEventListener('click', () => {
+	helpPanel.classList.remove('hidden');
+});
+document.getElementById('helpCloseBtn').addEventListener('click', () => {
+	helpPanel.classList.add('hidden');
+});
+helpPanel.addEventListener('click', (e) => {
+	if (e.target === helpPanel) helpPanel.classList.add('hidden');
 });
 
 // Load library symbol cache after loading a document

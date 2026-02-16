@@ -28,6 +28,8 @@
 			.menu-toggle { justify-content:flex-start; }
 			.menu-check { display:inline-block; width:1.2em; text-align:center; margin-right:.25rem; }
 			.menu-item.unchecked .menu-check { visibility:hidden; }
+			.tool-tip-text { flex:1; font-size:13px; color:#888; margin-left:2rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+			.tool-tip-text strong { color:#333; font-weight:600; }
 
 			/* ---- Tab Bar ---- */
 			.tab-bar { position:absolute; top:10px; left:122px; display:flex; align-items:center; height:26px; overflow-x:auto; gap:6px; z-index:10; }
@@ -202,6 +204,21 @@
 			.dialog-buttons .btn-cancel { padding:.35rem .75rem; font-size:13px; border:1px solid var(--border); border-radius:.35rem; background:#fff; cursor:pointer; }
 			.dialog-buttons .btn-danger { padding:.35rem .75rem; font-size:13px; border:1px solid #dc2626; border-radius:.35rem; background:#dc2626; color:#fff; cursor:pointer; }
 
+		/* Help Panel */
+			.help-browser { background:#fff; border-radius:22px; padding:24px; width:800px; max-height:80vh; display:flex; flex-direction:column; box-shadow:0 8px 32px rgba(0,0,0,.18); font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+			.help-content { overflow-y:auto; flex:1; padding:4px 0; line-height:1.6; color:#333; font-size:14px; }
+			.help-content h2 { font-size:18px; font-weight:700; color:#111; margin:24px 0 8px 0; padding-bottom:6px; border-bottom:1px solid var(--border); }
+			.help-content h2:first-child { margin-top:0; }
+			.help-content h3 { font-size:15px; font-weight:600; color:#333; margin:16px 0 6px 0; }
+			.help-content p { margin:0 0 12px 0; }
+			.help-content img { max-width:100%; border-radius:8px; margin:8px 0; }
+			.help-content table { width:100%; border-collapse:collapse; margin:8px 0 16px 0; font-size:13px; }
+			.help-content th { text-align:left; padding:6px 12px; background:#f5f5f5; font-weight:600; color:#555; border-bottom:1px solid var(--border); }
+			.help-content td { padding:6px 12px; border-bottom:1px solid #f0f0f0; }
+			.help-content kbd { display:inline-block; padding:2px 6px; font-size:12px; font-family:inherit; background:#f5f5f5; border:1px solid #ddd; border-radius:4px; }
+			.help-content ul { margin:0 0 12px 0; padding-left:20px; }
+			.help-content li { margin-bottom:4px; }
+
 		</style>
 	</head>
 	<body>
@@ -229,14 +246,20 @@
 						<div class="menu-dropdown">
 							<div class="menu-item menu-toggle unchecked" id="menuToggleGrid"><span class="menu-check">&#10003;</span>Grid</div>
 							<div class="menu-item menu-toggle unchecked" id="menuToggleSnapGrid"><span class="menu-check">&#10003;</span>Snap to Grid</div>
+							<div class="menu-separator"></div>
+							<div class="menu-item" id="menuShowAll">Show All<span class="shortcut">&#8984;F</span></div>
+							<div class="menu-item" id="menuClearGuides">Clear Guides<span class="shortcut">F4</span></div>
 						</div>
 					</div>
-				<div class="menu-trigger" id="menuAbout">About
+				<div class="menu-trigger" id="menuHelp">Help
 						<div class="menu-dropdown">
+							<div class="menu-item" id="menuHelpOpen">Help</div>
+							<div class="menu-separator"></div>
 							<div class="menu-item" id="menuAboutApp">About Layout</div>
 						</div>
 					</div>
 				</div>
+				<span class="tool-tip-text" id="currentToolName"></span>
 			</div>
 
 			<!-- Main Content -->
@@ -295,6 +318,57 @@
 				<div class="doc-grid" id="documentGrid"></div>
 				<div class="doc-browser-footer">
 					<button class="doc-new-btn" id="documentNewBtn">New File</button>
+				</div>
+			</div>
+		</div>
+		<div id="helpPanel" class="dialog-overlay hidden">
+			<div class="help-browser">
+				<div class="doc-browser-header">
+					<span class="doc-browser-title">Help</span>
+					<button class="doc-browser-close" id="helpCloseBtn">&#x2715;</button>
+				</div>
+				<div class="help-content">
+					<h2>Getting Started</h2>
+					<p>Click and drag on the canvas to draw. Use the tool palette on the left to switch between drawing and modification tools.</p>
+
+					<h2>Keyboard Shortcuts</h2>
+					<table>
+						<tr><th>Key</th><th>Action</th></tr>
+						<tr><td><kbd>F1</kbd></td><td>Pointer tool</td></tr>
+						<tr><td><kbd>F2</kbd></td><td>Line tool</td></tr>
+						<tr><td><kbd>F3</kbd></td><td>Offset tool</td></tr>
+						<tr><td><kbd>F4</kbd></td><td>Clear guides</td></tr>
+						<tr><td><kbd>F6</kbd></td><td>Fillet tool</td></tr>
+						<tr><td><kbd>F7</kbd></td><td>Trim tool</td></tr>
+						<tr><td><kbd>&#8984;F</kbd></td><td>Show all (zoom to fit)</td></tr>
+						<tr><td><kbd>&#8984;Z</kbd></td><td>Undo</td></tr>
+						<tr><td><kbd>&#8984;&#8679;Z</kbd></td><td>Redo</td></tr>
+						<tr><td><kbd>&#8984;C</kbd></td><td>Copy</td></tr>
+						<tr><td><kbd>&#8984;V</kbd></td><td>Paste</td></tr>
+						<tr><td><kbd>&#8984;G</kbd></td><td>Group</td></tr>
+						<tr><td><kbd>&#8984;&#8679;G</kbd></td><td>Ungroup</td></tr>
+						<tr><td><kbd>Delete</kbd></td><td>Delete selection</td></tr>
+						<tr><td><kbd>Escape</kbd></td><td>Cancel / deselect</td></tr>
+						<tr><td><kbd>Space</kbd></td><td>Hold to pan</td></tr>
+					</table>
+
+					<h2>Navigation</h2>
+					<ul>
+						<li>Scroll wheel to zoom in/out</li>
+						<li>Hold <kbd>Space</kbd> and drag to pan</li>
+						<li>Use the hand tool for continuous panning</li>
+					</ul>
+
+					<h2>Selection</h2>
+					<ul>
+						<li>Click to select a shape</li>
+						<li>Drag to marquee select</li>
+						<li>Hold <kbd>Shift</kbd> and click to toggle selection</li>
+						<li>Hold <kbd>Shift</kbd> and marquee to add/remove from selection</li>
+					</ul>
+
+					<h2>Snapping</h2>
+					<p>The drafting assistant automatically generates guide lines from snap points (endpoints, midpoints, centers, tangents). Guides appear as red dashed lines. Press <kbd>F4</kbd> to clear all guides.</p>
 				</div>
 			</div>
 		</div>

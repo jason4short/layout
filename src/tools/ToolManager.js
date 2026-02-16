@@ -574,8 +574,9 @@ class ToolManager extends EventDispatcher
 				break;
 
 			case 'F4':
-				//this.setTool(this.parallelLineTool);
 				data.deleteConstructions();
+				data.clearGuides();
+				stage.render();
 				break;
 
 			case 'F5':

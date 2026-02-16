@@ -137,7 +137,7 @@ class TabBar {
 
 			const label = document.createElement('span');
 			label.className = 'tab-label';
-			label.textContent = (tab.dirty ? '* ' : '') + (tab.name || 'Untitled');
+			label.textContent = tab.name || 'Untitled';
 
 			const close = document.createElement('span');
 			close.className = 'tab-close';
