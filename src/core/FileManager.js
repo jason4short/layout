@@ -177,6 +177,14 @@ class FileManager
 		return id;
 	}
 
+	// Rename the current document
+	async renameDocument(newName) {
+		if (!newName || !newName.trim()) return;
+		this.currentDocumentName = newName.trim();
+		this._updateTitle();
+		await this._autoSave();
+	}
+
 	// Load a document from storage by id
 	async loadFromStorage(id) {
 		if (!this.storage) return;

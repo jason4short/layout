@@ -3,7 +3,6 @@
 
 import fileManager from './FileManager.js';
 import inspector from './Inspector.js';
-import stage from './Stage.js';
 
 class TabBar {
 	constructor(el) {
@@ -148,10 +147,46 @@ class TabBar {
 				this.closeTab(i);
 			});
 
+			label.addEventListener('dblclick', (e) => {
+				e.stopPropagation();
+				this._startRename(i, label);
+			});
+
 			el.append(label, close);
 			el.addEventListener('click', () => this.switchTab(i));
 			this.el.appendChild(el);
 		}
+	}
+
+	// Inline rename on double-click
+	_startRename(index, labelEl) {
+		const tab = this.tabs[index];
+		const input = document.createElement('input');
+		input.type = 'text';
+		input.value = tab.name || 'Untitled';
+		input.className = 'tab-rename';
+		labelEl.replaceWith(input);
+		input.focus();
+		input.select();
+
+		const commit = async () => {
+			const newName = input.value.trim() || 'Untitled';
+			tab.name = newName;
+			// If renaming the active tab, update FileManager too
+			if (index === this.activeIndex) {
+				await fileManager.renameDocument(newName);
+			}
+			this._render();
+		};
+
+		input.addEventListener('blur', commit);
+		input.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') input.blur();
+			if (e.key === 'Escape') {
+				input.value = tab.name || 'Untitled';
+				input.blur();
+			}
+		});
 	}
 
 	// Simple confirm dialog for closing dirty tab
