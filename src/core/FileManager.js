@@ -486,6 +486,9 @@ class FileManager
 						const docName = file.name.replace(/\.[^.]+$/, '');
 						this.currentDocumentId = null; // force new entry
 						await this.saveToStorage(docName);
+						if (this.tabBar) {
+							await this.tabBar.openTab(this.currentDocumentId, docName);
+						}
 					}
 
 					document.dispatchEvent(new CustomEvent('document-loaded'));

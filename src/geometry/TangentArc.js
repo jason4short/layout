@@ -3,6 +3,7 @@ import {Arc} from './Arc.js';
 import {Point} from './Point.js';
 import * as AngleUtils from './utils/AngleUtils.js';
 import * as VectorUtils from './utils/VectorUtils.js';
+import * as TransformUtils from './utils/TransformUtils.js';
 import {tangentArcSchema} from './InspectorSchemas.js';
 import {serializeTangentArc, deserializeTangentArc} from './GeometrySerializers.js';
 
@@ -188,6 +189,43 @@ export class TangentArc extends Arc
 				this.endPoint.x = newX;
 				this.endPoint.y = newY;
 				break;
+		}
+		this.recalculateFromControlPoints();
+	}
+
+	translate(dx, dy) {
+		this.startPoint.x += dx;
+		this.startPoint.y += dy;
+		this.tangentPoint.x += dx;
+		this.tangentPoint.y += dy;
+		this.endPoint.x += dx;
+		this.endPoint.y += dy;
+		this.recalculateFromControlPoints();
+	}
+
+	scale(anchorX, anchorY, factor) {
+		for (const pt of [this.startPoint, this.tangentPoint, this.endPoint]) {
+			const s = TransformUtils.scalePoint(pt.x, pt.y, anchorX, anchorY, factor);
+			pt.x = s.x;
+			pt.y = s.y;
+		}
+		this.recalculateFromControlPoints();
+	}
+
+	rotate(anchorX, anchorY, angleRad) {
+		for (const pt of [this.startPoint, this.tangentPoint, this.endPoint]) {
+			const r = TransformUtils.rotatePoint(pt.x, pt.y, anchorX, anchorY, angleRad);
+			pt.x = r.x;
+			pt.y = r.y;
+		}
+		this.recalculateFromControlPoints();
+	}
+
+	mirror(x1, y1, x2, y2) {
+		for (const pt of [this.startPoint, this.tangentPoint, this.endPoint]) {
+			const m = TransformUtils.mirrorPoint(pt.x, pt.y, x1, y1, x2, y2);
+			pt.x = m.x;
+			pt.y = m.y;
 		}
 		this.recalculateFromControlPoints();
 	}
