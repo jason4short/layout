@@ -420,7 +420,8 @@ class ToolManager extends EventDispatcher
 						// Restore previous activeFrameId
 						data.activeFrameId = prevActiveFrame;
 
-						// Select pasted shapes (keep frame selected too for continued pasting)
+						// Select only the pasted shapes
+						data.selectNone();
 						for(const shape of shapesToPaste){
 							shape.selected = true;
 						}

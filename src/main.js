@@ -211,7 +211,7 @@ helpPanel.addEventListener('click', (e) => {
 // Open Playground
 document.getElementById('menuOpenPlayground').addEventListener('click', () => {
 	fileManager.confirmIfDirty(() => {
-		fetch('./playground.cadc')
+		fetch('./playground.cadc?v=' + Date.now())
 			.then(r => r.json())
 			.then(async json => {
 				fileManager.fromJSON(json);

@@ -1,111 +1,1775 @@
 {
   "version": "1.1",
-  "viewport": { "panX": 20, "panY": 15, "zoom": 0.75 },
+  "viewport": {
+    "panX": 339.32845884268755,
+    "panY": 536.1832266402487,
+    "zoom": 0.6381854067648378
+  },
+  "shapes": [
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 49.99999999999966,
+      "y": -60.01244676559166,
+      "text": "Layout Playground",
+      "fontSize": 22,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1103"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "x": 49.99999999999977,
+      "y": 88,
+      "text": "Line Tool",
+      "fontSize": 13,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1105"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 49.99999999999977,
+      "y": 104,
+      "text": "Draw straight lines between two points",
+      "fontSize": 11,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1106"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 115,
+        "y": 210
+      },
+      "end": {
+        "x": 215,
+        "y": 210
+      },
+      "id": "shape_1107"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 115,
+        "y": 230
+      },
+      "end": {
+        "x": 215,
+        "y": 250
+      },
+      "id": "shape_1108"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 140,
+        "y": 210
+      },
+      "end": {
+        "x": 155,
+        "y": 255
+      },
+      "id": "shape_1109"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "centerline",
+      "colorToken": null,
+      "start": {
+        "x": 115,
+        "y": 175
+      },
+      "end": {
+        "x": 215,
+        "y": 175
+      },
+      "id": "shape_1110"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "x": 300,
+      "y": 88,
+      "text": "Circle Tool",
+      "fontSize": 13,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1111"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 300,
+      "y": 104,
+      "text": "Click center, drag to set radius",
+      "fontSize": 11,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1112"
+    },
+    {
+      "geometry": "circle",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 415,
+      "y": 215,
+      "radius": 48,
+      "radiusAngle": 0,
+      "id": "shape_1113"
+    },
+    {
+      "geometry": "circle",
+      "type": "plain",
+      "penStyle": "centerline",
+      "colorToken": null,
+      "x": 415,
+      "y": 215,
+      "radius": 24,
+      "radiusAngle": 0,
+      "id": "shape_1114"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "x": 550,
+      "y": 88,
+      "text": "Arc Tool",
+      "fontSize": 13,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1115"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 550,
+      "y": 104,
+      "text": "Draw partial arcs (3-point or center+radius)",
+      "fontSize": 11,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1116"
+    },
+    {
+      "geometry": "arc",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 658,
+      "y": 208,
+      "radius": 44,
+      "startAngle": 0.3,
+      "endAngle": 2.9,
+      "id": "shape_1117"
+    },
+    {
+      "geometry": "arc",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 672,
+      "y": 228,
+      "radius": 28,
+      "startAngle": 3.5,
+      "endAngle": 5.9,
+      "id": "shape_1118"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "x": 800,
+      "y": 88,
+      "text": "Ellipse Tool",
+      "fontSize": 13,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1119"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 800,
+      "y": 104,
+      "text": "Draw ovals by corner or center point",
+      "fontSize": 11,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1120"
+    },
+    {
+      "geometry": "ellipse",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 915,
+      "y": 215,
+      "radiusX": 62,
+      "radiusY": 32,
+      "rotation": 0,
+      "cornerAngle": 0,
+      "controlMode": "center",
+      "id": "shape_1121"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "x": 1050,
+      "y": 88,
+      "text": "Spline Tool",
+      "fontSize": 13,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1122"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 1050,
+      "y": 104,
+      "text": "Cubic Bezier curves with draggable handles",
+      "fontSize": 11,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1123"
+    },
+    {
+      "geometry": "spline",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "p0": {
+        "x": 1105,
+        "y": 250
+      },
+      "p1": {
+        "x": 1120,
+        "y": 168
+      },
+      "p2": {
+        "x": 1200,
+        "y": 282
+      },
+      "p3": {
+        "x": 1215,
+        "y": 195
+      },
+      "id": "shape_1124"
+    },
+    {
+      "geometry": "spline",
+      "type": "plain",
+      "penStyle": "construction",
+      "colorToken": null,
+      "p0": {
+        "x": 1105,
+        "y": 195
+      },
+      "p1": {
+        "x": 1150,
+        "y": 170
+      },
+      "p2": {
+        "x": 1165,
+        "y": 248
+      },
+      "p3": {
+        "x": 1215,
+        "y": 215
+      },
+      "id": "shape_1125"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "x": 49.99999999999977,
+      "y": 333,
+      "text": "Box Tool",
+      "fontSize": 13,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1126"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 49.99999999999977,
+      "y": 349,
+      "text": "Draw rectangles (creates 4 connected lines)",
+      "fontSize": 11,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1127"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 115,
+        "y": 445
+      },
+      "end": {
+        "x": 215,
+        "y": 445
+      },
+      "id": "shape_1128"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 215,
+        "y": 445
+      },
+      "end": {
+        "x": 215,
+        "y": 500
+      },
+      "id": "shape_1129"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 215,
+        "y": 500
+      },
+      "end": {
+        "x": 115,
+        "y": 500
+      },
+      "id": "shape_1130"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 115,
+        "y": 500
+      },
+      "end": {
+        "x": 115,
+        "y": 445
+      },
+      "id": "shape_1131"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "x": 300,
+      "y": 333,
+      "text": "Polygon Tool",
+      "fontSize": 13,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1132"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 300,
+      "y": 349,
+      "text": "Regular polygons — triangles to 12-gons",
+      "fontSize": 11,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1133"
+    },
+    {
+      "geometry": "polygon",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 395,
+      "y": 470,
+      "radius": 46,
+      "sides": 6,
+      "radiusAngle": -1.5708,
+      "id": "shape_1134"
+    },
+    {
+      "geometry": "polygon",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 445,
+      "y": 460,
+      "radius": 22,
+      "sides": 3,
+      "radiusAngle": -1.5708,
+      "id": "shape_1135"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "x": 550,
+      "y": 333,
+      "text": "Slot Tool",
+      "fontSize": 13,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1136"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 550,
+      "y": 349,
+      "text": "Oblong slots with semicircular ends",
+      "fontSize": 11,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1137"
+    },
+    {
+      "geometry": "slot",
+      "type": "plain",
+      "startX": 608,
+      "startY": 465,
+      "endX": 722,
+      "endY": 465,
+      "width": 48,
+      "penStyle": "visible",
+      "colorToken": null,
+      "id": "shape_1138"
+    },
+    {
+      "geometry": "slot",
+      "type": "plain",
+      "startX": 622,
+      "startY": 445,
+      "endX": 708,
+      "endY": 445,
+      "width": 24,
+      "penStyle": "visible",
+      "colorToken": null,
+      "id": "shape_1139"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "x": 800,
+      "y": 333,
+      "text": "Board Tool",
+      "fontSize": 13,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1140"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 800,
+      "y": 349,
+      "text": "Lumber boards with standard thickness presets",
+      "fontSize": 11,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1141"
+    },
+    {
+      "geometry": "board",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "startX": 850,
+      "startY": 455,
+      "endX": 980,
+      "endY": 455,
+      "thickness": 19,
+      "presetName": "Custom",
+      "alignment": "center",
+      "id": "shape_1142"
+    },
+    {
+      "geometry": "board",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "startX": 850,
+      "startY": 495,
+      "endX": 980,
+      "endY": 495,
+      "thickness": 38,
+      "presetName": "Custom",
+      "alignment": "center",
+      "id": "shape_1143"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "x": 1050,
+      "y": 333,
+      "text": "Dimension Tool",
+      "fontSize": 13,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1144"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 1050,
+      "y": 349,
+      "text": "Linear, radial, and angle measurements",
+      "fontSize": 11,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1145"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 1090,
+        "y": 492.5667277915801
+      },
+      "end": {
+        "x": 1240,
+        "y": 492.5667277915801
+      },
+      "id": "shape_1146"
+    },
+    {
+      "geometry": "dimension",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "start": {
+        "x": 1090,
+        "y": 492.5667277915801
+      },
+      "end": {
+        "x": 1240,
+        "y": 492.5667277915801
+      },
+      "offset": 18.798814651032785,
+      "id": "shape_1147"
+    },
+    {
+      "geometry": "circle",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 1165,
+      "y": 443,
+      "radius": 28,
+      "radiusAngle": 0,
+      "id": "shape_1148"
+    },
+    {
+      "geometry": "radial_dimension",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "center": {
+        "x": 1165,
+        "y": 443
+      },
+      "radius": 28,
+      "angle": -0.7472560092467853,
+      "mode": "radius",
+      "textX": 1212.3760562356072,
+      "textY": 399.1068375361349,
+      "id": "shape_1149"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "x": 49.99999999999977,
+      "y": 578,
+      "text": "Fillet Tool",
+      "fontSize": 13,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1150"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 49.99999999999977,
+      "y": 594,
+      "text": "Round corners between two lines",
+      "fontSize": 11,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1151"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 115,
+        "y": 660
+      },
+      "end": {
+        "x": 115,
+        "y": 740
+      },
+      "id": "shape_1152"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 115,
+        "y": 740
+      },
+      "end": {
+        "x": 175,
+        "y": 740
+      },
+      "id": "shape_1153"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 175,
+        "y": 660
+      },
+      "end": {
+        "x": 215,
+        "y": 660
+      },
+      "id": "shape_1154"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 215,
+        "y": 660
+      },
+      "end": {
+        "x": 215,
+        "y": 740
+      },
+      "id": "shape_1155"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "x": 300,
+      "y": 578,
+      "text": "Trim Tool",
+      "fontSize": 13,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1156"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 300,
+      "y": 594,
+      "text": "Trim lines and arcs at intersections",
+      "fontSize": 11,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1157"
+    },
+    {
+      "geometry": "circle",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 415,
+      "y": 700,
+      "radius": 38,
+      "radiusAngle": 0,
+      "id": "shape_1158"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 368,
+        "y": 700
+      },
+      "end": {
+        "x": 462,
+        "y": 700
+      },
+      "id": "shape_1159"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 415,
+        "y": 653
+      },
+      "end": {
+        "x": 415,
+        "y": 747
+      },
+      "id": "shape_1160"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "x": 550,
+      "y": 578,
+      "text": "Offset Tool",
+      "fontSize": 13,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1161"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 550,
+      "y": 594,
+      "text": "Create parallel or concentric copies",
+      "fontSize": 11,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1162"
+    },
+    {
+      "geometry": "circle",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 665,
+      "y": 700,
+      "radius": 20,
+      "radiusAngle": 0,
+      "id": "shape_1163"
+    },
+    {
+      "geometry": "circle",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 665,
+      "y": 700,
+      "radius": 38,
+      "radiusAngle": 0,
+      "id": "shape_1164"
+    },
+    {
+      "geometry": "circle",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 665,
+      "y": 700,
+      "radius": 56,
+      "radiusAngle": 0,
+      "id": "shape_1165"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 618,
+        "y": 640
+      },
+      "end": {
+        "x": 712,
+        "y": 640
+      },
+      "id": "shape_1166"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 618,
+        "y": 655
+      },
+      "end": {
+        "x": 712,
+        "y": 655
+      },
+      "id": "shape_1167"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 618,
+        "y": 670
+      },
+      "end": {
+        "x": 712,
+        "y": 670
+      },
+      "id": "shape_1168"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "x": 800,
+      "y": 578,
+      "text": "Mirror Tool",
+      "fontSize": 13,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1169"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 800,
+      "y": 594,
+      "text": "Reflect shapes across a mirror line",
+      "fontSize": 11,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1170"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 830.7169709897809,
+        "y": 665
+      },
+      "end": {
+        "x": 869.7169709897809,
+        "y": 682
+      },
+      "id": "shape_1172"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 830.7169709897809,
+        "y": 695
+      },
+      "end": {
+        "x": 889.0561662670048,
+        "y": 718.1470476086272
+      },
+      "id": "shape_1173"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "start": {
+        "x": 830.7169709897809,
+        "y": 730
+      },
+      "end": {
+        "x": 869.7169709897809,
+        "y": 748
+      },
+      "id": "shape_1174"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "dimension",
+      "colorToken": null,
+      "x": 1050,
+      "y": 578,
+      "text": "Text Tool",
+      "fontSize": 13,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1178"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 1050,
+      "y": 594,
+      "text": "Add labels, callouts, and annotations",
+      "fontSize": 11,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1179"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 1058,
+      "y": 682,
+      "text": "SECTION A-A",
+      "fontSize": 13,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1183"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 1058,
+      "y": 645,
+      "text": "12.5 mm",
+      "fontSize": 18,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1184"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 1058,
+      "y": 708,
+      "text": "tolerance ±0.1",
+      "fontSize": 11,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "italic",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1185"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "centerline",
+      "colorToken": null,
+      "start": {
+        "x": 415,
+        "y": 142.2266564942547
+      },
+      "end": {
+        "x": 415,
+        "y": 299.8313731471044
+      },
+      "id": "shape_1190"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "centerline",
+      "colorToken": null,
+      "start": {
+        "x": 339.1314797300065,
+        "y": 215
+      },
+      "end": {
+        "x": 490.13495170629744,
+        "y": 215
+      },
+      "id": "shape_1191"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 49.99999999999966,
+      "y": -30.012446765591662,
+      "text": "Each section demonstrates a drawing tool. Select shapes with the Pointer tool, then try each tool on the canvas!",
+      "fontSize": 12,
+      "fontFamily": "system-ui",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1195"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 145.67725254058905,
+      "y": -277.8300202909003,
+      "text": "⌘",
+      "fontSize": 22,
+      "fontFamily": "Arial",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1199"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 46.56642173037122,
+      "y": -394.2171619192121,
+      "text": "Zoom In",
+      "fontSize": 16,
+      "fontFamily": "Arial",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1202"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 49.99999999999977,
+      "y": -493.8918983039375,
+      "text": "Gestures",
+      "fontSize": 22,
+      "fontFamily": "system-ui",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1203"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "hidden",
+      "colorToken": null,
+      "start": {
+        "x": 78.08330649211507,
+        "y": -344.223966339374
+      },
+      "end": {
+        "x": 140.33423779960413,
+        "y": -281.9730350318853
+      },
+      "id": "shape_1205"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "hidden",
+      "colorToken": null,
+      "start": {
+        "x": 140.33423779960413,
+        "y": -281.9730350318853
+      },
+      "end": {
+        "x": 140.33423779960413,
+        "y": -292.704639309164
+      },
+      "id": "shape_1206"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "hidden",
+      "colorToken": null,
+      "start": {
+        "x": 129.6026335223254,
+        "y": -281.9730350318853
+      },
+      "end": {
+        "x": 140.33423779960413,
+        "y": -281.9730350318853
+      },
+      "id": "shape_1207"
+    },
+    {
+      "geometry": "circle",
+      "type": "plain",
+      "penStyle": "hidden",
+      "colorToken": null,
+      "x": 78.08330649211507,
+      "y": -344.223966339374,
+      "radius": 4.214560121671639,
+      "radiusAngle": 3.141592653589793,
+      "id": "shape_1208"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": null,
+      "y": null,
+      "text": "⌘",
+      "fontSize": 22,
+      "fontFamily": "Arial",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": -3.141592653589789,
+      "id": "shape_1209"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "hidden",
+      "colorToken": null,
+      "start": {
+        "x": 339.0525141364074,
+        "y": -269.84518800127074
+      },
+      "end": {
+        "x": 276.80158282891864,
+        "y": -332.0961193087597
+      },
+      "id": "shape_1211"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "hidden",
+      "colorToken": null,
+      "start": {
+        "x": 276.80158282891864,
+        "y": -332.0961193087597
+      },
+      "end": {
+        "x": 276.8015828289185,
+        "y": -321.36451503148095
+      },
+      "id": "shape_1212"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "hidden",
+      "colorToken": null,
+      "start": {
+        "x": 287.5331871061974,
+        "y": -332.0961193087597
+      },
+      "end": {
+        "x": 276.80158282891864,
+        "y": -332.0961193087597
+      },
+      "id": "shape_1213"
+    },
+    {
+      "geometry": "circle",
+      "type": "plain",
+      "penStyle": "hidden",
+      "colorToken": null,
+      "x": 339.0525141364074,
+      "y": -269.84518800127074,
+      "radius": 4.214560121671639,
+      "radiusAngle": 0,
+      "id": "shape_1214"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 233.15685103656008,
+      "y": -394.2171619192121,
+      "text": "Zoom Out",
+      "fontSize": 16,
+      "fontFamily": "Arial",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1215"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 247.50650014183785,
+      "y": -354.08354988997496,
+      "text": "⌘",
+      "fontSize": 22,
+      "fontFamily": "Arial",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1216"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "hidden",
+      "colorToken": null,
+      "start": {
+        "x": 458.18238821384324,
+        "y": -325.7916752207759
+      },
+      "end": {
+        "x": 546.2184995392498,
+        "y": -325.7916752207759
+      },
+      "id": "shape_1217"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "hidden",
+      "colorToken": null,
+      "start": {
+        "x": 546.2184995392498,
+        "y": -325.7916752207759
+      },
+      "end": {
+        "x": 538.6301093817756,
+        "y": -333.3800653782504
+      },
+      "id": "shape_1218"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "hidden",
+      "colorToken": null,
+      "start": {
+        "x": 538.6301093817756,
+        "y": -318.20328506330156
+      },
+      "end": {
+        "x": 546.2184995392498,
+        "y": -325.7916752207759
+      },
+      "id": "shape_1219"
+    },
+    {
+      "geometry": "circle",
+      "type": "plain",
+      "penStyle": "hidden",
+      "colorToken": null,
+      "x": 458.18238821384324,
+      "y": -325.7916752207759,
+      "radius": 4.214560121671639,
+      "radiusAngle": 0,
+      "id": "shape_1220"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 739.0117515928025,
+      "y": -346.5908047755114,
+      "text": "⌘",
+      "fontSize": 22,
+      "fontFamily": "Arial",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1222"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 442.5075451490749,
+      "y": -394.2171619192121,
+      "text": "Horizontal Guide",
+      "fontSize": 16,
+      "fontFamily": "Arial",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1229"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 686.8155159735884,
+      "y": -394.2171619192121,
+      "text": "Vertical Guide",
+      "fontSize": 16,
+      "fontFamily": "Arial",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1232"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "hidden",
+      "colorToken": null,
+      "start": {
+        "x": 749.7150577179228,
+        "y": -225.7035505778527
+      },
+      "end": {
+        "x": 749.7150577179228,
+        "y": -313.7396619032592
+      },
+      "id": "shape_1233"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "hidden",
+      "colorToken": null,
+      "start": {
+        "x": 749.7150577179228,
+        "y": -313.7396619032592
+      },
+      "end": {
+        "x": 742.1266675604484,
+        "y": -306.1512717457851
+      },
+      "id": "shape_1234"
+    },
+    {
+      "geometry": "line",
+      "type": "plain",
+      "penStyle": "hidden",
+      "colorToken": null,
+      "start": {
+        "x": 757.3034478753972,
+        "y": -306.1512717457851
+      },
+      "end": {
+        "x": 749.7150577179228,
+        "y": -313.7396619032592
+      },
+      "id": "shape_1235"
+    },
+    {
+      "geometry": "circle",
+      "type": "plain",
+      "penStyle": "hidden",
+      "colorToken": null,
+      "x": 749.7150577179228,
+      "y": -225.7035505778527,
+      "radius": 4.214560121671639,
+      "radiusAngle": -1.5707963267948966,
+      "id": "shape_1236"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 565.2621597159969,
+      "y": -336.7172203548269,
+      "text": "⌘",
+      "fontSize": 22,
+      "fontFamily": "Arial",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1237"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 50.000000000000036,
+      "y": -449.5250467127262,
+      "text": "Hold the command key to draw guides, zoom in our out, or to click to reveal control points on a shape",
+      "fontSize": 16,
+      "fontFamily": "Arial",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1239"
+    },
+    {
+      "geometry": "spline",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "p0": {
+        "x": 899.5646603723854,
+        "y": -237.47751488940372
+      },
+      "p1": {
+        "x": 941.4048570433105,
+        "y": -333.8072700154871
+      },
+      "p2": {
+        "x": 1047.9514043797362,
+        "y": -227.26072267906147
+      },
+      "p3": {
+        "x": 1084.4399479881013,
+        "y": -333.8072700154871
+      },
+      "id": "shape_1240"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 900.8546663055527,
+      "y": -394.2171619192121,
+      "text": "Click for control points",
+      "fontSize": 16,
+      "fontFamily": "Arial",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1242"
+    },
+    {
+      "geometry": "mirror",
+      "startX": 889.0561662670048,
+      "startY": 643.5809895881889,
+      "endX": 889.0561662670048,
+      "endY": 763.9249439882634,
+      "width": 120.3439544000745,
+      "capturedShapeIds": [
+        "shape_1172",
+        "shape_1173",
+        "shape_1174",
+        "shape_1209"
+      ],
+      "penStyle": "visible",
+      "colorToken": null,
+      "id": "shape_1243"
+    },
+    {
+      "geometry": "text",
+      "type": "plain",
+      "penStyle": "visible",
+      "colorToken": null,
+      "x": 949.7646412831846,
+      "y": -291.8265039057826,
+      "text": "⌘",
+      "fontSize": 22,
+      "fontFamily": "Arial",
+      "fontWeight": "bold",
+      "fontStyle": "normal",
+      "alignment": "left",
+      "boxWidth": null,
+      "boxHeight": null,
+      "rotation": 0,
+      "id": "shape_1244"
+    }
+  ],
+  "constructions": [
+    {
+      "geometry": "line",
+      "type": "construction",
+      "x": -56.46807398494457,
+      "y": -532.4008970065667,
+      "angle": 0
+    },
+    {
+      "geometry": "line",
+      "type": "construction",
+      "x": -56.40162096500171,
+      "y": -554.528657649169,
+      "angle": 0
+    }
+  ],
+  "groups": [],
+  "colorPalette": [],
   "backgroundColor": "#F8F8F8",
   "theme": "light",
   "penStyleOverrides": {},
   "gridVisible": false,
-  "snapToGrid": false,
-  "colorPalette": [],
-  "constructions": [],
-  "groups": [],
-  "shapes": [
-
-    { "id": "g1", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 40, "y": 12, "text": "Layout Playground", "fontSize": 22, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "g2", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 40, "y": 42, "text": "Each section demonstrates a drawing tool. Select shapes with the Pointer tool, then try each tool on the canvas!", "fontSize": 12, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-
-    { "id": "s00t", "geometry": "text", "type": "plain", "penStyle": "dimension", "x": 50, "y": 88, "text": "Line Tool", "fontSize": 13, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s00d", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 50, "y": 104, "text": "Draw straight lines between two points", "fontSize": 11, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s00_1", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 115, "y": 210 }, "end": { "x": 215, "y": 210 } },
-    { "id": "s00_2", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 115, "y": 230 }, "end": { "x": 215, "y": 250 } },
-    { "id": "s00_3", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 140, "y": 210 }, "end": { "x": 155, "y": 255 } },
-    { "id": "s00_4", "geometry": "line", "type": "plain", "penStyle": "centerline", "start": { "x": 115, "y": 175 }, "end": { "x": 215, "y": 175 } },
-
-    { "id": "s10t", "geometry": "text", "type": "plain", "penStyle": "dimension", "x": 300, "y": 88, "text": "Circle Tool", "fontSize": 13, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s10d", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 300, "y": 104, "text": "Click center, drag to set radius", "fontSize": 11, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s10_1", "geometry": "circle", "type": "plain", "penStyle": "visible", "x": 415, "y": 215, "radius": 48, "radiusAngle": 0 },
-    { "id": "s10_2", "geometry": "circle", "type": "plain", "penStyle": "centerline", "x": 415, "y": 215, "radius": 24, "radiusAngle": 0 },
-
-    { "id": "s20t", "geometry": "text", "type": "plain", "penStyle": "dimension", "x": 550, "y": 88, "text": "Arc Tool", "fontSize": 13, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s20d", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 550, "y": 104, "text": "Draw partial arcs (3-point or center+radius)", "fontSize": 11, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s20_1", "geometry": "arc", "type": "plain", "penStyle": "visible", "x": 658, "y": 208, "radius": 44, "startAngle": 0.3, "endAngle": 2.9 },
-    { "id": "s20_2", "geometry": "arc", "type": "plain", "penStyle": "visible", "x": 672, "y": 228, "radius": 28, "startAngle": 3.5, "endAngle": 5.9 },
-
-    { "id": "s30t", "geometry": "text", "type": "plain", "penStyle": "dimension", "x": 800, "y": 88, "text": "Ellipse Tool", "fontSize": 13, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s30d", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 800, "y": 104, "text": "Draw ovals by corner or center point", "fontSize": 11, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s30_1", "geometry": "ellipse", "type": "plain", "penStyle": "visible", "x": 915, "y": 215, "radiusX": 62, "radiusY": 32, "rotation": 0, "cornerAngle": 0, "controlMode": "center" },
-
-    { "id": "s40t", "geometry": "text", "type": "plain", "penStyle": "dimension", "x": 1050, "y": 88, "text": "Spline Tool", "fontSize": 13, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s40d", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 1050, "y": 104, "text": "Cubic Bezier curves with draggable handles", "fontSize": 11, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s40_1", "geometry": "spline", "type": "plain", "penStyle": "visible", "p0": { "x": 1105, "y": 250 }, "p1": { "x": 1120, "y": 168 }, "p2": { "x": 1200, "y": 282 }, "p3": { "x": 1215, "y": 195 } },
-    { "id": "s40_2", "geometry": "spline", "type": "plain", "penStyle": "construction", "p0": { "x": 1105, "y": 195 }, "p1": { "x": 1150, "y": 170 }, "p2": { "x": 1165, "y": 248 }, "p3": { "x": 1215, "y": 215 } },
-
-    { "id": "s01t", "geometry": "text", "type": "plain", "penStyle": "dimension", "x": 50, "y": 333, "text": "Box Tool", "fontSize": 13, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s01d", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 50, "y": 349, "text": "Draw rectangles (creates 4 connected lines)", "fontSize": 11, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s01_1", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 115, "y": 445 }, "end": { "x": 215, "y": 445 } },
-    { "id": "s01_2", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 215, "y": 445 }, "end": { "x": 215, "y": 500 } },
-    { "id": "s01_3", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 215, "y": 500 }, "end": { "x": 115, "y": 500 } },
-    { "id": "s01_4", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 115, "y": 500 }, "end": { "x": 115, "y": 445 } },
-
-    { "id": "s11t", "geometry": "text", "type": "plain", "penStyle": "dimension", "x": 300, "y": 333, "text": "Polygon Tool", "fontSize": 13, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s11d", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 300, "y": 349, "text": "Regular polygons \u2014 triangles to 12-gons", "fontSize": 11, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s11_1", "geometry": "polygon", "type": "plain", "penStyle": "visible", "x": 395, "y": 470, "radius": 46, "sides": 6, "radiusAngle": -1.5708 },
-    { "id": "s11_2", "geometry": "polygon", "type": "plain", "penStyle": "visible", "x": 445, "y": 460, "radius": 22, "sides": 3, "radiusAngle": -1.5708 },
-
-    { "id": "s21t", "geometry": "text", "type": "plain", "penStyle": "dimension", "x": 550, "y": 333, "text": "Slot Tool", "fontSize": 13, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s21d", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 550, "y": 349, "text": "Oblong slots with semicircular ends", "fontSize": 11, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s21_1", "geometry": "slot", "type": "plain", "penStyle": "visible", "startX": 608, "startY": 465, "endX": 722, "endY": 465, "width": 48 },
-    { "id": "s21_2", "geometry": "slot", "type": "plain", "penStyle": "visible", "startX": 622, "startY": 445, "endX": 708, "endY": 445, "width": 24 },
-
-    { "id": "s31t", "geometry": "text", "type": "plain", "penStyle": "dimension", "x": 800, "y": 333, "text": "Board Tool", "fontSize": 13, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s31d", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 800, "y": 349, "text": "Lumber boards with standard thickness presets", "fontSize": 11, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s31_1", "geometry": "board", "type": "plain", "penStyle": "visible", "startX": 850, "startY": 455, "endX": 980, "endY": 455, "thickness": 19, "presetName": null, "alignment": "center" },
-    { "id": "s31_2", "geometry": "board", "type": "plain", "penStyle": "visible", "startX": 850, "startY": 495, "endX": 980, "endY": 495, "thickness": 38, "presetName": null, "alignment": "center" },
-
-    { "id": "s41t", "geometry": "text", "type": "plain", "penStyle": "dimension", "x": 1050, "y": 333, "text": "Dimension Tool", "fontSize": 13, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s41d", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 1050, "y": 349, "text": "Linear, radial, and angle measurements", "fontSize": 11, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s41_ln", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 1090, "y": 490 }, "end": { "x": 1240, "y": 490 } },
-    { "id": "s41_dm", "geometry": "dimension", "type": "plain", "penStyle": "dimension", "start": { "x": 1090, "y": 490 }, "end": { "x": 1240, "y": 490 }, "offset": 30 },
-    { "id": "s41_ci", "geometry": "circle", "type": "plain", "penStyle": "visible", "x": 1165, "y": 443, "radius": 28, "radiusAngle": 0 },
-    { "id": "s41_rd", "geometry": "radial_dimension", "type": "plain", "penStyle": "dimension", "center": { "x": 1165, "y": 443 }, "radius": 28, "angle": 0.8, "mode": "radius", "textX": null, "textY": null },
-
-    { "id": "s02t", "geometry": "text", "type": "plain", "penStyle": "dimension", "x": 50, "y": 578, "text": "Fillet Tool", "fontSize": 13, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s02d", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 50, "y": 594, "text": "Round corners between two lines", "fontSize": 11, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s02_1", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 115, "y": 660 }, "end": { "x": 115, "y": 740 } },
-    { "id": "s02_2", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 115, "y": 740 }, "end": { "x": 175, "y": 740 } },
-    { "id": "s02_3", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 175, "y": 660 }, "end": { "x": 215, "y": 660 } },
-    { "id": "s02_4", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 215, "y": 660 }, "end": { "x": 215, "y": 740 } },
-
-    { "id": "s12t", "geometry": "text", "type": "plain", "penStyle": "dimension", "x": 300, "y": 578, "text": "Trim Tool", "fontSize": 13, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s12d", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 300, "y": 594, "text": "Trim lines and arcs at intersections", "fontSize": 11, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s12_1", "geometry": "circle", "type": "plain", "penStyle": "visible", "x": 415, "y": 700, "radius": 38, "radiusAngle": 0 },
-    { "id": "s12_2", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 368, "y": 700 }, "end": { "x": 462, "y": 700 } },
-    { "id": "s12_3", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 415, "y": 653 }, "end": { "x": 415, "y": 747 } },
-
-    { "id": "s22t", "geometry": "text", "type": "plain", "penStyle": "dimension", "x": 550, "y": 578, "text": "Offset Tool", "fontSize": 13, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s22d", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 550, "y": 594, "text": "Create parallel or concentric copies", "fontSize": 11, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s22_1", "geometry": "circle", "type": "plain", "penStyle": "visible", "x": 665, "y": 700, "radius": 20, "radiusAngle": 0 },
-    { "id": "s22_2", "geometry": "circle", "type": "plain", "penStyle": "visible", "x": 665, "y": 700, "radius": 38, "radiusAngle": 0 },
-    { "id": "s22_3", "geometry": "circle", "type": "plain", "penStyle": "visible", "x": 665, "y": 700, "radius": 56, "radiusAngle": 0 },
-    { "id": "s22_4", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 618, "y": 640 }, "end": { "x": 712, "y": 640 } },
-    { "id": "s22_5", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 618, "y": 655 }, "end": { "x": 712, "y": 655 } },
-    { "id": "s22_6", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 618, "y": 670 }, "end": { "x": 712, "y": 670 } },
-
-    { "id": "s32t", "geometry": "text", "type": "plain", "penStyle": "dimension", "x": 800, "y": 578, "text": "Mirror Tool", "fontSize": 13, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s32d", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 800, "y": 594, "text": "Reflect shapes across a mirror line", "fontSize": 11, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s32_ax", "geometry": "line", "type": "plain", "penStyle": "construction", "start": { "x": 915, "y": 648 }, "end": { "x": 915, "y": 752 } },
-    { "id": "s32_l1", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 868, "y": 665 }, "end": { "x": 907, "y": 682 } },
-    { "id": "s32_l2", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 868, "y": 695 }, "end": { "x": 907, "y": 718 } },
-    { "id": "s32_l3", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 868, "y": 730 }, "end": { "x": 907, "y": 748 } },
-    { "id": "s32_r1", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 923, "y": 665 }, "end": { "x": 962, "y": 682 } },
-    { "id": "s32_r2", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 923, "y": 695 }, "end": { "x": 962, "y": 718 } },
-    { "id": "s32_r3", "geometry": "line", "type": "plain", "penStyle": "visible", "start": { "x": 923, "y": 730 }, "end": { "x": 962, "y": 748 } },
-
-    { "id": "s42t", "geometry": "text", "type": "plain", "penStyle": "dimension", "x": 1050, "y": 578, "text": "Text Tool", "fontSize": 13, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s42d", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 1050, "y": 594, "text": "Add labels, callouts, and annotations", "fontSize": 11, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s42_1", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 1058, "y": 645, "text": "12.5 mm", "fontSize": 18, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s42_2", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 1058, "y": 682, "text": "SECTION A-A", "fontSize": 13, "fontFamily": "system-ui", "fontWeight": "bold", "fontStyle": "normal", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 },
-    { "id": "s42_3", "geometry": "text", "type": "plain", "penStyle": "visible", "x": 1058, "y": 708, "text": "tolerance \u00b10.1", "fontSize": 11, "fontFamily": "system-ui", "fontWeight": "normal", "fontStyle": "italic", "alignment": "left", "boxWidth": null, "boxHeight": null, "rotation": 0 }
-
-  ]
+  "snapToGrid": false
 }

@@ -7,6 +7,7 @@ import stage 				from '../core/Stage.js';
 import data 				from '../data/Data.js';
 import undoManager			from '../core/UndoManager.js';
 import toolManager			from './ToolManager.js';
+import inspector			from '../core/Inspector.js';
 
 const STATE = {
 	IDLE: 0,
@@ -23,6 +24,12 @@ export class TextTool extends Tool
 		this.usage 	= "Click to place text, then type. Escape to finish.";
 
 		this.generateGuides 	= false;
+
+		// Defaults for new text (remembered across placements)
+		this.defaultFontSize 	= 16;
+		this.defaultFontFamily 	= 'Arial';
+		this.defaultFontWeight 	= 'normal';
+		this.defaultFontStyle 	= 'normal';
 
 		this.state 				= STATE.IDLE;
 		this.text 				= null;
@@ -51,10 +58,90 @@ export class TextTool extends Tool
 	begin(){
 		this.state = STATE.IDLE;
 		this._textarea = document.getElementById('textEditInput');
+		inspector.showToolPanel(this);
 	}
 
 	deactivate(){
 		this.commitText();
+		inspector.clearToolPanel();
+	}
+
+	getInspectorSchema(){
+		const fontOptions = [
+			{ value: 'Arial', label: 'Arial' },
+			{ value: 'Helvetica', label: 'Helvetica' },
+			{ value: 'Times New Roman', label: 'Times New Roman' },
+			{ value: 'Georgia', label: 'Georgia' },
+			{ value: 'Courier New', label: 'Courier New' },
+			{ value: 'Verdana', label: 'Verdana' },
+			{ value: 'Tahoma', label: 'Tahoma' },
+			{ value: 'Trebuchet MS', label: 'Trebuchet MS' },
+			{ value: 'Impact', label: 'Impact' },
+			{ value: 'Comic Sans MS', label: 'Comic Sans MS' }
+		];
+
+		// Edit the active text shape if editing, otherwise show defaults
+		const target = this.text || this;
+		const isText = !!this.text;
+		const getFontFamily = () => isText ? target.fontFamily : this.defaultFontFamily;
+		const getFontSize   = () => isText ? target.fontSize   : this.defaultFontSize;
+		const getFontWeight = () => isText ? target.fontWeight  : this.defaultFontWeight;
+		const getFontStyle  = () => isText ? target.fontStyle   : this.defaultFontStyle;
+
+		return {
+			name: 'Text',
+			sections: [
+				{
+					title: 'Font',
+					fields: [
+						{
+							key: 'fontFamily',
+							label: 'Family',
+							type: 'select',
+							options: fontOptions,
+							get: getFontFamily,
+							set: (v) => {
+								if (this.text) { this.text.fontFamily = v; this.text.update(); this._positionTextarea(); stage.render(); }
+								this.defaultFontFamily = v;
+							}
+						},
+						{
+							key: 'fontSize',
+							label: 'Size',
+							type: 'number',
+							min: 1, max: 500, step: 1, precision: 0,
+							get: getFontSize,
+							set: (v) => {
+								if (this.text) { this.text.fontSize = v; this.text.update(); this._positionTextarea(); stage.render(); }
+								this.defaultFontSize = v;
+							}
+						},
+						{
+							key: 'fontWeight',
+							label: 'Bold',
+							type: 'checkbox',
+							get: () => getFontWeight() === 'bold',
+							set: (v) => {
+								const w = v ? 'bold' : 'normal';
+								if (this.text) { this.text.fontWeight = w; this.text.update(); this._positionTextarea(); stage.render(); }
+								this.defaultFontWeight = w;
+							}
+						},
+						{
+							key: 'fontStyle',
+							label: 'Italic',
+							type: 'checkbox',
+							get: () => getFontStyle() === 'italic',
+							set: (v) => {
+								const s = v ? 'italic' : 'normal';
+								if (this.text) { this.text.fontStyle = s; this.text.update(); this._positionTextarea(); stage.render(); }
+								this.defaultFontStyle = s;
+							}
+						}
+					]
+				}
+			]
+		};
 	}
 
 	updateCursor(){
@@ -141,13 +228,16 @@ export class TextTool extends Tool
 
 		// Create new text at click position
 		data.selectNone();
-		this.text = new Text([worldPos.x, worldPos.y, '', 16, 'Arial']);
+		this.text = new Text([worldPos.x, worldPos.y, '', this.defaultFontSize, this.defaultFontFamily]);
+		this.text.fontWeight = this.defaultFontWeight;
+		this.text.fontStyle = this.defaultFontStyle;
 		this.isEditingExisting = false;
 		data.addTempShape(this.text);
 
 		this.state = STATE.EDITING;
 		this._showTextarea('');
 		this.startCursorBlink();
+		inspector.showToolPanel(this);
 		stage.render();
 	}
 
@@ -171,6 +261,7 @@ export class TextTool extends Tool
 		this._syncCursor();
 
 		this.startCursorBlink();
+		inspector.showToolPanel(this);
 		stage.render();
 	}
 
