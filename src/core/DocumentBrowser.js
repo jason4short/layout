@@ -81,7 +81,8 @@ class DocumentBrowser {
 				e.stopPropagation();
 				if (!confirm(`Delete "${doc.name}"?`)) return;
 				await fileManager.storage.deleteDocument(doc.id);
-				if (doc.id === fileManager.currentDocumentId) {
+				if (fileManager.tabBar) await fileManager.tabBar.removeTab(doc.id);
+				if (doc.id === fileManager.currentDocumentId && (!fileManager.tabBar || fileManager.tabBar.tabs.length === 0)) {
 					await fileManager.newDocument();
 					inspector.update();
 				}

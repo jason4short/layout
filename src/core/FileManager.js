@@ -61,7 +61,7 @@ class FileManager
 		const dirty = this._dirty ? ' *' : '';
 		document.title = `${name} - ${this._baseTitle}${dirty}`;
 		if (this.tabBar) {
-			this.tabBar.updateActive(name, this._dirty);
+			this.tabBar.updateForDocument(this.currentDocumentId, name, this._dirty);
 		}
 	}
 
@@ -177,32 +177,43 @@ class FileManager
 		return id;
 	}
 
-	// Rename the current document
+	// Rename the current document (saves even if document is empty)
 	async renameDocument(newName) {
 		if (!newName || !newName.trim()) return;
 		this.currentDocumentName = newName.trim();
 		this._updateTitle();
-		await this._autoSave();
+		if (this.storage && this.currentDocumentId) {
+			const json = this.toJSON();
+			const thumbnail = this._captureThumbnail();
+			await this.storage.saveDocument({
+				id: this.currentDocumentId,
+				name: this.currentDocumentName,
+				data: json,
+				thumbnail: thumbnail
+			});
+			this._setDirty(false);
+		}
 	}
 
 	// Load a document from storage by id
 	async loadFromStorage(id) {
-		if (!this.storage) return;
+		if (!this.storage) return false;
 		// Clean up current doc if it's empty before switching
 		await this._cleanupEmptyDocument();
 		const doc = await this.storage.loadDocument(id);
 		if (!doc) {
 			console.error('Document not found:', id);
-			return;
+			return false;
 		}
 		this.fromJSON(doc.data);
 		this.currentDocumentId = doc.id;
 		this.currentDocumentName = doc.name;
-		this._updateTitle();
 		if (this.tabBar) {
-			this.tabBar.openTab(doc.id, doc.name);
+			await this.tabBar.openTab(doc.id, doc.name);
 		}
+		this._updateTitle();
 		document.dispatchEvent(new CustomEvent('document-loaded'));
+		return true;
 	}
 
 	// Show confirmation dialog if there are unsaved changes, then run callback
@@ -538,7 +549,7 @@ class FileManager
 		this._setDirty(false);
 		this._updateTitle();
 		if (this.tabBar) {
-			this.tabBar.openTab(this.currentDocumentId, this.currentDocumentName);
+			await this.tabBar.openTab(this.currentDocumentId, this.currentDocumentName);
 		}
 		stage.render();
 		console.log('New document created');

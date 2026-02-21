@@ -3,6 +3,7 @@
 
 import fileManager from './FileManager.js';
 import inspector from './Inspector.js';
+import stage from './Stage.js';
 
 class TabBar {
 	constructor(el) {
@@ -42,20 +43,27 @@ class TabBar {
 		if (this._switching) return;
 
 		this._switching = true;
+		const previousIndex = this.activeIndex;
+		try {
+			// Auto-save current doc before switching
+			if (this.activeIndex >= 0 && fileManager.storage && fileManager.currentDocumentId) {
+				await fileManager._autoSave();
+			}
 
-		// Auto-save current doc before switching
-		if (this.activeIndex >= 0 && fileManager.storage && fileManager.currentDocumentId) {
-			await fileManager._autoSave();
+			// Load target document
+			const target = this.tabs[index];
+			this.activeIndex = index;
+			const loaded = await fileManager.loadFromStorage(target.docId);
+			if (!loaded) {
+				this.activeIndex = previousIndex;
+				this._render();
+				return;
+			}
+			inspector.update();
+			this._render();
+		} finally {
+			this._switching = false;
 		}
-
-		// Load target document
-		const target = this.tabs[index];
-		this.activeIndex = index;
-		await fileManager.loadFromStorage(target.docId);
-		inspector.update();
-
-		this._switching = false;
-		this._render();
 	}
 
 	// Close a tab
@@ -96,6 +104,36 @@ class TabBar {
 		}
 	}
 
+	// Remove a tab by document ID (e.g. when a document is deleted)
+	async removeTab(docId) {
+		const index = this.tabs.findIndex(t => t.docId === docId);
+		if (index < 0) return;
+
+		const wasActive = index === this.activeIndex;
+		this.tabs.splice(index, 1);
+
+		if (this.tabs.length === 0) {
+			this.activeIndex = -1;
+			this._render();
+			return;
+		}
+
+		if (index < this.activeIndex) {
+			this.activeIndex--;
+		} else if (wasActive) {
+			this.activeIndex = Math.min(index, this.tabs.length - 1);
+		}
+
+		this._render();
+
+		// If the active document tab was removed, load the newly active tab document.
+		if (wasActive) {
+			const nextIndex = this.activeIndex;
+			this.activeIndex = -1; // force switchTab to run
+			await this.switchTab(nextIndex);
+		}
+	}
+
 	// Update the active tab's name and dirty state
 	updateActive(name, dirty) {
 		if (this.activeIndex < 0 || this.activeIndex >= this.tabs.length) return;
@@ -103,6 +141,23 @@ class TabBar {
 		tab.name = name;
 		tab.dirty = dirty;
 		this._render();
+	}
+
+	// Update tab by document id (more robust than activeIndex-based updates)
+	updateForDocument(docId, name, dirty) {
+		const idx = this.tabs.findIndex(t => t.docId === docId);
+		if (idx >= 0) {
+			this.tabs[idx].name = name;
+			this.tabs[idx].dirty = dirty;
+			this._render();
+			return;
+		}
+
+		// Do not relabel by activeIndex when docId isn't present yet.
+		// The tab will be updated once it's created/opened.
+		if (docId == null) {
+			this.updateActive(name, dirty);
+		}
 	}
 
 	// Save open tabs to localStorage
