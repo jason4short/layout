@@ -128,7 +128,6 @@ class ToolManager extends EventDispatcher
 			{ category: 'Modify' },
 			{ tool: this.trimTool, 					name: 'Trim', shortcut: 'T', icon: 'trim' },
 			{ tool: this.filletTool, 				name: 'Fillet', shortcut: 'F', icon: 'fillet' },
-			{ tool: this.filletTest, 				name: 'Fillet Test', shortcut: null, icon: 'fillet' },
 			{ tool: this.chamferTool, 				name: 'Chamfer', shortcut: 'K', icon: 'chamfer' },
 			{ tool: this.parallelLineTool, 			name: 'Offset', shortcut: 'P', icon: 'parallel' },
 			{ tool: this.scaleTool, 				name: 'Scale', shortcut: 'X', icon: 'scale' },

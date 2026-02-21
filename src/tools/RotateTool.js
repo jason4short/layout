@@ -58,7 +58,8 @@ export class RotateTool extends Tool
 	}
 	
 	updateCursor(){
-		stage.setCursor('rotate', 0, 0);
+		stage.setCursor('crosshair');
+		//stage.setCursor('rotate', 0, 0);
 	}
 	
 

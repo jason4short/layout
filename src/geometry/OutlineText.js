@@ -385,18 +385,7 @@ export class OutlineText extends Geometry {
 		const path = this.getPath();
 
 		if (!path) {
-			// Font not loaded yet - draw placeholder
-			const screenPos = renderer.toScreen(this.x, this.y);
-			ctx.strokeStyle = this.selected ? '#FF0000' : '#999';
-			ctx.lineWidth = 1;
-			ctx.setLineDash([2, 2]);
-			ctx.strokeRect(
-				screenPos.x,
-				screenPos.y,
-				renderer.toScreenScale(this.fontSize * this.text.length * 0.6),
-				renderer.toScreenScale(this.fontSize)
-			);
-			ctx.setLineDash([]);
+			// Font not loaded yet - skip drawing until ready
 			return;
 		}
 

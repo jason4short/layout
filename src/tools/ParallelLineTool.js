@@ -66,7 +66,8 @@ export class ParallelLineTool extends Tool
 	}
 	
 	updateCursor(){
-		stage.setCursor('parallel');
+		stage.setCursor('crosshair');
+//		stage.setCursor('parallel');
 	}
 
 	// Find the line closest to a point

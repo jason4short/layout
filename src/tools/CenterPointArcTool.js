@@ -51,7 +51,8 @@ export class CenterPointArcTool extends Tool
 	}
 
 	updateCursor(){
-		stage.setCursor('arc');
+		stage.setCursor('crosshair');
+		//stage.setCursor('arc');
 	}
 	
 	reset(){

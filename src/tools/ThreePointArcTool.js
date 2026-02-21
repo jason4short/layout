@@ -64,7 +64,8 @@ export class ThreePointArcTool extends Tool
 	}
 
 	updateCursor(){
-		stage.setCursor('arc3');
+		//stage.setCursor('arc3');
+		stage.setCursor('crosshair');
 	}
 
 	onMouseDown(e)

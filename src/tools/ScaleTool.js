@@ -65,7 +65,8 @@ export class ScaleTool extends Tool
 	}
 
 	updateCursor(){
-		stage.setCursor('scale', 0, 0);
+		stage.setCursor('crosshair');
+		//stage.setCursor('scale', 0, 0);
 	}
 
 	resetState(){

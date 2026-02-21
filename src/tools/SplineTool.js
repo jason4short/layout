@@ -67,7 +67,8 @@ export class SplineTool extends Tool
 		data.resetSnaps();
 	}
 	updateCursor(){
-		stage.setCursor('spline', 0, 0);
+		//stage.setCursor('spline', 0, 0);
+		stage.setCursor('crosshair');
 	}
 
 	onMouseDown(e)

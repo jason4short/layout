@@ -50,7 +50,8 @@ export class TangentPointArcTool extends Tool
 		this.reset();
 	}
 	updateCursor(){
-		stage.setCursor('arcTan');
+		stage.setCursor('crosshair');
+		//stage.setCursor('arcTan');
 	}
 
 	reset(){

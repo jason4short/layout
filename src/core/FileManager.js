@@ -135,7 +135,9 @@ class FileManager
 	async _cleanupEmptyDocument() {
 		if (!this.storage || !this.currentDocumentId) return;
 		if (this._isDocumentEmpty()) {
-			await this.storage.deleteDocument(this.currentDocumentId);
+			const docId = this.currentDocumentId;
+			await this.storage.deleteDocument(docId);
+			if (this.tabBar) this.tabBar.removeTab(docId);
 			this.currentDocumentId = null;
 		}
 	}

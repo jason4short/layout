@@ -211,6 +211,20 @@ class TabBar {
 			el.addEventListener('click', () => this.switchTab(i));
 			this.el.appendChild(el);
 		}
+
+		// New document button
+		const newBtn = document.createElement('button');
+		newBtn.className = 'tab-new';
+		newBtn.textContent = '+';
+		newBtn.title = 'New Design';
+		newBtn.addEventListener('click', async () => {
+			if (fileManager.storage && fileManager.currentDocumentId) {
+				await fileManager._autoSave();
+			}
+			await fileManager.newDocument();
+			inspector.update();
+		});
+		this.el.appendChild(newBtn);
 	}
 
 	// Inline rename on double-click

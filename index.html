@@ -33,12 +33,14 @@
 
 			/* ---- Tab Bar ---- */
 			.tab-bar { position:absolute; top:10px; left:122px; display:flex; align-items:center; height:26px; overflow-x:auto; gap:6px; z-index:10; }
-			.tab { display:flex; align-items:center; gap:6px; padding:0 12px; height:26px; font-size:13px; color:#111; background:#c3c3c3; border:none; border-radius:70px; cursor:pointer; white-space:nowrap; user-select:none; min-width:0; }
-			.tab:hover { background:#d0d0d0; }
+			.tab { display:flex; align-items:center; gap:6px; padding:0 12px; height:26px; font-size:13px; color:#111; background:#D8D8D8; border:none; border-radius:70px; cursor:pointer; white-space:nowrap; user-select:none; min-width:0; }
+			.tab:hover { background:#e0e0e0; }
 			.tab.active { background:#fff; }
 			.tab-label { overflow:hidden; text-overflow:ellipsis; max-width:150px; }
 			.tab-close { font-size:11px; color:#999; cursor:pointer; line-height:1; padding:0 2px; }
 			.tab-close:hover { color:#333; }
+			.tab-new { width:24px; height:24px; border-radius:50%; border:none; background:#fff; color:#999; font-size:16px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; padding:0; }
+			.tab-new:hover { background:#e5e5e5; color:#333; }
 			.tab-rename { border:none; outline:none; background:transparent; font-size:13px; color:#111; width:120px; padding:0; margin:0; font-family:inherit; }
 
 			/* ---- Layout ---- */
@@ -242,7 +244,7 @@
 					<div class="menu-trigger" id="menuFile">File
 						<div class="menu-dropdown">
 							<div class="menu-item" id="menuDocuments">All Documents</div>
-							<div class="menu-item" id="menuNew">New Design<span class="shortcut">&#8984;N</span></div>
+							<div class="menu-item" id="menuNew">New Design</div>
 							<div class="menu-separator"></div>
 							<div class="menu-item" id="menuImportFile">Open Local File</div>
 							<div class="menu-item" id="menuImportSVG">Import SVG</div>
