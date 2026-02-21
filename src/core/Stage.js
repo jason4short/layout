@@ -324,8 +324,8 @@ class Stage extends View
 
 		if(e.code === 'Space') this.spaceKey = true;
 
-		// If typing in an input, don't intercept keys (except global shortcuts)
-		if (this.isInputFocused() && !this.commandKey) {
+		// If typing in an input, don't intercept keys
+		if (this.isInputFocused()) {
 			// Allow Escape to blur the input and return to canvas
 			if (e.key === 'Escape') {
 				document.activeElement.blur();

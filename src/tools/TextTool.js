@@ -7,11 +7,10 @@ import stage 				from '../core/Stage.js';
 import data 				from '../data/Data.js';
 import undoManager			from '../core/UndoManager.js';
 import toolManager			from './ToolManager.js';
-//import events 				from '../core/Events.js';
 
 const STATE = {
 	IDLE: 0,
-	EDITING: 1      // Typing text on canvas
+	EDITING: 1
 };
 
 export class TextTool extends Tool
@@ -21,36 +20,41 @@ export class TextTool extends Tool
 		super();
 
 		this.name 	= "Text";
-		this.usage 	= "Click to place text, then type. Enter for new line, Escape to finish.";
+		this.usage 	= "Click to place text, then type. Escape to finish.";
 
 		this.generateGuides 	= false;
 
 		this.state 				= STATE.IDLE;
 		this.text 				= null;
-		this.cursorPos 			= 0;  // Character position in text
-		this.selectionStart 	= null;  // Start of selection (null = no selection)
-		this.selectionEnd 		= null;  // End of selection
-		this.isSelecting 		= false; // Currently dragging to select
+		this.isEditingExisting 	= false;
 		this.cursorVisible 		= true;
 		this.cursorBlinkTimer 	= null;
-		this.isEditingExisting 	= false;
+		this._textarea 			= null;
+		this._blurTimeout 		= null;
+		this._positionSyncTimer = null;
+		this._resizeObserver 	= null;
+		this._expectedWidth 	= 0;
+		this._expectedHeight 	= 0;
 
-		this.onMouseMove 		= this.onMouseMove.bind(this);
-		this.onMouseDown 		= this.onMouseDown.bind(this);
-		this.onMouseUp 			= this.onMouseUp.bind(this);
-		this.onKeyDown 			= this.onKeyDown.bind(this);
+		// Cursor/selection state (synced from textarea)
+		this.cursorPos 			= 0;
+		this.selectionStart 	= null;
+		this.selectionEnd 		= null;
+
+		this.onMouseDown 			= this.onMouseDown.bind(this);
+		this._onInput 				= this._onInput.bind(this);
+		this._onKeydown 			= this._onKeydown.bind(this);
+		this._onSelectionChange 	= this._onSelectionChange.bind(this);
+		this._onBlur 				= this._onBlur.bind(this);
 	}
 
 	begin(){
 		this.state = STATE.IDLE;
-		// Add keyboard listener for text input
-		stage.addEventListener('keyDown', this.onKeyDown);
+		this._textarea = document.getElementById('textEditInput');
 	}
 
 	deactivate(){
 		this.commitText();
-		stage.removeEventListener('keyDown', this.onKeyDown);
-		this.stopCursorBlink();
 	}
 
 	updateCursor(){
@@ -58,7 +62,6 @@ export class TextTool extends Tool
 	}
 
 	reset(){
-		// If editing, commit the text first
 		if(this.state === STATE.EDITING && this.text){
 			this.commitText();
 			return;
@@ -66,11 +69,8 @@ export class TextTool extends Tool
 
 		this.state = STATE.IDLE;
 		this.text = null;
-		this.cursorPos = 0;
-		this.selectionStart = null;
-		this.selectionEnd = null;
-		this.isSelecting = false;
 		this.isEditingExisting = false;
+		this._hideTextarea();
 		this.stopCursorBlink();
 		data.resetSnaps();
 		data.clearGuides();
@@ -82,7 +82,7 @@ export class TextTool extends Tool
 		this.stopCursorBlink();
 		this.cursorVisible = true;
 		this.emitCursorInfo();
-		
+
 		this.cursorBlinkTimer = setInterval(() => {
 			this.cursorVisible = !this.cursorVisible;
 			this.emitCursorInfo();
@@ -99,172 +99,242 @@ export class TextTool extends Tool
 		this.emitCursorInfo();
 	}
 
-	clearSelection(){
-		this.selectionStart = null;
-		this.selectionEnd = null;
-		this.isSelecting = false;
-	}
-
-	hasSelection(){
-		return this.selectionStart !== null && this.selectionEnd !== null && this.selectionStart !== this.selectionEnd;
-	}
-
-	getSelectionRange(){
-		if(!this.hasSelection()) return null;
-		const start = Math.min(this.selectionStart, this.selectionEnd);
-		const end = Math.max(this.selectionStart, this.selectionEnd);
-		return { start, end };
-	}
-
-	deleteSelection(){
-		const range = this.getSelectionRange();
-		if(!range) return false;
-
-		const before = this.text.text.slice(0, range.start);
-		const after = this.text.text.slice(range.end);
-		this.text.text = before + after;
-		this.cursorPos = range.start;
-		this.clearSelection();
-		this.text.update();
-		return true;
-	}
-
 	onMouseDown(e)
 	{
-		// Use snap point which is already in world coordinates
 		const worldPos = { x: data.snapPoint.x, y: data.snapPoint.y };
-
-		// Check if clicking on existing text to edit it
 		const clickedText = this.findTextAtPoint(worldPos);
 
 		if(this.state === STATE.EDITING){
-			// Check if clicking within the text being edited
 			if(this.text){
 				const hit = this.text.getGeoSnap(worldPos, null, 5);
 				if(hit){
-					// Clicking within current text - position cursor
-					const newPos = this.getCursorPosFromClick(this.text, worldPos);
+					// Keep edit mode active when clicking inside the current text.
+					clearTimeout(this._blurTimeout);
+					this._blurTimeout = null;
 
-					if(stage.shiftKey && this.selectionStart === null){
-						// Shift+click with no selection - select from cursor to click
-						this.selectionStart = this.cursorPos;
-						this.selectionEnd = newPos;
-						this.cursorPos = newPos;
-					} else if(stage.shiftKey){
-						// Shift+click with selection - extend selection
-						this.selectionEnd = newPos;
-						this.cursorPos = newPos;
-					} else {
-						// Normal click - start potential drag selection
-						this.cursorPos = newPos;
-						this.selectionStart = newPos;
-						this.selectionEnd = null;
-						this.isSelecting = true;
+					// Reposition cursor via click within the text
+					const newPos = this.getCursorPosFromClick(this.text, worldPos);
+					if(this._textarea){
+						this._textarea.focus({ preventScroll: true });
+						this._textarea.setSelectionRange(newPos, newPos);
 					}
-					this.cursorVisible = true;
-					stage.render();
+					this._syncCursor();
 					return;
 				}
 			}
 
-			// Commit current text
+			// Clicked outside current text - commit it
 			this.commitText();
 
-			// If clicked on another text, edit that one
 			if(clickedText){
-				this.text = clickedText;
-				this.cursorPos = this.getCursorPosFromClick(clickedText, worldPos);
-				this.isEditingExisting = true;
-				this.clearSelection();
-				data.deleteShape(this.text);
-				data.addTempShape(this.text);
-				this.state = STATE.EDITING;
-				this.startCursorBlink();
-				stage.render();
+				this._startEditing(clickedText, worldPos);
 			} else {
-				// Clicked on blank canvas - switch to pointer tool
 				toolManager.setTool(toolManager.pointerTool);
 			}
 			return;
 		}
 
-		// Not editing - check if clicking existing text
 		if(clickedText){
-			// Edit existing text
-			this.text = clickedText;
-			this.cursorPos = this.getCursorPosFromClick(clickedText, worldPos);
-			this.isEditingExisting = true;
-			this.clearSelection();
-
-			// Remove from shapes temporarily and add to temp
-			data.deleteShape(this.text);
-			data.addTempShape(this.text);
-
-			this.state = STATE.EDITING;
-			this.startCursorBlink();
-			stage.render();
+			this._startEditing(clickedText, worldPos);
 			return;
 		}
 
-		// Create new text at click position (empty, just cursor)
+		// Create new text at click position
 		data.selectNone();
 		this.text = new Text([worldPos.x, worldPos.y, '', 16, 'Arial']);
-		this.cursorPos = 0;
 		this.isEditingExisting = false;
-		this.clearSelection();
 		data.addTempShape(this.text);
 
 		this.state = STATE.EDITING;
+		this._showTextarea('');
 		this.startCursorBlink();
 		stage.render();
 	}
 
+	onMouseMove(e){}
+	onMouseUp(e){}
+
+	// Begin editing an existing text shape
+	_startEditing(textShape, clickPos)
+	{
+		this.text = textShape;
+		this.isEditingExisting = true;
+
+		data.deleteShape(this.text);
+		data.addTempShape(this.text);
+
+		this.state = STATE.EDITING;
+		this._showTextarea(textShape.text);
+
+		const pos = clickPos ? this.getCursorPosFromClick(textShape, clickPos) : textShape.text.length;
+		if(this._textarea) this._textarea.setSelectionRange(pos, pos);
+		this._syncCursor();
+
+		this.startCursorBlink();
+		stage.render();
+	}
+
+	_showTextarea(value)
+	{
+		if(!this._textarea) return;
+
+		// Cancel any pending blur-commit from a previous edit
+		clearTimeout(this._blurTimeout);
+		this._blurTimeout = null;
+
+		// Remove old listeners before re-adding (prevents duplicates)
+		this._removeTextareaListeners();
+
+		this._textarea.value = value;
+		this._textarea.addEventListener('input', this._onInput);
+		this._textarea.addEventListener('keydown', this._onKeydown);
+		this._textarea.addEventListener('blur', this._onBlur);
+		document.addEventListener('selectionchange', this._onSelectionChange);
+		this._setTextEditingFlag(true);
+		this._positionTextarea();
+		this._startPositionSync();
+		this._startResizeObserver();
+		this._focusTextareaAtEnd();
+
+		// Some browsers can briefly refuse focus on off-screen inputs.
+		// Retry on next frame so typing still works reliably.
+		requestAnimationFrame(() => {
+			if(this.state !== STATE.EDITING || !this._textarea) return;
+			if(document.activeElement !== this._textarea){
+				this._focusTextareaAtEnd();
+			}
+		});
+	}
+
+	_focusTextareaAtEnd()
+	{
+		if(!this._textarea) return;
+		const end = this._textarea.value.length;
+		this._textarea.focus({ preventScroll: true });
+		this._textarea.setSelectionRange(end, end);
+		this._syncCursor();
+	}
+
+	_hideTextarea()
+	{
+		if(!this._textarea) return;
+		// Remove listeners before blurring so blur doesn't trigger _onBlur
+		clearTimeout(this._blurTimeout);
+		this._blurTimeout = null;
+		this._stopPositionSync();
+		this._stopResizeObserver();
+		this._setTextEditingFlag(false);
+		this._textarea.style.top = '-9999px';
+		this._textarea.style.left = '-9999px';
+		this._textarea.style.width = '1px';
+		this._textarea.style.height = '1px';
+		this._textarea.style.opacity = '0';
+		this._textarea.style.pointerEvents = 'none';
+		this._removeTextareaListeners();
+		this._textarea.blur();
+	}
+
+	_removeTextareaListeners()
+	{
+		if(!this._textarea) return;
+		this._textarea.removeEventListener('input', this._onInput);
+		this._textarea.removeEventListener('keydown', this._onKeydown);
+		this._textarea.removeEventListener('blur', this._onBlur);
+		document.removeEventListener('selectionchange', this._onSelectionChange);
+	}
+
+	_onInput(e)
+	{
+		if(!this.text) return;
+		this.text.text = this._textarea.value;
+		this.text.update();
+		this._positionTextarea();
+		this._syncCursor();
+		this.cursorVisible = true;
+		this.emitCursorInfo();
+		stage.render();
+	}
+
+	_onKeydown(e)
+	{
+		if(e.key === 'Escape'){
+			e.preventDefault();
+			this.commitText();
+			return;
+		}
+
+		// Sync cursor after navigation keys (browser updates selectionStart after event)
+		if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(e.key)){
+			setTimeout(() => this._syncCursor(), 0);
+		}
+	}
+
+	_onBlur(e)
+	{
+		// Delayed commit so click events can process first (e.g. clicking another text shape)
+		this._blurTimeout = setTimeout(() => {
+			this._blurTimeout = null;
+			if(document.activeElement === this._textarea) return;
+			if(this.state === STATE.EDITING){
+				this.commitText();
+			}
+		}, 50);
+	}
+
+	_onSelectionChange()
+	{
+		if(document.activeElement === this._textarea){
+			this._syncCursor();
+		}
+	}
+
+	// Read selection from textarea and sync to canvas cursor rendering
+	_syncCursor()
+	{
+		if(!this._textarea) return;
+		this.cursorPos = this._textarea.selectionStart;
+		const hasSel = this._textarea.selectionStart !== this._textarea.selectionEnd;
+		this.selectionStart = hasSel ? this._textarea.selectionStart : null;
+		this.selectionEnd   = hasSel ? this._textarea.selectionEnd   : null;
+		this.emitCursorInfo();
+		stage.render();
+	}
+
 	findTextAtPoint(point){
-		// Find text shape at click point
 		for(const shape of data.shapes){
 			if(shape.geometry === Shape.TEXT){
 				const hit = shape.getGeoSnap(point, null, 5);
-				if(hit){
-					return shape;
-				}
+				if(hit) return shape;
 			}
 		}
 		return null;
 	}
 
+	// Calculate character index from a world-space click position
 	getCursorPosFromClick(textShape, clickPoint){
-		// Use canvas to measure text accurately
-		const canvas = stage.canvas;
-		const ctx = canvas.getContext('2d');
+		const ctx = stage.canvas.getContext('2d');
 
-		const fontStyle = textShape.fontStyle === 'italic' ? 'italic' : '';
-		const fontWeight = textShape.fontWeight === 'bold' ? 'bold' : '';
+		const fontStyle  = textShape.fontStyle  === 'italic' ? 'italic' : '';
+		const fontWeight = textShape.fontWeight === 'bold'   ? 'bold'   : '';
 		ctx.font = `${fontStyle} ${fontWeight} ${textShape.fontSize}px ${textShape.fontFamily}`.trim();
 
 		const lineHeight = textShape.fontSize * 1.2;
-		const lines = textShape.text.split('\n');
+		const lines      = textShape.text.split('\n');
 
-		// Find which line was clicked
-		const relativeY = clickPoint.y - textShape.y;
-		let clickedLine = Math.floor(relativeY / lineHeight);
-		clickedLine = Math.max(0, Math.min(clickedLine, lines.length - 1));
+		const relativeY  = clickPoint.y - textShape.y;
+		let clickedLine  = Math.floor(relativeY / lineHeight);
+		clickedLine      = Math.max(0, Math.min(clickedLine, lines.length - 1));
 
-		// Find character position within the line
 		const relativeX = clickPoint.x - textShape.x;
-		const line = lines[clickedLine];
+		const line      = lines[clickedLine];
 
 		let charPos = 0;
 		for(let i = 0; i <= line.length; i++){
 			const width = ctx.measureText(line.slice(0, i)).width;
 			if(width >= relativeX){
-				// Check if click is closer to this char or previous
 				if(i > 0){
 					const prevWidth = ctx.measureText(line.slice(0, i - 1)).width;
-					if(relativeX - prevWidth < width - relativeX){
-						charPos = i - 1;
-					} else {
-						charPos = i;
-					}
+					charPos = (relativeX - prevWidth < width - relativeX) ? i - 1 : i;
 				} else {
 					charPos = 0;
 				}
@@ -273,312 +343,56 @@ export class TextTool extends Tool
 			charPos = i;
 		}
 
-		// Convert line + charPos to absolute cursor position
 		let absolutePos = 0;
 		for(let i = 0; i < clickedLine; i++){
 			absolutePos += lines[i].length + 1; // +1 for newline
 		}
 		absolutePos += charPos;
-
 		return absolutePos;
-	}
-
-	onMouseMove(e){
-		// Handle drag selection
-		if(this.state === STATE.EDITING && this.isSelecting && this.text){
-			const worldPos = { x: data.snapPoint.x, y: data.snapPoint.y };
-			const newPos = this.getCursorPosFromClick(this.text, worldPos);
-			this.selectionEnd = newPos;
-			this.cursorPos = newPos;
-			this.cursorVisible = true;
-			stage.render();
-		}
-	}
-
-	onMouseUp(e){
-		// Finalize selection
-		if(this.isSelecting){
-			this.isSelecting = false;
-			// If start and end are the same, clear selection (it was just a click)
-			if(this.selectionStart === this.selectionEnd){
-				this.selectionStart = null;
-				this.selectionEnd = null;
-			}
-			stage.render();
-		}
-	}
-
-	onKeyDown(e){
-		if(this.state !== STATE.EDITING || !this.text) return;
-
-		const key = e.key;
-
-		// Handle Cmd+A (select all)
-		if((e.metaKey || e.ctrlKey) && key === 'a'){
-			this.selectionStart = 0;
-			this.selectionEnd = this.text.text.length;
-			this.cursorPos = this.text.text.length;
-			this.cursorVisible = true;
-			stage.render();
-			return;
-		}
-
-		// Don't handle other keys if Cmd/Ctrl/Alt are pressed (except shift)
-		if(e.ctrlKey || e.metaKey || e.altKey) return;
-
-		if(key === 'Enter'){
-			// Delete selection first if any
-			this.deleteSelection();
-			// Enter = newline
-			this.insertChar('\n');
-			return;
-		}
-
-		if(key === 'Backspace'){
-			// If selection, delete it
-			if(this.hasSelection()){
-				this.deleteSelection();
-				stage.render();
-				return;
-			}
-			// Otherwise delete char before cursor
-			if(this.cursorPos > 0){
-				const before = this.text.text.slice(0, this.cursorPos - 1);
-				const after = this.text.text.slice(this.cursorPos);
-				this.text.text = before + after;
-				this.cursorPos--;
-				this.text.update();
-				stage.render();
-			}
-			return;
-		}
-
-		if(key === 'Delete'){
-			// If selection, delete it
-			if(this.hasSelection()){
-				this.deleteSelection();
-				stage.render();
-				return;
-			}
-			// Otherwise delete char after cursor
-			if(this.cursorPos < this.text.text.length){
-				const before = this.text.text.slice(0, this.cursorPos);
-				const after = this.text.text.slice(this.cursorPos + 1);
-				this.text.text = before + after;
-				this.text.update();
-				stage.render();
-			}
-			return;
-		}
-
-		if(key === 'ArrowLeft'){
-			if(e.shiftKey){
-				// Extend selection
-				if(this.selectionStart === null){
-					this.selectionStart = this.cursorPos;
-				}
-				if(this.cursorPos > 0){
-					this.cursorPos--;
-					this.selectionEnd = this.cursorPos;
-				}
-			} else {
-				// Collapse selection or move cursor
-				if(this.hasSelection()){
-					const range = this.getSelectionRange();
-					this.cursorPos = range.start;
-					this.clearSelection();
-				} else if(this.cursorPos > 0){
-					this.cursorPos--;
-				}
-			}
-			this.cursorVisible = true;
-			stage.render();
-			return;
-		}
-
-		if(key === 'ArrowRight'){
-			if(e.shiftKey){
-				// Extend selection
-				if(this.selectionStart === null){
-					this.selectionStart = this.cursorPos;
-				}
-				if(this.cursorPos < this.text.text.length){
-					this.cursorPos++;
-					this.selectionEnd = this.cursorPos;
-				}
-			} else {
-				// Collapse selection or move cursor
-				if(this.hasSelection()){
-					const range = this.getSelectionRange();
-					this.cursorPos = range.end;
-					this.clearSelection();
-				} else if(this.cursorPos < this.text.text.length){
-					this.cursorPos++;
-				}
-			}
-			this.cursorVisible = true;
-			stage.render();
-			return;
-		}
-
-		if(key === 'ArrowUp'){
-			if(e.shiftKey){
-				// Extend selection vertically
-				if(this.selectionStart === null){
-					this.selectionStart = this.cursorPos;
-				}
-				const moved = this.moveCursorVertically(-1, true);
-				// If couldn't move up (on first line), go to start of text
-				if(!moved){
-					this.cursorPos = 0;
-				}
-				this.selectionEnd = this.cursorPos;
-				this.cursorVisible = true;
-				stage.render();
-			} else {
-				if(this.hasSelection()){
-					const range = this.getSelectionRange();
-					this.cursorPos = range.start;
-					this.clearSelection();
-				}
-				this.moveCursorVertically(-1);
-			}
-			return;
-		}
-
-		if(key === 'ArrowDown'){
-			if(e.shiftKey){
-				// Extend selection vertically
-				if(this.selectionStart === null){
-					this.selectionStart = this.cursorPos;
-				}
-				const moved = this.moveCursorVertically(1, true);
-				// If couldn't move down (on last line), go to end of text
-				if(!moved){
-					this.cursorPos = this.text.text.length;
-				}
-				this.selectionEnd = this.cursorPos;
-				this.cursorVisible = true;
-				stage.render();
-			} else {
-				if(this.hasSelection()){
-					const range = this.getSelectionRange();
-					this.cursorPos = range.end;
-					this.clearSelection();
-				}
-				this.moveCursorVertically(1);
-			}
-			return;
-		}
-
-		// Regular character input
-		if(key.length === 1){
-			// Delete selection first if any
-			this.deleteSelection();
-			this.insertChar(key);
-		}
-	}
-
-	insertChar(char){
-		const before = this.text.text.slice(0, this.cursorPos);
-		const after = this.text.text.slice(this.cursorPos);
-		this.text.text = before + char + after;
-		this.cursorPos++;
-		this.text.update();
-		this.cursorVisible = true;
-		stage.render();
-	}
-
-	moveCursorVertically(direction, forSelection = false){
-		const text = this.text.text;
-		const lines = text.split('\n');
-
-		// Find current line and column
-		let charCount = 0;
-		let currentLine = 0;
-		let currentCol = 0;
-
-		for(let i = 0; i < lines.length; i++){
-			const lineLength = lines[i].length;
-			if(charCount + lineLength >= this.cursorPos && (i === lines.length - 1 || charCount + lineLength >= this.cursorPos)){
-				if(this.cursorPos <= charCount + lineLength){
-					currentLine = i;
-					currentCol = this.cursorPos - charCount;
-					break;
-				}
-			}
-			charCount += lineLength + 1; // +1 for newline
-		}
-
-		// Calculate target line
-		const targetLine = currentLine + direction;
-
-		// Bounds check
-		if(targetLine < 0 || targetLine >= lines.length){
-			return false;
-		}
-
-		// Calculate new cursor position
-		const targetLineLength = lines[targetLine].length;
-		const targetCol = Math.min(currentCol, targetLineLength);
-
-		// Calculate absolute position
-		let newPos = 0;
-		for(let i = 0; i < targetLine; i++){
-			newPos += lines[i].length + 1; // +1 for newline
-		}
-		newPos += targetCol;
-
-		this.cursorPos = newPos;
-		this.cursorVisible = true;
-		if(!forSelection){
-			stage.render();
-		}
-		return true;
 	}
 
 	commitText(){
 		if(!this.text) return;
 
+		this._hideTextarea();
+		this.stopCursorBlink();
+
+		// Height is always content-driven; clear any fixed boxHeight
+		this.text.boxHeight = null;
+		this.text.update();
+
 		const textToSelect = this.text;
 
 		if(this.text.text.trim().length > 0){
-			// Commit the text
 			data.clearTempShapes();
 			undoManager.execute(new AddShapeCommand(this.text));
-
-			// Select the committed text
 			data.selectNone();
 			textToSelect.selected = true;
 		} else {
-			// Empty text, just remove
 			data.clearTempShapes();
 		}
 
-		this.stopCursorBlink();
 		this.state = STATE.IDLE;
 		this.text = null;
 		this.cursorPos = 0;
+		this.selectionStart = null;
+		this.selectionEnd = null;
 		stage.render();
 	}
 
-	// Called by renderer to get cursor info for drawing
+	// Called by renderer to get cursor info for canvas drawing
 	getCursorInfo(){
-		if(this.state !== STATE.EDITING || !this.text){
-			return null;
-		}
+		if(this.state !== STATE.EDITING || !this.text) return null;
 
 		const info = {
 			text: this.text,
-			position: this.cursorPos,
+			position: this.cursorPos || 0,
 			cursorVisible: this.cursorVisible
 		};
 
-		// Include selection info if present
-		if(this.hasSelection()){
-			const range = this.getSelectionRange();
-			info.selectionStart = range.start;
-			info.selectionEnd = range.end;
+		if(this.selectionStart !== null && this.selectionEnd !== null && this.selectionStart !== this.selectionEnd){
+			info.selectionStart = Math.min(this.selectionStart, this.selectionEnd);
+			info.selectionEnd   = Math.max(this.selectionStart, this.selectionEnd);
 		}
 
 		return info;
@@ -586,5 +400,109 @@ export class TextTool extends Tool
 
 	emitCursorInfo(){
 		stage.dispatchEvent('text-cursor-update', this.getCursorInfo());
+	}
+
+	_setTextEditingFlag(isEditing)
+	{
+		if(!this.text) return;
+		this.text._editingWithTextarea = isEditing;
+	}
+
+	_startPositionSync()
+	{
+		this._stopPositionSync();
+		this._positionSyncTimer = setInterval(() => {
+			if(this.state !== STATE.EDITING || !this.text) return;
+			this._positionTextarea();
+		}, 50);
+	}
+
+	_stopPositionSync()
+	{
+		if(this._positionSyncTimer){
+			clearInterval(this._positionSyncTimer);
+			this._positionSyncTimer = null;
+		}
+	}
+
+	_startResizeObserver()
+	{
+		this._stopResizeObserver();
+		if(!this._textarea) return;
+
+		this._resizeObserver = new ResizeObserver((entries) => {
+			if(!this.text || this.state !== STATE.EDITING) return;
+
+			const entry = entries[0];
+			const w = Math.round(entry.contentRect.width);
+
+			// Ignore programmatic resizes from _positionTextarea
+			if(Math.abs(w - this._expectedWidth) < 2) return;
+
+			// User dragged the resize handle — convert screen px to world coords
+			this.text.boxWidth = w / stage.zoom;
+			this.text.update();
+			this._positionTextarea();
+			stage.render();
+		});
+
+		this._resizeObserver.observe(this._textarea);
+	}
+
+	_stopResizeObserver()
+	{
+		if(this._resizeObserver){
+			this._resizeObserver.disconnect();
+			this._resizeObserver = null;
+		}
+	}
+
+	_positionTextarea()
+	{
+		if(!this._textarea || !this.text) return;
+
+		// worldToScreen gives canvas-local coords; add canvas rect for fixed positioning
+		const canvasRect = stage.canvas.getBoundingClientRect();
+		const screenPos  = stage.worldToScreen(this.text.bounds.x, this.text.y);
+
+		const fontPx    = Math.max(12, this.text.fontSize * stage.zoom);
+		const lineHeight = fontPx * 1.2;
+		const lines      = this._textarea.value.split('\n');
+
+		const ctx = stage.canvas.getContext('2d');
+		const fontStyle  = this.text.fontStyle  === 'italic' ? 'italic' : '';
+		const fontWeight = this.text.fontWeight === 'bold'   ? 'bold'   : '';
+		ctx.font = `${fontStyle} ${fontWeight} ${fontPx}px ${this.text.fontFamily}`.trim();
+
+		let maxLineWidth = 0;
+		for(const line of lines){
+			maxLineWidth = Math.max(maxLineWidth, ctx.measureText(line).width);
+		}
+
+		const width  = Math.max(80,  Math.ceil(this.text.boxWidth ? this.text.boxWidth * stage.zoom : maxLineWidth + fontPx));
+		const height = Math.max(lineHeight, Math.ceil(Math.max(1, lines.length) * lineHeight));
+
+		const border = 1;
+
+		// Track expected content size so ResizeObserver can distinguish user resizes
+		// (contentRect excludes border, so track the content area)
+		this._expectedWidth  = Math.round(width);
+		this._expectedHeight = Math.round(height);
+
+		// Offset by border width so text content aligns with canvas rendering
+		this._textarea.style.top    = `${Math.round(canvasRect.top  + screenPos.y) - border}px`;
+		this._textarea.style.left   = `${Math.round(canvasRect.left + screenPos.x) - border}px`;
+		this._textarea.style.width  = `${width + border * 2}px`;
+		this._textarea.style.height = `${height + border * 2}px`;
+		this._textarea.style.padding       = '0';
+		this._textarea.style.opacity       = '1';
+		this._textarea.style.pointerEvents = 'auto';
+		this._textarea.style.fontFamily    = this.text.fontFamily;
+		this._textarea.style.fontSize      = `${fontPx}px`;
+		this._textarea.style.fontStyle     = this.text.fontStyle;
+		this._textarea.style.fontWeight    = this.text.fontWeight;
+		this._textarea.style.lineHeight    = `${lineHeight}px`;
+		this._textarea.style.whiteSpace    = this.text.boxWidth ? 'pre-wrap' : 'pre';
+		this._textarea.style.wordBreak     = this.text.boxWidth ? 'break-word' : 'normal';
 	}
 }

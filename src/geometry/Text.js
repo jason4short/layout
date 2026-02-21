@@ -261,6 +261,7 @@ export class Text extends Geometry
 
 	draw(ctx, renderer) {
 		const color = '#111111'; // Text stays black even when selected
+		const editingWithOverlay = !!this._editingWithTextarea;
 
 		// Convert position to screen coordinates
 		const screenPos = renderer.toScreen(this.x, this.y);
@@ -277,19 +278,21 @@ export class Text extends Geometry
 		ctx.textBaseline = 'top';
 
 		// Handle rotation
-		if (this.rotation !== 0) {
-			ctx.save();
-			ctx.translate(screenPos.x, screenPos.y);
-			ctx.rotate(this.rotation);
-			this.drawTextContent(ctx, 0, 0, screenFontSize);
-			ctx.restore();
-		} else {
-			this.drawTextContent(ctx, screenPos.x, screenPos.y, screenFontSize);
+		if (!editingWithOverlay) {
+			if (this.rotation !== 0) {
+				ctx.save();
+				ctx.translate(screenPos.x, screenPos.y);
+				ctx.rotate(this.rotation);
+				this.drawTextContent(ctx, 0, 0, screenFontSize);
+				ctx.restore();
+			} else {
+				this.drawTextContent(ctx, screenPos.x, screenPos.y, screenFontSize);
+			}
 		}
 
 		// Draw cursor and selection if this text is being edited
 		const cursorInfo = renderer.textCursorInfo;
-		if (cursorInfo && cursorInfo.text === this) {
+		if (!editingWithOverlay && cursorInfo && cursorInfo.text === this) {
 			// Draw selection highlight first (behind cursor)
 			if (cursorInfo.selectionStart !== undefined) {
 				this.drawTextSelection(ctx, screenPos, screenFontSize, cursorInfo.selectionStart, cursorInfo.selectionEnd);
@@ -335,8 +338,8 @@ export class Text extends Geometry
 				}
 				if (currentLine) {
 					ctx.fillText(currentLine, x, y);
-					y += lineHeight;
 				}
+				y += lineHeight;
 			} else {
 				ctx.fillText(line, x, y);
 				y += lineHeight;
@@ -488,24 +491,9 @@ export class Text extends Geometry
 	 * @returns {boolean} true if handled
 	 */
 	handleDoubleClick(clickPos, context) {
-		const { toolManager, data, stage } = context;
-
-		// Switch to text tool and start editing
+		const { toolManager } = context;
 		toolManager.setTool(toolManager.textTool);
-
-		const textTool = toolManager.textTool;
-		textTool.text = this;
-		textTool.cursorPos = textTool.getCursorPosFromClick(this, clickPos);
-		textTool.isEditingExisting = true;
-
-		// Remove from shapes and add to temp
-		data.deleteShape(this);
-		data.addTempShape(this);
-
-		textTool.state = 1; // STATE.EDITING
-		textTool.startCursorBlink();
-		stage.render();
-
+		toolManager.textTool._startEditing(this, clickPos);
 		return true;
 	}
 }

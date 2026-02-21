@@ -53,6 +53,9 @@
 			.input-bar-label { font-size:16px; color:#111; white-space:nowrap; min-width:120px; }
 			.input-bar .icon-input { width:180px; margin-bottom:0; }
 
+			/* ---- Text-edit overlay textarea ---- */
+			#textEditInput { position:fixed; top:-9999px; left:-9999px; width:1px; height:1px; resize:horizontal; border:1px solid #93c5fd; outline:none; padding:0; margin:0; overflow:hidden; opacity:0; pointer-events:none; z-index:20; background:rgba(255,255,255,0.01); color:#111; white-space:pre; border-radius:2px; box-sizing:border-box; }
+
 			/* ---- Tool Palette - Floating ---- */
 			.tool-palette { position:absolute; left:10px; top:10px; width:76px; background:#fff; border-radius:12px; padding:10px; box-shadow:0 2px 8px rgba(0,0,0,.08); z-index:10; max-height:calc(100% - 20px); overflow-y:auto; }
 			.tool-palette h3 { font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin:.5rem 0 .25rem 0; padding:0 .25rem; }
@@ -204,6 +207,15 @@
 			.dialog-buttons .btn-cancel { padding:.35rem .75rem; font-size:13px; border:1px solid var(--border); border-radius:.35rem; background:#fff; cursor:pointer; }
 			.dialog-buttons .btn-danger { padding:.35rem .75rem; font-size:13px; border:1px solid #dc2626; border-radius:.35rem; background:#dc2626; color:#fff; cursor:pointer; }
 
+		/* About Dialog */
+			.about-dialog { background:#fff; border-radius:16px; padding:32px; width:420px; box-shadow:0 8px 32px rgba(0,0,0,.18); font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align:center; }
+			.about-logo { font-family:'Outfit', sans-serif; font-weight:500; font-size:48px; color:#111; margin-bottom:8px; }
+			.about-version { font-size:13px; color:var(--muted); margin-bottom:20px; }
+			.about-description { font-size:14px; color:#333; line-height:1.6; margin-bottom:20px; }
+			.about-copyright { font-size:12px; color:var(--muted); margin-bottom:24px; }
+			.about-close-btn { padding:.4rem 1.5rem; font-size:13px; font-weight:500; border:1px solid var(--border); border-radius:.35rem; background:#fff; cursor:pointer; }
+			.about-close-btn:hover { background:#f0f0f0; }
+
 		/* Help Panel */
 			.help-browser { background:#fff; border-radius:22px; padding:24px; width:800px; max-height:80vh; display:flex; flex-direction:column; box-shadow:0 8px 32px rgba(0,0,0,.18); font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 			.help-content { overflow-y:auto; flex:1; padding:4px 0; line-height:1.6; color:#333; font-size:14px; }
@@ -233,6 +245,7 @@
 							<div class="menu-item" id="menuNew">New Design<span class="shortcut">&#8984;N</span></div>
 							<div class="menu-separator"></div>
 							<div class="menu-item" id="menuImportFile">Open Local File</div>
+							<div class="menu-item" id="menuImportSVG">Import SVG</div>
 							<div class="menu-item" id="menuExportFile">Save Local File</div>
 							<div class="menu-separator"></div>
 							<div class="menu-item" id="menuSymbolLibrary">Symbol Library</div>
@@ -254,6 +267,7 @@
 				<div class="menu-trigger" id="menuHelp">Help
 						<div class="menu-dropdown">
 							<div class="menu-item" id="menuHelpOpen">Help</div>
+							<div class="menu-item" id="menuOpenPlayground">Open Playground</div>
 							<div class="menu-separator"></div>
 							<div class="menu-item" id="menuAboutApp">About Layout</div>
 						</div>
@@ -266,6 +280,7 @@
 			<div class="middle">
 				<div class="canvas-wrap">
 					<canvas id="stage" class="canvas"></canvas>
+					<textarea id="textEditInput" tabindex="0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
 					<nav class="tool-palette" id="toolPalette">
 						<!-- Tools will be populated by ToolManager -->
 					</nav>
@@ -374,7 +389,20 @@
 				</div>
 			</div>
 		</div>
-		<script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+		<div id="aboutDialog" class="dialog-overlay hidden">
+		<div class="about-dialog">
+			<div class="about-logo">layout</div>
+			<div class="about-version">Version 1.0</div>
+			<div class="about-description">
+				A browser-based 2D CAD application for technical drawing, laser cutting, and precision layout work.
+				Supports lines, arcs, circles, splines, polygons, dimensions, and more.
+				Export to SVG, DXF, and G-code.
+			</div>
+			<div class="about-copyright">&copy; 2026 Jason Short. All rights reserved.</div>
+			<button class="about-close-btn" id="aboutCloseBtn">Close</button>
+		</div>
+	</div>
+	<script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
 		<script type="module" src="./src/main.js"></script>
 	</body>
 </html>

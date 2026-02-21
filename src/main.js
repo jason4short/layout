@@ -55,6 +55,7 @@ import menuBar from './core/MenuBar.js';
 import {Shape} from './geometry/Geometry.js';
 import {Intersections} from './data/Intersections.js';
 import {exportToSVG, downloadSVG} from './core/SVGExporter.js';
+import {openSVGFile} from './core/SVGImporter.js';
 import {exportToGcode, downloadGcode} from './core/GcodeExporter.js';
 import {exportToDXF, downloadDXF} from './core/DXFExporter.js';
 import undoManager from './core/UndoManager.js';
@@ -127,6 +128,16 @@ document.getElementById('menuSymbolLibrary').addEventListener('click', () => sym
 document.getElementById('menuImportFile').addEventListener('click', () => {
 	fileManager.confirmIfDirty(() => fileManager.importFile());
 });
+document.getElementById('menuImportSVG').addEventListener('click', () => {
+	openSVGFile((shapes, fileName) => {
+		for (const shape of shapes) {
+			data.addShape(shape);
+		}
+		data.rebuildPOIs();
+		stage.render();
+		console.log('Imported SVG:', fileName, shapes.length, 'shapes');
+	});
+});
 document.getElementById('menuExportFile').addEventListener('click', () => fileManager.exportFile());
 
 // Export SVG
@@ -195,6 +206,39 @@ document.getElementById('helpCloseBtn').addEventListener('click', () => {
 });
 helpPanel.addEventListener('click', (e) => {
 	if (e.target === helpPanel) helpPanel.classList.add('hidden');
+});
+
+// Open Playground
+document.getElementById('menuOpenPlayground').addEventListener('click', () => {
+	fileManager.confirmIfDirty(() => {
+		fetch('./playground.cadc')
+			.then(r => r.json())
+			.then(async json => {
+				fileManager.fromJSON(json);
+				fileManager.currentDocumentId = null;
+				fileManager.currentDocumentName = 'Playground';
+				if (fileManager.storage) {
+					await fileManager.saveToStorage('Playground');
+					if (fileManager.tabBar) fileManager.tabBar.openTab(fileManager.currentDocumentId, 'Playground');
+				} else {
+					fileManager._updateTitle();
+				}
+				document.dispatchEvent(new CustomEvent('document-loaded'));
+			})
+			.catch(() => alert('Could not load playground file.'));
+	});
+});
+
+// About dialog
+const aboutDialog = document.getElementById('aboutDialog');
+document.getElementById('menuAboutApp').addEventListener('click', () => {
+	aboutDialog.classList.remove('hidden');
+});
+document.getElementById('aboutCloseBtn').addEventListener('click', () => {
+	aboutDialog.classList.add('hidden');
+});
+aboutDialog.addEventListener('click', (e) => {
+	if (e.target === aboutDialog) aboutDialog.classList.add('hidden');
 });
 
 // Load library symbol cache after loading a document
