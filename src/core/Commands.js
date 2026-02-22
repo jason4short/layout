@@ -428,8 +428,8 @@ export class FilletCommand extends Command {
 			return;
 		}
 
-		// Redo: add arc and apply trimmed shape states
-		data.addShape(this.arc);
+		// Redo: add arc (if any) and apply trimmed shape states
+		if (this.arc) data.addShape(this.arc);
 		if (this.shape1Trimmed) {
 			this.shape1.copyFrom(this.shape1Trimmed);
 		}
@@ -443,8 +443,8 @@ export class FilletCommand extends Command {
 	}
 
 	undo() {
-		// Remove the arc
-		data.deleteShape(this.arc);
+		// Remove the arc (if any — zero-radius fillet has no arc)
+		if (this.arc) data.deleteShape(this.arc);
 		// Restore shapes to original state (only if they were trimmed)
 		if (this.shape1Original) {
 			this.shape1.copyFrom(this.shape1Original);

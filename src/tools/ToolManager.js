@@ -342,10 +342,12 @@ class ToolManager extends EventDispatcher
 		if(stage.commandKey){
 			switch(e.key){
 				case '-':
+				case '[':
 					stage.zoomOut();
 					break;
 
 				case '=':
+				case ']':
 					stage.zoomIn();
 					break;
 

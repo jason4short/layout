@@ -87,6 +87,22 @@ export function lineSchema(shape) {
 				title: 'Dimensions',
 				fields: [
 					{
+						key: 'length',
+						label: 'Length',
+						type: 'length',
+						get: () => shape.length(),
+						set: (v) => {
+							const dx = shape.end.x - shape.start.x;
+							const dy = shape.end.y - shape.start.y;
+							const len = Math.sqrt(dx * dx + dy * dy);
+							if (len < 1e-10) return;
+							const ratio = v / len;
+							shape.end.x = shape.start.x + dx * ratio;
+							shape.end.y = shape.start.y + dy * ratio;
+						},
+						min: 0
+					},
+					{
 						key: 'width',
 						label: 'Width',
 						type: 'length',
@@ -111,18 +127,7 @@ export function lineSchema(shape) {
 				]
 			},
 			pointFields('start', 'Start'),
-			pointFields('end', 'End'),
-			{
-				title: 'Geometry',
-				fields: [
-					{
-						key: 'perimeter',
-						label: 'Perimeter',
-						type: 'readonly-length',
-						get: () => shape.length()
-					}
-				]
-			}
+			pointFields('end', 'End')
 		]
 	};
 }
@@ -434,6 +439,7 @@ export function paperSchema(shape) {
 
 export function textSchema(shape) {
 	const fontOptions = [
+		{ value: 'Outfit', label: 'Outfit' },
 		{ value: 'Arial', label: 'Arial' },
 		{ value: 'Helvetica', label: 'Helvetica' },
 		{ value: 'Times New Roman', label: 'Times New Roman' },

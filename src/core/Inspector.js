@@ -26,7 +26,7 @@ const LABEL_ICON_MAP = {
 	'Radius Y': 'height',
 	'Diameter': 'diameter',
 	'Polygon': 'polygon',
-	'Length': 'width',
+	'Length': 'gap',
 	'Offset X': 'X',
 	'Offset Y': 'Y',
 	'Gap': 'width',

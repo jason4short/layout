@@ -27,7 +27,7 @@ export class TextTool extends Tool
 
 		// Defaults for new text (remembered across placements)
 		this.defaultFontSize 	= 16;
-		this.defaultFontFamily 	= 'Arial';
+		this.defaultFontFamily 	= 'Outfit';
 		this.defaultFontWeight 	= 'normal';
 		this.defaultFontStyle 	= 'normal';
 
@@ -68,6 +68,7 @@ export class TextTool extends Tool
 
 	getInspectorSchema(){
 		const fontOptions = [
+			{ value: 'Outfit', label: 'Outfit' },
 			{ value: 'Arial', label: 'Arial' },
 			{ value: 'Helvetica', label: 'Helvetica' },
 			{ value: 'Times New Roman', label: 'Times New Roman' },

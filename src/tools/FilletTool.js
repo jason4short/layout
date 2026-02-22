@@ -248,11 +248,8 @@ export class FilletTool extends Tool
 	}
 
 	createFilletLineLine(line1, clickPt1, line2, clickPt2, radius) {
+		const intersection = GeometryUtils.lineIntersection(line1, line2);
 
-		// XXX radius can be zero - then it's a simple trim or extension. no need to create the arc. 
-		
-		const intersection = GeometryUtils.lineIntersection(line1, line2); // a point
-		
 		if (!intersection) {
 			console.log("Lines are parallel, cannot fillet");
 			return null;
@@ -273,6 +270,14 @@ export class FilletTool extends Tool
 			clickPt2,
 			type: 'lineLine'
 		};
+
+		// Zero radius: just trim/extend lines to meet at intersection
+		if (radius < 1e-6) {
+			GeometryUtils.trimLineKeepClickSide(line1, intersection, clickPt1, intersection);
+			GeometryUtils.trimLineKeepClickSide(line2, intersection, clickPt2, intersection);
+			undoManager.execute(new FilletCommand(null, line1, line2, line1Original, line2Original));
+			return true;
+		}
 
 		// Get directions along each line toward the click points
 		const dir1 = GeometryUtils.lineDirectionToward(line1, intersection, clickPt1);
@@ -325,11 +330,11 @@ export class FilletTool extends Tool
 
 		// Create fillet arc and add directly (command will track it)
 		const arc = new Arc([center.x, center.y, radius, arcStartAngle, arcEndAngle]);
-		arc.groupId = line1.groupId || line2.groupId; // Inherit group
+		arc.groupId = line1.groupId || line2.groupId;
 		data.addShape(arc);
 
 		this.lastFillet.arc = arc;
-		
+
 		GeometryUtils.trimLineKeepClickSide(line1, intersection, clickPt1, tangent1);
 		GeometryUtils.trimLineKeepClickSide(line2, intersection, clickPt2, tangent2);
 
@@ -674,17 +679,15 @@ export class FilletTool extends Tool
 		const r = parseFloat(newRadius);
 		if (isNaN(r) || r < 0) return;
 
-		if (!this.lastFillet || !this.lastFillet.arc) {
+		if (!this.lastFillet) {
 			this.radius = r;
-			this.lastFillet = null;
-			console.log("set r "+this.radius)
 			return;
 		}
 
 		const { arc, shape1, shape2, shape1Original, shape2Original, clickPt1, clickPt2, type } = this.lastFillet;
 
-		// Delete old arc
-		data.deleteShape(arc);
+		// Delete old arc (if any — zero-radius fillet has no arc)
+		if (arc) data.deleteShape(arc);
 
 		// Restore shapes to original state (if they were trimmed)
 		if (shape1Original) {
