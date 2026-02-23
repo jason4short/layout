@@ -417,7 +417,9 @@ class ToolManager extends EventDispatcher
 							data.activeFrameId = selectedFrame.id;
 						}
 
-						undoManager.execute(new AddShapesCommand(shapesToPaste));
+						const pasteCmd = new AddShapesCommand(shapesToPaste);
+						if(shapesToPaste._groupIdMap) pasteCmd.clonedGroups = shapesToPaste._groupIdMap;
+						undoManager.execute(pasteCmd);
 
 						// Restore previous activeFrameId
 						data.activeFrameId = prevActiveFrame;
@@ -447,7 +449,9 @@ class ToolManager extends EventDispatcher
 									clone.groupId = data.editingGroupId;
 								}
 							}
-							undoManager.execute(new AddShapesCommand(clones));
+							const dupCmd = new AddShapesCommand(clones);
+							if(clones._groupIdMap) dupCmd.clonedGroups = clones._groupIdMap;
+							undoManager.execute(dupCmd);
 							data.selectNone();
 							for(const clone of clones) clone.selected = true;
 							stage.render();

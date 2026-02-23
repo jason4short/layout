@@ -1247,6 +1247,8 @@ class Data
 			pastedShapes.push(clone);
 		}
 
+		// Store the group map for undo tracking
+		pastedShapes._groupIdMap = groupIdMap;
 		return pastedShapes;
 	}
 

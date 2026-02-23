@@ -331,6 +331,7 @@ export class FilletTool extends Tool
 		// Create fillet arc and add directly (command will track it)
 		const arc = new Arc([center.x, center.y, radius, arcStartAngle, arcEndAngle]);
 		arc.groupId = line1.groupId || line2.groupId;
+		arc.frameId = line1.frameId || line2.frameId;
 		data.addShape(arc);
 
 		this.lastFillet.arc = arc;
@@ -423,6 +424,7 @@ export class FilletTool extends Tool
 
 		const filletArc = new Arc([best.center.x, best.center.y, radius, arcStartAngle, arcEndAngle]);
 		filletArc.groupId = line.groupId || circularShape.groupId;
+		filletArc.frameId = line.frameId || circularShape.frameId;
 		data.addShape(filletArc);
 
 		// Trim line and arc
@@ -610,6 +612,7 @@ export class FilletTool extends Tool
 
 		const filletArc = new Arc([best.center.x, best.center.y, radius, arcStartAngle, arcEndAngle]);
 		filletArc.groupId = circShape1.groupId || circShape2.groupId;
+		filletArc.frameId = circShape1.frameId || circShape2.frameId;
 		data.addShape(filletArc);
 
 		// STEP 10: Trim arcs using angle-based method

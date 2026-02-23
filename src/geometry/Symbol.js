@@ -170,6 +170,7 @@ export class SymbolInstance extends Geometry {
 		inst.libraryFrameId = this.libraryFrameId;
 		inst.penStyle = this.penStyle;
 		inst.colorToken = this.colorToken;
+		inst.groupId = this.groupId;
 		return inst;
 	}
 

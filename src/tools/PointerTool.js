@@ -45,6 +45,7 @@ export class PointerTool extends Tool
 		this.moveStart			= null; // Snapped position when move started
 		this.originalPositions	= []; // Store original positions for delta calc
 		this.clonedShapes		= []; // Shapes created during clone operation
+		this.clonedGroupMap		= null; // Map of oldGroupId -> newGroupId for cloned groups
 		this.doubleClick		= new DoubleClick();
 
 		// Label drag state (for Paper, Symbol, or any shape with hitTestLabel)
@@ -96,6 +97,7 @@ export class PointerTool extends Tool
 		stage.renderer.marqueeRect 	= null;
 		this.originalPositions 		= [];
 		this.clonedShapes 			= [];
+		this.clonedGroupMap			= null;
 		this.cornerResize 			= null;
 		this.groupResize 			= null;
 		this.frameChildOriginals 	= null;
@@ -211,11 +213,13 @@ export class PointerTool extends Tool
 	cloneSelectedShapes(){
 		this.isCloning = true;
 		this.clonedShapes = [];
+		this.clonedGroupMap = null;
 
 		const selected = data.getSelected();
 
 		// Clone group hierarchy (only used when not editing a group)
 		const groupIdMap = data.editingGroupId ? null : data.cloneGroupHierarchy(selected);
+		this.clonedGroupMap = groupIdMap;
 
 		// Clone each shape using its cloneForDrag() method
 		for(const shape of selected){
@@ -992,7 +996,9 @@ export class PointerTool extends Tool
 
 			if(this.isCloning && this.clonedShapes.length > 0){
 				// Record clone command for undo (shapes already added)
-				undoManager.record(new AddShapesCommand(this.clonedShapes));
+				const cmd = new AddShapesCommand(this.clonedShapes);
+				if(this.clonedGroupMap) cmd.clonedGroups = this.clonedGroupMap;
+				undoManager.record(cmd);
 
 				// Store transform for "Transform Again" (Cmd+D)
 				const snapPt = draftingAssistant.getCurrentSnapPoint();

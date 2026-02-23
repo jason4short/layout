@@ -124,6 +124,7 @@ export class ParallelLineTool extends Tool
 			this.offsetType = OFFSET_TYPE.CIRCLE;
 			this.originalShape = clickedShape;
 			this.previewShape = clickedShape.clone();
+			this.previewShape.frameId = clickedShape.frameId;
 			data.addTempShape(this.previewShape);
 
 			this.centerOrig = { x: clickedShape.x, y: clickedShape.y };
@@ -139,6 +140,7 @@ export class ParallelLineTool extends Tool
 			this.offsetType = OFFSET_TYPE.ARC;
 			this.originalShape = clickedShape;
 			this.previewShape = clickedShape.clone();
+			this.previewShape.frameId = clickedShape.frameId;
 			data.addTempShape(this.previewShape);
 
 			this.centerOrig = { x: clickedShape.x, y: clickedShape.y };
@@ -170,6 +172,7 @@ export class ParallelLineTool extends Tool
 		this.offsetType = OFFSET_TYPE.LINE;
 		this.originalShape = sourceLine;
 		this.previewShape = sourceLine.clone();
+		this.previewShape.frameId = sourceLine.frameId;
 		data.addTempShape(this.previewShape);
 
 		this.lineStartOrig = { x: sourceLine.start.x, y: sourceLine.start.y };

@@ -216,6 +216,7 @@ export class Mirror extends Geometry {
 		]);
 		m.penStyle = this.penStyle;
 		m.colorToken = this.colorToken;
+		m.groupId = this.groupId;
 		m.capturedShapeIds = new Set(this.capturedShapeIds);
 		return m;
 	}

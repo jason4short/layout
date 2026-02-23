@@ -68,6 +68,13 @@ export class AddShapesCommand extends Command {
 	}
 
 	execute() {
+		// Restore cloned group entries on redo
+		if (this._savedClonedGroups) {
+			for (const [id, groupData] of this._savedClonedGroups) {
+				data.groups.set(id, { ...groupData });
+			}
+		}
+
 		// Convert to frame-local coords if active frame
 		if (data.activeFrameId) {
 			for (const shape of this.shapes) {
@@ -108,6 +115,15 @@ export class AddShapesCommand extends Command {
 		}
 		for (const shape of this.shapesAddedToGroup) {
 			shape.groupId = null;
+		}
+		// Remove cloned group entries and save for redo
+		if (this.clonedGroups) {
+			this._savedClonedGroups = new Map();
+			for (const newId of this.clonedGroups.values()) {
+				const groupData = data.groups.get(newId);
+				if (groupData) this._savedClonedGroups.set(newId, { ...groupData });
+				data.groups.delete(newId);
+			}
 		}
 	}
 }
