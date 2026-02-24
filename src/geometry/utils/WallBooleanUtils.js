@@ -9,10 +9,12 @@
  * Uses Cyrus-Beck parametric clipping against convex polygons.
  */
 
-// Small inward inset used for half-plane tests so boundary-coincident edges
-// are treated as exterior (not clipped) unless there is real overlap.
+// Small inward inset used for half-plane tests so boundary contact in general
+// (e.g. T-junctions/corners) is treated as exterior unless there is real overlap.
 const EPSILON = 0.05;
 const BROADPHASE_CELL_SIZE = 1000;
+const COLLINEAR_EPS = 1e-6;
+const OVERLAP_EPS = 1e-6;
 
 function getBoundsFromCorners(corners) {
 	let minX = Infinity;
@@ -89,6 +91,96 @@ function getCandidateIndices(bounds, grid, cellSize) {
 			for (const idx of bucket) out.add(idx);
 		}
 	}
+	return out;
+}
+
+function getInwardNormalForEdge(polyCorners, edgeIndex) {
+	const n = polyCorners.length;
+	const c1 = polyCorners[edgeIndex];
+	const c2 = polyCorners[(edgeIndex + 1) % n];
+	const ex = c2.x - c1.x;
+	const ey = c2.y - c1.y;
+
+	let nx = -ey;
+	let ny = ex;
+
+	const ref = polyCorners[(edgeIndex + 2) % n];
+	const toRefX = ref.x - c1.x;
+	const toRefY = ref.y - c1.y;
+	if (nx * toRefX + ny * toRefY < 0) {
+		nx = -nx;
+		ny = -ny;
+	}
+
+	const len = Math.hypot(nx, ny);
+	if (len < COLLINEAR_EPS) return null;
+	return { x: nx / len, y: ny / len };
+}
+
+function subtractInterval(visible, clipStart, clipEnd) {
+	const out = [];
+	for (const [vStart, vEnd] of visible) {
+		if (clipEnd <= vStart || clipStart >= vEnd) {
+			out.push([vStart, vEnd]);
+			continue;
+		}
+		if (clipStart > vStart) out.push([vStart, clipStart]);
+		if (clipEnd < vEnd) out.push([clipEnd, vEnd]);
+	}
+	return out;
+}
+
+// Remove overlap where this edge lies exactly on another wall edge (parallel + collinear).
+// This handles edge-touching wall unions without breaking perpendicular touch cases.
+function subtractCoincidentEdgeOverlaps(edgeStart, edgeEnd, currentWallCorners, currentEdgeIndex, otherWallCorners, visible) {
+	const dx = edgeEnd.x - edgeStart.x;
+	const dy = edgeEnd.y - edgeStart.y;
+	const lenSq = dx * dx + dy * dy;
+	if (lenSq < COLLINEAR_EPS) return visible;
+
+	const currentInward = getInwardNormalForEdge(currentWallCorners, currentEdgeIndex);
+	if (!currentInward) return visible;
+
+	let out = visible;
+	const n = otherWallCorners.length;
+	for (let i = 0; i < n; i++) {
+		const a = otherWallCorners[i];
+		const b = otherWallCorners[(i + 1) % n];
+		const odx = b.x - a.x;
+		const ody = b.y - a.y;
+
+		// Parallel check
+		const crossDir = dx * ody - dy * odx;
+		if (Math.abs(crossDir) > COLLINEAR_EPS) continue;
+
+		// Collinear check (other edge endpoint lies on this edge's line)
+		const relAx = a.x - edgeStart.x;
+		const relAy = a.y - edgeStart.y;
+		const lineDistCross = dx * relAy - dy * relAx;
+		if (Math.abs(lineDistCross) > COLLINEAR_EPS) continue;
+
+		// Only treat as a removable shared seam if the two polygon interiors are on
+		// opposite sides of the coincident edge.
+		const otherInward = getInwardNormalForEdge(otherWallCorners, i);
+		if (!otherInward) continue;
+		const inwardDot = currentInward.x * otherInward.x + currentInward.y * otherInward.y;
+		if (inwardDot > -0.5) continue;
+
+		// Project other edge endpoints onto this edge parameter t
+		let t1 = (relAx * dx + relAy * dy) / lenSq;
+		let t2 = ((b.x - edgeStart.x) * dx + (b.y - edgeStart.y) * dy) / lenSq;
+		if (t1 > t2) [t1, t2] = [t2, t1];
+
+		const oStart = Math.max(0, t1);
+		const oEnd = Math.min(1, t2);
+
+		// Ignore point-touching at endpoints; only remove actual shared edge length.
+		if (oEnd - oStart <= OVERLAP_EPS) continue;
+
+		out = subtractInterval(out, oStart, oEnd);
+		if (out.length === 0) break;
+	}
+
 	return out;
 }
 
@@ -178,35 +270,24 @@ export function clipSegmentAgainstConvexPoly(segStart, segEnd, polyCorners) {
  * @param {Array<Array<{x:number, y:number}>>} otherWallCornerArrays - Array of corner arrays for other walls
  * @returns {Array<[number, number]>} Array of [tStart, tEnd] intervals to stroke
  */
-export function getExteriorSegments(edgeStart, edgeEnd, otherWallCornerArrays) {
+export function getExteriorSegments(edgeStart, edgeEnd, otherWallCornerArrays, currentWallCorners = null, currentEdgeIndex = -1) {
 	// Start with full segment visible
 	let visible = [[0, 1]];
 
 	for (const corners of otherWallCornerArrays) {
+		// First remove exactly shared (collinear) boundary portions.
+		if (currentWallCorners && currentEdgeIndex >= 0) {
+			visible = subtractCoincidentEdgeOverlaps(edgeStart, edgeEnd, currentWallCorners, currentEdgeIndex, corners, visible);
+		}
+		if (visible.length === 0) break;
+
 		const clip = clipSegmentAgainstConvexPoly(edgeStart, edgeEnd, corners);
 		if (!clip) continue;
 
 		const [clipEnter, clipExit] = clip;
 
 		// Subtract this interior interval from visible set
-		const newVisible = [];
-		for (const [vStart, vEnd] of visible) {
-			// No overlap
-			if (clipExit <= vStart || clipEnter >= vEnd) {
-				newVisible.push([vStart, vEnd]);
-				continue;
-			}
-
-			// Left remainder
-			if (clipEnter > vStart) {
-				newVisible.push([vStart, clipEnter]);
-			}
-			// Right remainder
-			if (clipExit < vEnd) {
-				newVisible.push([clipExit, vEnd]);
-			}
-		}
-		visible = newVisible;
+		visible = subtractInterval(visible, clipEnter, clipExit);
 
 		if (visible.length === 0) break;
 	}
@@ -293,7 +374,7 @@ export function renderWallBoolean(ctx, renderer, walls, fillColor, strokeColor, 
 				}
 			}
 
-			const exteriorSegments = getExteriorSegments(edgeStart, edgeEnd, edgeCandidates);
+			const exteriorSegments = getExteriorSegments(edgeStart, edgeEnd, edgeCandidates, corners, ei);
 
 			for (const [tStart, tEnd] of exteriorSegments) {
 				const x1 = edgeStart.x + tStart * (edgeEnd.x - edgeStart.x);
