@@ -3,6 +3,7 @@ import {Shape} 				from '../geometry/Geometry.js';
 import {Line} 				from '../geometry/Line.js';
 import {Arc} 				from '../geometry/Arc.js';
 import {EllipticalArc} 		from '../geometry/EllipticalArc.js';
+import {Spline} 			from '../geometry/Spline.js';
 
 import stage 				from '../core/Stage.js';
 import toolManager			from './ToolManager.js';
@@ -66,8 +67,8 @@ export class TrimTool extends Tool
 		// Filter out the clicked shape from boundaries (can't trim a shape against itself)
 		const boundaries = data.getSelected().filter(s => s !== clickedShape);
 
-		// No boundaries and shape is not selected: just delete the clicked shape
-		if(boundaries.length === 0 && !clickedShape.selected){
+		// No boundaries: delete the clicked shape (unless other selected shapes exist)
+		if(boundaries.length === 0){
 			this.shapesRemoved.push(clickedShape);
 			data.deleteShape(clickedShape);
 			undoManager.execute(new TrimCommand(
@@ -104,6 +105,9 @@ export class TrimTool extends Tool
 
 			}else if(clickedShape.geometry === Shape.ELLIPSE || clickedShape.geometry === Shape.ELLIPTICAL_ARC){
 				this.trimEllipse(clickedShape, boundaries, clickPoint);
+
+			}else if(clickedShape.geometry === Shape.SPLINE){
+				this.trimSpline(clickedShape, boundaries, clickPoint);
 
 			}else if(clickedShape.geometry === Shape.BOARD || clickedShape.geometry === Shape.SLOT){
 				this.trimPrimitive(clickedShape, boundaries, clickPoint);
@@ -143,9 +147,41 @@ export class TrimTool extends Tool
 // 	}
 //
 
+	// Check if a point lies on a line segment within tolerance
+	pointOnLine(point, line, tolerance = 0.5){
+		const dx = line.end.x - line.start.x;
+		const dy = line.end.y - line.start.y;
+		const len = Math.sqrt(dx * dx + dy * dy);
+		if(len < 1e-10) return false;
+		// Perpendicular distance
+		const dist = Math.abs((point.x - line.start.x) * dy - (point.y - line.start.y) * dx) / len;
+		if(dist > tolerance) return false;
+		// Check within segment
+		const t = ((point.x - line.start.x) * dx + (point.y - line.start.y) * dy) / (len * len);
+		return t >= -0.01 && t <= 1.01;
+	}
+
 	// Helper: get trim info for a line (intersections, click position, brackets)
 	getTrimInfo(line, boundaries, clickPoint){
 		const intersections = data.findIntersectionsWithBoundaries(line, boundaries);
+
+		// Also check boundary endpoints touching the line (for trimmed shapes)
+		for(const boundary of boundaries){
+			const pois = boundary.getSnapPOIs();
+			for(const poi of pois){
+				if(poi.type !== 'endpoint') continue;
+				if(this.pointOnLine(poi, line)){
+					// Check not already found
+					const isDupe = intersections.some(p =>
+						Math.hypot(p.x - poi.x, p.y - poi.y) < 0.5
+					);
+					if(!isDupe){
+						intersections.push({ x: poi.x, y: poi.y });
+					}
+				}
+			}
+		}
+
 		if(intersections.length === 0) return null;
 
 		const clickT = line.getParametricT(clickPoint);
@@ -218,6 +254,89 @@ export class TrimTool extends Tool
 			newLine.selected = line.selected; // Inherit selection
 			this.shapesAdded.push(newLine);
 			data.addShape(newLine);
+		}
+	}
+
+	// Trim spline by removing the clicked segment
+	trimSpline(spline, boundaries, clickPoint){
+		const intersections = data.findIntersectionsWithBoundaries(spline, boundaries);
+		if(intersections.length === 0){
+			// No intersections - delete the spline
+			this.shapesRemoved.push(spline);
+			data.deleteShape(spline);
+			return;
+		}
+
+		// Get t values for all intersection points and click point
+		const clickT = spline.getParametricT(clickPoint);
+		const tPoints = intersections
+			.map(p => ({ t: spline.getParametricT(p), point: p }))
+			.filter(tp => tp.t > EPSILON && tp.t < 1 - EPSILON)
+			.sort((a, b) => a.t - b.t);
+
+		if(tPoints.length === 0){
+			this.shapesRemoved.push(spline);
+			data.deleteShape(spline);
+			return;
+		}
+
+		// Find brackets around the click
+		let bracketBefore = null, bracketAfter = null;
+		for(const tp of tPoints){
+			if(tp.t <= clickT) bracketBefore = tp;
+			if(tp.t >= clickT && !bracketAfter) bracketAfter = tp;
+		}
+
+		this.originalStates.push(spline.clone());
+		this.shapesRemoved.push(spline);
+		data.deleteShape(spline);
+
+		if(clickT < tPoints[0].t){
+			// Click before first intersection - remove start, keep rest
+			const [, kept] = spline.splitAt(tPoints[0].t);
+			// Snap start to exact intersection point
+			kept.p0.x = tPoints[0].point.x;
+			kept.p0.y = tPoints[0].point.y;
+			kept.update();
+			kept.groupId = spline.groupId;
+			kept.selected = spline.selected;
+			this.shapesAdded.push(kept);
+			data.addShape(kept);
+
+		}else if(clickT > tPoints[tPoints.length - 1].t){
+			// Click after last intersection - remove end, keep rest
+			const last = tPoints[tPoints.length - 1];
+			const [kept] = spline.splitAt(last.t);
+			// Snap end to exact intersection point
+			kept.p3.x = last.point.x;
+			kept.p3.y = last.point.y;
+			kept.update();
+			kept.groupId = spline.groupId;
+			kept.selected = spline.selected;
+			this.shapesAdded.push(kept);
+			data.addShape(kept);
+
+		}else if(bracketBefore && bracketAfter){
+			// Click in middle - keep both sides, remove middle
+			const [leftPart] = spline.splitAt(bracketBefore.t);
+			// Snap end to exact intersection point
+			leftPart.p3.x = bracketBefore.point.x;
+			leftPart.p3.y = bracketBefore.point.y;
+			leftPart.update();
+			leftPart.groupId = spline.groupId;
+			leftPart.selected = spline.selected;
+			this.shapesAdded.push(leftPart);
+			data.addShape(leftPart);
+
+			const [, rightPart] = spline.splitAt(bracketAfter.t);
+			// Snap start to exact intersection point
+			rightPart.p0.x = bracketAfter.point.x;
+			rightPart.p0.y = bracketAfter.point.y;
+			rightPart.update();
+			rightPart.groupId = spline.groupId;
+			rightPart.selected = spline.selected;
+			this.shapesAdded.push(rightPart);
+			data.addShape(rightPart);
 		}
 	}
 

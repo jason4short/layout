@@ -153,22 +153,13 @@ export class Spline extends Geometry
 		return null;
 	}
 
-	// Get tangent angle (in degrees) at a point on the spline
-	getTangentAngle(point) {
-
-		if(point.x == this.p0.x && point.y == this.p0.y ){		
-			return this.tangentA;
-			
-		}else if(point.x == this.p0.x && point.y == this.p0.y ){
-			return this.tangentB;
-		}
-	
-	
-		// Find t parameter for this point
+	// Find parametric t value (0-1) for a point on the spline
+	getParametricT(point) {
 		let bestT = 0;
 		let bestDist = Infinity;
 		const samples = 50;
 
+		// Coarse search
 		for(let i = 0; i <= samples; i++){
 			const t = i / samples;
 			const pt = this.evaluate(t);
@@ -179,6 +170,59 @@ export class Spline extends Geometry
 			}
 		}
 
+		// Newton-Raphson refinement
+		for(let iter = 0; iter < 5; iter++){
+			const pt = this.evaluate(bestT);
+			const d = this.evaluateDerivative(bestT);
+			const dx = pt.x - point.x;
+			const dy = pt.y - point.y;
+			const numerator = dx * d.x + dy * d.y;
+			const denominator = d.x * d.x + d.y * d.y;
+			if(Math.abs(denominator) < 0.0001) break;
+			bestT -= numerator / denominator;
+			bestT = VectorUtils.clamp(bestT, 0, 1);
+		}
+
+		return bestT;
+	}
+
+	// Split spline at parameter t using De Casteljau's algorithm
+	// Returns two new Splines: [before t, after t]
+	splitAt(t) {
+		const p0 = this.p0, p1 = this.p1, p2 = this.p2, p3 = this.p3;
+
+		// First level
+		const a0 = { x: p0.x + (p1.x - p0.x) * t, y: p0.y + (p1.y - p0.y) * t };
+		const a1 = { x: p1.x + (p2.x - p1.x) * t, y: p1.y + (p2.y - p1.y) * t };
+		const a2 = { x: p2.x + (p3.x - p2.x) * t, y: p2.y + (p3.y - p2.y) * t };
+
+		// Second level
+		const b0 = { x: a0.x + (a1.x - a0.x) * t, y: a0.y + (a1.y - a0.y) * t };
+		const b1 = { x: a1.x + (a2.x - a1.x) * t, y: a1.y + (a2.y - a1.y) * t };
+
+		// Split point
+		const c0 = { x: b0.x + (b1.x - b0.x) * t, y: b0.y + (b1.y - b0.y) * t };
+
+		const left = new Spline([
+			p0.x, p0.y, a0.x, a0.y, b0.x, b0.y, c0.x, c0.y
+		]);
+
+		const right = new Spline([
+			c0.x, c0.y, b1.x, b1.y, a2.x, a2.y, p3.x, p3.y
+		]);
+
+		return [left, right];
+	}
+
+	// Get tangent angle (in degrees) at a point on the spline
+	getTangentAngle(point) {
+		if(point.x == this.p0.x && point.y == this.p0.y){
+			return this.tangentA;
+		}else if(point.x == this.p3.x && point.y == this.p3.y){
+			return this.tangentB;
+		}
+
+		const bestT = this.getParametricT(point);
 		const d = this.evaluateDerivative(bestT);
 		return AngleUtils.toDegrees(Math.atan2(-d.y, d.x));
 	}
@@ -211,6 +255,18 @@ export class Spline extends Geometry
 		s.penStyle = this.penStyle;
 		s.colorToken = this.colorToken;
 		return s;
+	}
+
+	copyFrom(other){
+		this.p0.x = other.p0.x; this.p0.y = other.p0.y;
+		this.p1.x = other.p1.x; this.p1.y = other.p1.y;
+		this.p2.x = other.p2.x; this.p2.y = other.p2.y;
+		this.p3.x = other.p3.x; this.p3.y = other.p3.y;
+		this.type = other.type;
+		this.geometry = other.geometry;
+		this.penStyle = other.penStyle;
+		this.colorToken = other.colorToken;
+		this.update();
 	}
 
 	// Transform methods inherited from Geometry base class via getTransformablePoints()
