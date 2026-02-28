@@ -451,8 +451,16 @@ export class PointerTool extends Tool
 		this.isDragging = false;
 		this.isMoving 	= false;
 
+		// Capture move start from the current snap point (before it gets recalculated)
+		this.moveStart = {x: data.snapPoint.x, y: data.snapPoint.y};
+
 		// Check if clicking on a shape
 		this.moveTarget = data.getTargetShape();
+
+		// Exclude selected shapes from snapping immediately to prevent snap jump
+		if(this.moveTarget){
+			this.setSnapExclusions();
+		}
 
 		// Check if clicking on an auto-layout group resize handle
 		this.groupResize = this.checkForGroupResizeHandle(clickPos);
@@ -630,9 +638,6 @@ export class PointerTool extends Tool
 			if(this.moveTarget){
 				// Start move operation
 				this.isMoving = true;
-				// Store the snap point when move started
-				const snap = draftingAssistant.getCurrentSnapPoint();
-				this.moveStart = {x: snap.x, y: snap.y};
 
 				// Option+drag = clone shapes (but not for corner resize)
 				if(stage.optionKey && !this.cornerResize){
