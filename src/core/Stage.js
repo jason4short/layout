@@ -56,7 +56,7 @@ class Stage extends View
 		this.panY				= 0;
 		this.zoom				= 1;
 		this.minZoom			= 0.1;
-		this.maxZoom			= 20;
+		this.maxZoom			= 50;
 
 		// View stack for zoom history
 		this.viewStack			= [];

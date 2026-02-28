@@ -66,6 +66,19 @@ export class TrimTool extends Tool
 		// Filter out the clicked shape from boundaries (can't trim a shape against itself)
 		const boundaries = data.getSelected().filter(s => s !== clickedShape);
 
+		// No boundaries and shape is not selected: just delete the clicked shape
+		if(boundaries.length === 0 && !clickedShape.selected){
+			this.shapesRemoved.push(clickedShape);
+			data.deleteShape(clickedShape);
+			undoManager.execute(new TrimCommand(
+				this.shapesRemoved,
+				this.shapesAdded,
+				this.originalStates
+			));
+			stage.render();
+			return;
+		}
+
 		// Use snapPoint for click position (world coordinates)
 		const clickPoint = { x: data.snapPoint.x, y: data.snapPoint.y };
 
@@ -202,6 +215,7 @@ export class TrimTool extends Tool
 				originalEnd.x, originalEnd.y
 			]);
 			newLine.groupId = line.groupId; // Inherit group
+			newLine.selected = line.selected; // Inherit selection
 			this.shapesAdded.push(newLine);
 			data.addShape(newLine);
 		}
